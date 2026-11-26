@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { alterarSituacao, atualizarMilitares, consultaEquipes, consultaQuadros, consultaUnidadesDeLotacao, consultaSituacoesDoMilitar } from '@/api/militares';
+import { alterarSituacao, atualizarMilitares, cancelarMudanca, editarMudanca, consultaEquipes, consultaQuadros, consultaUnidadesDeLotacao, consultaSituacoesDoMilitar } from '@/api/militares';
 import { consultaUnidadesDaBusca } from '@/api/consulta';
 import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
@@ -30,11 +30,16 @@ const periodoAtual = (rastreio: FichaMilitar['rastreio']) => periodoDoDia(rastre
  */
 export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [alterando, setAlterando] = useState(false);
+  // a mudança em edição e a que se pede para cancelar (ou apagar), pelo id do período
+  const [editando, setEditando] = useState<string | null>(null);
+  const [cancelando, setCancelando] = useState<string | null>(null);
   const dia = hoje();
   const atual = periodoDoDia(ficha.rastreio, dia);
   const proximo = proximoPeriodo(ficha.rastreio);
   const resumo = atual ? `${atual.unidadeSigla} · ${NOME_JORNADA[atual.jornada]}` : proximo ? `Lotação a partir de ${ddmmaaaa(proximo.desde)}` : 'Sem lotação';
   const eventos = eventosDoRastreio(ficha.rastreio, dia);
+  const emEdicao = editando ? ficha.rastreio.find((p) => p.id === editando) : undefined;
+  const paraCancelar = cancelando ? ficha.rastreio.find((p) => p.id === cancelando) : undefined;
   return (
     <Secao
       titulo="Histórico de rastreio"
@@ -45,9 +50,11 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
     >
       <div className="@container">
         <QuadroHoje atual={atual} proximo={proximo} />
-        <LinhaDoTempo eventos={eventos} />
+        <LinhaDoTempo eventos={eventos} podeCancelar={ficha.rastreio.length > 1} aoEditar={setEditando} aoCancelar={setCancelando} />
       </div>
       {alterando && <AlterarSituacao ficha={ficha} unidadeAtualId={unidadeId} aoFechar={() => setAlterando(false)} />}
+      {emEdicao && <AlterarSituacao ficha={ficha} unidadeAtualId={unidadeId} periodo={emEdicao} aoFechar={() => setEditando(null)} />}
+      {paraCancelar && <CancelarMudanca ficha={ficha} periodo={paraCancelar} aoFechar={() => setCancelando(null)} />}
     </Secao>
   );
 }
@@ -97,7 +104,7 @@ const PONTO = {
 const TRILHO = "before:absolute before:left-[-22px] before:top-[11px] before:border-l-2 before:content-['']";
 
 /** Uma mudança (ou o primeiro registro, ou os dias sem lotação) da linha do tempo. */
-function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 'ate-o-vao' | 'nenhum' }) {
+function Evento({ e, trilho, podeCancelar, aoEditar, aoCancelar }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 'ate-o-vao' | 'nenhum'; podeCancelar: boolean; aoEditar: (id: string) => void; aoCancelar: (id: string) => void }) {
   if (e.tipo === 'vao') {
     return <li data-tipo="vao" className="text-apagado">{e.texto}</li>;
   }
@@ -144,12 +151,23 @@ function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 
         </dl>
       )}
       {e.autor && <p className="mt-1 text-xs text-apagado">{e.autor}</p>}
+      {e.podeMexer && (
+        <div className="-ml-3 mt-1.5 flex flex-wrap gap-1">
+          <Button type="button" variant="discreto" size="sm" aria-label={`Editar a mudança de ${ddmmaaaa(e.desde)}`} onClick={() => aoEditar(e.id)}>Editar</Button>
+          {/* a que ainda não vale se cancela; a que já vale (só o administrador, na fase de testes) se apaga */}
+          {podeCancelar && (e.vale === 'marcada' ? (
+            <Button type="button" variant="discreto" size="sm" aria-label={`Cancelar a mudança de ${ddmmaaaa(e.desde)}`} onClick={() => aoCancelar(e.id)}>Cancelar</Button>
+          ) : (
+            <Button type="button" variant="discreto" size="sm" aria-label={`Apagar o período de ${ddmmaaaa(e.desde)}`} onClick={() => aoCancelar(e.id)}>Apagar</Button>
+          ))}
+        </div>
+      )}
     </li>
   );
 }
 
 /** As mudanças do mais novo para o mais velho; com mais de 5 itens, os 5 mais novos e "Ver todo o histórico (n)" (o estado vale só para esta ficha). */
-function LinhaDoTempo({ eventos }: { eventos: EventoDoRastreio[] }) {
+function LinhaDoTempo({ eventos, podeCancelar, aoEditar, aoCancelar }: { eventos: EventoDoRastreio[]; podeCancelar: boolean; aoEditar: (id: string) => void; aoCancelar: (id: string) => void }) {
   const [tudo, setTudo] = useState(false);
   if (eventos.length === 0) return <p className="mt-4 text-apagado">Para lançar a primeira lotação, use "Alterar situação".</p>;
   const longo = eventos.length > MAIS_NOVOS;
@@ -160,7 +178,7 @@ function LinhaDoTempo({ eventos }: { eventos: EventoDoRastreio[] }) {
         const seguinte = mostrados[i + 1];
         // o trilho vai até o ponto do seguinte; o primeiro registro o fecha; antes de um vão à vista, ele para antes e recomeça depois dele
         const trilho = e.tipo === 'inicio' || (i === mostrados.length - 1 && !longo) ? 'nenhum' : seguinte?.tipo === 'vao' ? 'ate-o-vao' : 'ate-o-proximo';
-        return <Evento key={e.tipo === 'vao' ? `vao-${e.de}` : `${e.tipo}-${e.desde}`} e={e} trilho={e.tipo === 'vao' ? 'nenhum' : trilho} />;
+        return <Evento key={e.tipo === 'vao' ? `vao-${e.de}` : `${e.tipo}-${e.desde}`} e={e} trilho={e.tipo === 'vao' ? 'nenhum' : trilho} podeCancelar={podeCancelar} aoEditar={aoEditar} aoCancelar={aoCancelar} />;
       })}
       {longo && (
         <li className="-ml-3.5">
@@ -171,16 +189,20 @@ function LinhaDoTempo({ eventos }: { eventos: EventoDoRastreio[] }) {
   );
 }
 
-/** O formulário flutuante: lotação, equipe (da lotação escolhida), jornada, quadro (só os do posto), situação e "a partir de" (um dia, sugerido o de hoje). */
-function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMilitar; unidadeAtualId: string; aoFechar: () => void }) {
+/**
+ * O formulário flutuante: lotação, equipe (da lotação escolhida), jornada, quadro (só os do posto), situação e "a partir de" (um dia, sugerido o de hoje).
+ * Com `periodo`, é a edição daquela mudança: parte dos valores dela e grava no lugar dela (a data nova acerta o fim do período anterior).
+ */
+function AlterarSituacao({ ficha, unidadeAtualId, aoFechar, periodo }: { ficha: FichaMilitar; unidadeAtualId: string; aoFechar: () => void; periodo?: FichaMilitar['rastreio'][number] }) {
   const queryClient = useQueryClient();
   const secoes = useQuery(consultaUnidadesDeLotacao);
   // a árvore da corporação dá lugar às unidades de lotação (as de cima entram como passagem)
   const todas = useQuery(consultaUnidadesDaBusca);
-  const atual = periodoAtual(ficha.rastreio);
+  // na edição, o ponto de partida é o período editado; senão, o de hoje
+  const atual = periodo ?? periodoAtual(ficha.rastreio);
   // a lotação sugerida é a do período de hoje (achada pelo id: a mesma sigla existe em mais de um grupamento); sem ela, a unidade em que a tela trabalha
   // sem período de hoje (só um marcado para depois), vale o período aberto; a unidade da tela (que pode ser o grupamento ou o CBMPE) só entra se nada mais houver
-  const aberto = ficha.rastreio.find((p) => !p.ate) ?? null;
+  const aberto = periodo ?? ficha.rastreio.find((p) => !p.ate) ?? null;
   const daLotacao = secoes.data?.find((s) => s.id === (atual?.unidadeId ?? aberto?.unidadeId))?.id;
   const [escolhida, setEscolhida] = useState<string | null>(null);
   // sem lotação nenhuma (o primeiro lançamento, que o administrador faz): a unidade da tela, se for uma seção da lista; senão, nenhuma vem escolhida (a unidade da
@@ -206,19 +228,20 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const situacaoId = situacaoEscolhida ?? situacaoAtual?.id ?? '';
   // as desativadas não aparecem, a não ser a que o militar já tem
   const situacoesParaEscolher = (situacoes.data ?? []).filter((s) => s.ativo || s.id === situacaoId);
-  const [desde, setDesde] = useState(hoje());
+  const [desde, setDesde] = useState(periodo?.desde ?? hoje());
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
 
   const salvar = travar(async () => {
     setErro(null);
     try {
-      await alterarSituacao(ficha.id, {
+      const corpo = {
         unidadeId, equipeId: equipeId || null, jornada, desde,
         // o que não foi tocado nem sabido fica de fora: a API repete o do período atual
         ...(ficha.podeEditar.peculio && (quadroEscolhido !== null) ? { quadroId: quadroEscolhido || null } : {}),
         ...(ficha.podeEditar.peculio && situacaoEscolhida ? { situacaoId: situacaoEscolhida } : {}),
-      });
+      };
+      await (periodo ? editarMudanca(ficha.id, periodo.id, corpo) : alterarSituacao(ficha.id, corpo));
       atualizarMilitares(queryClient, ficha.id);
       aoFechar();
     } catch (err) {
@@ -230,8 +253,10 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Alterar situação</DialogTitle>
-          <DialogDescription>A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.</DialogDescription>
+          <DialogTitle>{periodo ? 'Editar mudança' : 'Alterar situação'}</DialogTitle>
+          <DialogDescription>
+            {periodo ? 'Mudar a data acerta o fim do período anterior, que termina na véspera dela.' : 'A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -288,12 +313,51 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
               <Input id="rs-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} required />
             </div>
           </div>
+          {/* só um aviso: mudar a lotação sem equipe é permitido, mas a pré-escala do Pronto só põe no turno quem tem equipe do ciclo */}
+          {jornada === 'pronto' && !equipeId && equipes.isSuccess && <p className="text-xs text-alerta">Sem equipe, o militar não entra na pré-escala do Pronto.</p>}
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
             {/* sem a lista de seções a lotação sugerida pode ser a da tela, e não a do período: espera chegar */}
             <Button type="submit" disabled={salvando || !desde || !secoes.data || !unidadeId}>Salvar</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A confirmação de cancelar uma mudança que ainda não vale (ou, na fase de testes, de apagar um período que já vale): o período anterior volta a cobrir os dias dela. */
+function CancelarMudanca({ ficha, periodo, aoFechar }: { ficha: FichaMilitar; periodo: FichaMilitar['rastreio'][number]; aoFechar: () => void }) {
+  const queryClient = useQueryClient();
+  const [erro, setErro] = useState<string | null>(null);
+  const { salvando, travar } = useTrava();
+  const marcada = periodo.desde > hoje();
+  const confirmar = travar(async () => {
+    setErro(null);
+    try {
+      await cancelarMudanca(ficha.id, periodo.id);
+      atualizarMilitares(queryClient, ficha.id);
+      aoFechar();
+    } catch (err) {
+      setErro(mensagemDe(err));
+    }
+  });
+  return (
+    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{marcada ? 'Cancelar esta mudança?' : 'Apagar este período?'}</DialogTitle>
+          <DialogDescription>
+            {marcada
+              ? `A mudança de ${ddmmaaaa(periodo.desde)} deixa de existir e a situação anterior volta a valer.`
+              : `O período de ${ddmmaaaa(periodo.desde)} some do histórico e o anterior passa a cobrir os dias dele. Só o administrador faz isto, na fase de testes.`}
+          </DialogDescription>
+        </DialogHeader>
+        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
+        <DialogFooter>
+          <Button type="button" variant="secundario" onClick={aoFechar}>Voltar</Button>
+          <Button type="button" variant="perigoso-cheio" disabled={salvando} onClick={() => void confirmar()}>{marcada ? 'Cancelar mudança' : 'Apagar'}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

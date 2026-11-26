@@ -5,7 +5,7 @@ import { ddmmaaaa, eventosDoRastreio, periodoAtual, ROTULO_DO_CAMPO, textoDoAuto
 type Periodo = FichaMilitar['rastreio'][number];
 const HOJE = '2026-11-24';
 const periodo = (id: string, desde: string, ate: string | null, unidadeSigla: string, equipe: string | null, jornada: 'pronto' | 'adm', quadro: string | null = 'QBMG', situacao = 'Ativa'): Periodo => ({
-  id, unidadeId: `u-${unidadeSigla}`, unidadeSigla, equipe, jornada, quadro, situacao, desde, ate, alteradoPor: null, alteradoEm: null,
+  id, unidadeId: `u-${unidadeSigla}`, unidadeSigla, equipe, jornada, quadro, situacao, desde, ate, alteradoPor: null, alteradoEm: null, podeMexer: false,
 });
 const comAutor = (p: Periodo, patente: string, nomeGuerra: string, em: string): Periodo => ({ ...p, alteradoPor: { patente, nomeGuerra }, alteradoEm: em });
 type ComCampos = Exclude<EventoDoRastreio, { tipo: 'vao' }>;

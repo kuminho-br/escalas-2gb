@@ -33,7 +33,7 @@ const FICHA = (id: string, nomeGuerra: string, matricula: string): FichaMilitar 
   postoGradId: 'p-sd', veDadosRestritos: false, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true },
   nomeCompleto: `Fulano ${nomeGuerra}`, sexo: 'M', nascimento: null, telefone: null, email: null, comportamento: null, comportamentoBoletim: null, antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false,
   noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
-  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
+  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, podeMexer: false, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
 });
 const PAINEL: PainelDoDia = {
   militar: { militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: [], voluntarioJes: false },

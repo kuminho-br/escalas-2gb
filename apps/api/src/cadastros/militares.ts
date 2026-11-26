@@ -28,6 +28,7 @@ import { postoCurto } from '../oficiais/participantes.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { apagarMilitar, oQueVaiJunto } from './apagar-militar.ts';
 import { aplicarAlteracaoDeSituacao, conferirAlteracaoDeSituacao, corpoDaRecusa, FRASE_CAMPO, FRASE_DA_RAIZ, FRASE_LOTACAO, RecusaDaAlteracao, unidadeAtualDoMilitar, unidadesDoAcesso } from './alterar-situacao.ts';
+import { cancelarPeriodo, editarPeriodo, periodosQueQuemPedePodeMexer } from './mudanca-do-rastreio.ts';
 import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
 import { lerQuadros, quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
@@ -239,6 +240,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
+  const mexe = await periodosQueQuemPedePodeMexer(c, usuarioId, rastreio.rows.map((l) => ({ id: l.id, unidadeId: l.unidade_id, desde: l.desde })), podeEditar.peculio, admin, hoje);
   // CPF, nascimento, endereço e abono de permanência: de quem cuida do Pecúlio (nível de acesso acima da lotação) e do administrador; para os outros as chaves nem saem
   const veDadosRestritos = podeEditar.peculio || admin;
   return {
@@ -275,6 +277,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
       id: l.id, unidadeId: l.unidade_id, unidadeSigla: l.sigla_repetida && l.cima ? `${l.sigla} (${l.cima})` : l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate,
       alteradoPor: l.autor_nome && l.autor_posto ? { patente: postoCurto(l.autor_posto), nomeGuerra: l.autor_nome } : null,
       alteradoEm: l.autor_nome && l.autor_posto ? l.alterado_em : null,
+      podeMexer: mexe.has(l.id),
     })),
     afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim, motivo: a.motivo, boletim: a.boletim })),
   };
@@ -726,6 +729,39 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         return { ficha: await carregarFicha(tx, id, d.desde.slice(0, 7), c.get('usuarioId')), criado };
       });
       return c.json(resultado.ficha, resultado.criado ? 201 : 200);
+    } catch (e) {
+      if (e instanceof RecusaDaAlteracao) return c.json(corpoDaRecusa(e.motivo), e.motivo.status);
+      return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
+    }
+  });
+
+  // Cancelar e editar um período do histórico de rastreio: a regra está em mudanca-do-rastreio.ts (a mudança que ainda não vale; na fase de testes, o administrador mexe em qualquer um)
+  r.delete('/militares/:id/rastreio/:periodoId', async (c) => {
+    const id = c.req.param('id');
+    const negado = await exigirPapelNoRegistro(c, 'militar', id);
+    if (negado) return negado;
+    try {
+      return c.json(await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        await cancelarPeriodo(tx, c.get('usuarioId'), id, c.req.param('periodoId'), hojeRecife());
+        return carregarFicha(tx, id, hojeRecife().slice(0, 7), c.get('usuarioId'));
+      }));
+    } catch (e) {
+      if (e instanceof RecusaDaAlteracao) return c.json(corpoDaRecusa(e.motivo), e.motivo.status);
+      return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
+    }
+  });
+
+  r.put('/militares/:id/rastreio/:periodoId', async (c) => {
+    const id = c.req.param('id');
+    const negado = await exigirPapelNoRegistro(c, 'militar', id);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, AlteracaoDeSituacao);
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      return c.json(await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        await editarPeriodo(tx, c.get('usuarioId'), id, c.req.param('periodoId'), corpo.dados, hojeRecife());
+        return carregarFicha(tx, id, hojeRecife().slice(0, 7), c.get('usuarioId'));
+      }));
     } catch (e) {
       if (e instanceof RecusaDaAlteracao) return c.json(corpoDaRecusa(e.motivo), e.motivo.status);
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
