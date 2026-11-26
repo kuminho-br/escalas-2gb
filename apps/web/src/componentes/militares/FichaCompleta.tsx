@@ -19,7 +19,7 @@ import { resumoDaLotacao } from '@/lib/militares';
  * A ficha do militar com todos os blocos (cada um é editado pelo seu dono). `completa`: a ficha do Pecúlio, com Dados pessoais e Comportamento; sem ela, a ficha da
  * escala, que só traz o que serve à escala. `voltarPara` e `voltarBusca` são a tela de onde a pessoa veio.
  */
-export function FichaCompleta({ ficha, eu, completa, voltarPara, voltarBusca }: { ficha: FichaMilitar; eu: Eu; completa: boolean; voltarPara: LinkProps['to']; voltarBusca?: LinkProps['search'] }) {
+export function FichaCompleta({ ficha, eu, completa, voltarPara, voltarBusca, semVoltar }: { ficha: FichaMilitar; eu: Eu; completa: boolean; voltarPara: LinkProps['to']; voltarBusca?: LinkProps['search']; semVoltar?: boolean }) {
   return (
     <ProvedorDePendencias>
       <FichaPainel
@@ -27,6 +27,7 @@ export function FichaCompleta({ ficha, eu, completa, voltarPara, voltarBusca }: 
         complemento={<span className="font-cond text-apagado">{ficha.matricula}</span>}
         voltarPara={voltarPara}
         voltarBusca={voltarBusca}
+        semVoltar={semVoltar}
         voltarSempre={completa}
         resumo={resumoDaLotacao(ficha.rastreio)}
         aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}

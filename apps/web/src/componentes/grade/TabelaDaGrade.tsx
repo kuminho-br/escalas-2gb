@@ -49,12 +49,14 @@ const FUNDO_DA_MARCA_NO_CABECALHO = 'bg-[#F7EFEF]';
  * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES e Diárias. `grupos` são os
  * que aparecem (o filtro de equipes já aplicado); `maximos` vêm da grade inteira.
  */
-export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, recolhidas, aoAlternar }: {
+export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, aoAbrirFicha, recolhidas, aoAlternar }: {
   grade: GradeDoMes;
   grupos: GrupoDaGrade[];
   maximos: { pjes: number; diarias: number };
   escolhida: { militarId: string; dia: string } | null;
   aoEscolher: (militarId: string, dia: string) => void;
+  /** Clicar no militar (posto, nome e matrícula) abre a ficha dele, por cima da Grade. */
+  aoAbrirFicha: (militarId: string) => void;
   /** As chaves das equipes recolhidas (só a faixa aparece) e o clique no nome da equipe. */
   recolhidas: Set<string>;
   aoAlternar: (chave: string) => void;
@@ -132,15 +134,23 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                 return (
                 <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
                   <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
-                    <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                      <span className="text-sm text-apagado">{l.posto}</span>
-                      <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
-                    </span>
-                    {/* a matrícula à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
-                    <span className="flex items-center justify-between gap-1.5">
-                      <span className="text-xs text-apagado">{l.matricula}</span>
-                      {l.saldos && <CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} />}
-                    </span>
+                    {/* o posto, o nome e a matrícula são um botão: abre a ficha do militar. A matrícula fica à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-1.5">
+                      <button
+                        type="button"
+                        data-abrir-ficha
+                        aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
+                        onClick={() => aoAbrirFicha(l.militarId)}
+                        className="col-start-1 row-span-2 grid cursor-pointer justify-items-start rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-tinta"
+                      >
+                        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                          <span className="text-sm text-apagado">{l.posto}</span>
+                          <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                        </span>
+                        <span className="text-xs text-apagado">{l.matricula}</span>
+                      </button>
+                      {l.saldos && <span className="col-start-2 row-start-2"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                    </div>
                   </th>
                   {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
