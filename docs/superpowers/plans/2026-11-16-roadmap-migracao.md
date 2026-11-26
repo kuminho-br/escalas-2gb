@@ -120,6 +120,18 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 67 | Entrada v2 (login): a foto nova do quartel por plataforma, as brasas que esfriam até virar cinza (59, por 4,2 s), mais fracas sobre a saudação, e o pouso no quadro da tela inicial v3 | plano pronto (mockup aprovado em 26/11); junto com a 6.61; aguarda a ordem do usuário |
 | 68 | Primeiro acesso e "Esqueci minha senha" por código no e-mail institucional (Brevo): o militar cria a própria senha; a senha provisória fica como reserva; os requisitos da senha à vista (migração 0051) | plano pronto; o usuário põe a chave do Brevo no Vercel antes da validação; aguarda a ordem do usuário |
 
+**Ordem de execução das entregas com plano pronto** (26/11/2026, a pedido do usuário; o critério é o piloto de dezembro). Cada uma só começa quando o usuário mandar:
+
+1. **6.58** Laboratório 1: tem prazo (antes da montagem de dezembro); exige a autorização do banco.
+2. **6.65** Acabamento: defeitos já vistos e a ficha pela Grade; sem migração.
+3. **6.68** Código por e-mail: para os militares criarem a própria senha no piloto; antes da validação o usuário põe a chave do Brevo no Vercel; migração 0051.
+4. **6.66** Remover do rastreio: corrige os erros de cadastro que o piloto revelar; migração 0050.
+5. **6.63** Pesquisar militares v2: melhora o uso, não trava o piloto.
+6. **6.61 e 6.67** Cabeçalho novo e Entrada v2: só visual; vão juntas, porque a animação pousa com o cabeçalho novo em volta.
+7. **6.59 e 6.60** Laboratório 2 e 3: sem prazo; dependem da 6.58.
+- **6.64** Equipes entra assim que a CONCEPÇÃO entregar a modelagem, no lugar mais alto que couber.
+- Os números das migrações não impõem ordem: o executor aplica os arquivos pendentes por nome, e cada plano manda usar o próximo número livre se houver colisão.
+
 ## Refatoração da interface · fundação concluída
 
 Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0 = 6.19; N1 e N2 = 6.20 e 6.21 (plano `2026-11-23-fundacao-da-interface.md`). As telas seguem as áreas do Manual de Identidade Visual: Grade geral e Escala do mês antes do piloto; moldura, fichas e celular entre as duas.
