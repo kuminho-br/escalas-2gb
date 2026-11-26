@@ -1,7 +1,7 @@
 import type { LinhaDaBusca, PreviaDoLote, ResultadoDaBusca } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { abrir, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.52, Task 3: o painel "Atualizar em lote" sobre a seleção da pesquisa. Dados fictícios (D7).
@@ -127,7 +127,7 @@ describe('o painel Atualizar em lote (6.52)', () => {
     expect(enviado.desde).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
 
-  it('passo 4, Aplicar: "Aplicar a {n} militares" manda a assinatura, o resultado diz quantos mudaram, e fechar limpa a seleção e refaz a busca', async () => {
+  it('passo 4, Aplicar: "Aplicar a {n} militares" manda a assinatura, o resultado diz quantos mudaram, e fechar mantém a seleção e refaz a busca', async () => {
     const f = api();
     abrir('/peculio/pesquisar');
     await selecionarTodos();
@@ -143,8 +143,57 @@ describe('o painel Atualizar em lote (6.52)', () => {
     const antes = corpos(f, '/militares/buscar').length;
     await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
+    // 6.62: a seleção continua com os mesmos militares
+    expect(screen.getByRole('heading', { name: 'Selecionados (2)' })).toBeInTheDocument();
     await waitFor(() => expect(corpos(f, '/militares/buscar').length).toBeGreaterThan(antes));
+  });
+
+  it('6.62, Review Focus 3: o lote que muda a lotação de um selecionado o deixa na seleção, com a lotação nova; os dados vêm de uma nova leitura', async () => {
+    api();
+    const base = globalThis.fetch;
+    const NOVA: ResultadoDaBusca = { ...BUSCA, militares: [{ ...linha('m1', 'ANDRADE'), lotacao: '2ª SB', unidadeId: 'u-2sb' }, linha('m2', 'BARRETO')] };
+    let aplicado = false;
+    const pedidos: unknown[] = [];
+    vi.stubGlobal('fetch', async (e: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof e === 'string' ? e : e instanceof URL ? e.href : e.url;
+      if (url.endsWith('/lote/aplicar')) aplicado = true;
+      if (aplicado && url.endsWith('/militares/buscar') && String(init?.body).includes('matriculas')) {
+        pedidos.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify(NOVA), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return base(e, init);
+    });
+    abrir('/peculio/pesquisar');
+    await selecionarTodos();
+    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
+    expect(painel.getAllByText('1ª SB')).toHaveLength(2);
+    const p = await abrirPainel();
+    await userEvent.click(p.getByRole('checkbox', { name: 'Voluntário JES' }));
+    await userEvent.click(p.getByRole('button', { name: 'Continuar' }));
+    await userEvent.selectOptions(await p.findByLabelText('Voluntário JES'), 'sim');
+    await userEvent.click(p.getByRole('button', { name: 'Ver a prévia' }));
+    await userEvent.click(await p.findByRole('button', { name: 'Aplicar a 2 militares' }));
+    await p.findByText('2 militares alterados');
+    await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const depois = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
+    await waitFor(() => expect(depois.getByText('2ª SB')).toBeInTheDocument());
+    expect(depois.getByRole('button', { name: 'Tirar SD ANDRADE' })).toBeInTheDocument();
+    expect(depois.getByRole('button', { name: 'Tirar SD BARRETO' })).toBeInTheDocument();
+    // a leitura nova pediu os mesmos militares, pelas matrículas
+    expect(pedidos).toEqual([{ matriculas: ['990001-1', '990001-1'] }]);
+  });
+
+  it('6.62: cancelar a janela não mexe na seleção, e "Limpar" continua limpando', async () => {
+    api();
+    abrir('/peculio/pesquisar');
+    await selecionarTodos();
+    const p = await abrirPainel();
+    await userEvent.click(p.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Selecionados (2)' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
+    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
   });
 
   it('Review Focus 4: o botão fica travado enquanto grava, e o clique duplo manda um pedido só', async () => {
@@ -236,7 +285,7 @@ describe('depois de aplicar, a ficha lê de novo (6.53, item d)', () => {
     await p.findByText('2 militares alterados');
     await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    // a seleção acabou; abre o militar de novo pela busca
+    // a seleção continua; abre o militar de novo pela busca
     await userEvent.click(await screen.findByRole('link', { name: /ANDRADE/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m1'));
     expect(screen.queryByText('LOTACAO-ANTIGA')).toBeNull();
