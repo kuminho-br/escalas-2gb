@@ -94,8 +94,8 @@
 <header class="abre">
   <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
   <h1>Entrada</h1>
-  <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. Versão 2: a foto nova do quartel no fundo do login, com a marca fora das bandeiras, o dobro de brasas, três em cada quatro esfriando até virar cinza, e o pouso no quadro da tela inicial.</p>
-  <p class="menor">Em revisão por você. A animação toca inteira uma vez a cada 12 h, pela escolha da pessoa; o resto do tempo a entrada é curta. Nada mudou no site. Nome, e-mail e senha são de exemplo.</p>
+  <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. Versão 2: a foto nova do quartel no fundo do login, com a marca fora das bandeiras, mais brasas, três em cada quatro esfriando até virar cinza, e o pouso no quadro da tela inicial.</p>
+  <p class="menor">Versão 2, aprovada por você em 26/11/2026. A animação toca inteira uma vez a cada 12 h, pela escolha da pessoa; o resto do tempo a entrada é curta. Nada mudou no site. Nome, e-mail e senha são de exemplo.</p>
   <div class="ent-controles" role="group" aria-label="Controles do teste">
     <span class="grupo" role="radiogroup" aria-label="Tela"><label class="marcar"><input type="radio" name="modo" value="pc" checked><span>Computador</span></label><label class="marcar"><input type="radio" name="modo" value="cel"><span>Celular</span></label></span>
     <span class="grupo" role="radiogroup" aria-label="Senha"><label class="marcar"><input type="radio" name="senha" value="certa" checked><span>Senha certa</span></label><label class="marcar"><input type="radio" name="senha" value="errada"><span>Senha errada</span></label></span>
@@ -157,7 +157,7 @@
         <tbody>
           <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. Um enquadramento por plataforma. No computador, as bandeiras livres no céu, com a marca embaixo (sua escolha de 25/11). No celular, sem bandeiras e sem céu: a fachada, a estátua e o jardim (o recorte que você mandou em 25/11), com a marca encostada no cartão, o texto à esquerda e o brasão à direita. Sem a etiqueta "Quartel do 2º GB".</td></tr>
           <tr><td>Marca sobre a foto</td><td class="quebra">Branco direto sobre a foto.</td><td class="quebra">O nome e a linha de baixo ganham uma sombra leve, e a marca fica sobre a parte densa do véu vinho, nunca sobre o céu aberto (seu pedido de 25/11: o branco perdia o contraste no azul).</td></tr>
-          <tr><td>Brasas do ambiente</td><td class="quebra">44, todas iguais.</td><td class="quebra">88, em três profundidades: as pequenas mais lentas e apagadas, ao fundo; as grandes mais rápidas e fortes, na frente.</td></tr>
+          <tr><td>Brasas do ambiente</td><td class="quebra">44, todas iguais.</td><td class="quebra">59, em três profundidades: as pequenas mais lentas e apagadas, ao fundo; as grandes mais rápidas e fortes, na frente. A primeira revisão tinha 88; você pediu um terço a menos em 26/11.</td></tr>
           <tr><td>Brasas do botão Entrar</td><td class="quebra">26.</td><td class="quebra">52.</td></tr>
           <tr><td>Cinza</td><td class="quebra">22 pontos descendo.</td><td class="quebra">44. E três em cada quatro brasas esfriam na subida: de alaranjada passa a vermelha e termina cinza, sem brilho, antes de sair do quadro. Uma em cada quatro apaga ainda alaranjada (sua escolha de 25/11).</td></tr>
           <tr><td>Quanto duram depois do pouso</td><td class="quebra">4 s, apagando nos últimos 1,6 s.</td><td class="quebra">4,2 s, apagando nos últimos 1,6 s. A primeira revisão tinha 6,3 s; você pediu um terço a menos em 25/11.</td></tr>
@@ -181,7 +181,7 @@
       <ul class="regras-da-casa">
         <li><b>A chegada e o enchimento da mangueira</b>Ficam como estão. Em 25/11 você decidiu deixar de lado as capturas do vídeo do quartel que os pedidos R1 e R4 de 20/11 esperavam.</li>
         <li><b>Defeitos antigos</b>A boca do anel chapada antes do engate e a sombra leve embaixo da mangueira no afastamento. Ficam para quando a junta for refeita com as fotos novas.</li>
-        <li><b>Velocidade no celular</b>O dobro de partículas pesa. Antes de ir ao plano, meço num celular lento simulado; se travar, a proposta é reduzir as partículas só nos aparelhos fracos.</li>
+        <li><b>Velocidade no celular</b>Mais partículas pesam. Antes de ir ao plano, meço num celular lento simulado; se travar, a proposta é reduzir as partículas só nos aparelhos fracos.</li>
       </ul>
     </div>
   </div>
@@ -203,7 +203,7 @@
 
 <section class="fecho">
   <h2>O que vem depois</h2>
-  <p>Com a sua aprovação, a especificação da animação (<code>docs/superpowers/specs/2026-11-20-transicao-login-design.md</code>) ganha a versão 2 e a PLANEJAMENTO planeja a entrega. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+  <p>Aprovada em 26/11/2026: a PLANEJAMENTO atualiza a especificação da animação (<code>docs/superpowers/specs/2026-11-20-transicao-login-design.md</code>) para a versão 2 e planeja a entrega. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
 </section>
 
 </div>
@@ -501,13 +501,13 @@ function agua(s){ var x=s.frente, e, i, v, tau, u, px, py, a=1-ss(.75,1,s.ta/T.p
     ctx.fillStyle='rgba('+AGUA+','+(.75*(1-u))+')'; ctx.beginPath(); ctx.arc(px,py,(1.2+1.6*rnd(i,23))*(1-.4*u),0,DOIS_PI); ctx.fill(); } }
 
 /* brasas e cinza do ambiente, versão 2 (em pixels do palco; servem para a animação e para o quadro da tela inicial).
-   O dobro de brasas, em três profundidades. Três em cada quatro esfriam na subida (alaranjada, vermelha, cinza) e apagam antes de sair do quadro;
+   Um terço a mais de brasas que a versão 1 (59; a primeira revisão tinha 88, o dobro, e o usuário pediu um terço a menos em 26/11), em três profundidades. Três em cada quatro esfriam na subida (alaranjada, vermelha, cinza) e apagam antes de sair do quadro;
    uma em cada quatro apaga ainda alaranjada, só avermelhando um pouco (decisão do usuário, 25/11: 25% não viram cinza).
    `fraca` é o retângulo da saudação: ali as brasas ficam a um terço da força, com a borda suave. */
-var N_BRASAS=88, N_CINZA=44, SEM_CINZA=.25;
+var N_BRASAS=59, N_CINZA=44, SEM_CINZA=.25;
 function dentro(x,y,f){ var m=24; if(!f) return 0;
   return ss(f.x-m,f.x,x)*(1-ss(f.x+f.w,f.x+f.w+m,x))*ss(f.y-m,f.y,y)*(1-ss(f.y+f.h,f.y+f.h+m,y)); }
-var N_QUADRO=64;   /* depois do pouso, mais estas só dentro do quadro: o campo do palco inteiro deixa um terço delas na cena */
+var N_QUADRO=43;   /* depois do pouso, mais estas só dentro do quadro: o campo do palco inteiro deixa um terço delas na cena */
 function brasas(g,t,W,H,amp,fraca,sem,n){ var i,a,b,c,d,prof,vel,ciclo,u,x,y,r,al,esf,cinza,cor,cr,cg,cb,k=sem||0;
   if(amp<=.004) return;
   for(i=0;i<(n||N_BRASAS);i++){ a=rnd(i+k,1); b=rnd(i+k,2); c=rnd(i+k,3); d=rnd(i+k,4);

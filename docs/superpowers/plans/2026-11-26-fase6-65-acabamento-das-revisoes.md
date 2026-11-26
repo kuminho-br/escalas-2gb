@@ -10,7 +10,7 @@
 
 **Tech Stack:** Hono, Postgres/PGlite, React, TanStack Query, Vitest.
 
-**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 34, 35, 36, 51 e 52, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
+**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 31 (h), 34, 35, 36, 51, 52 e K1, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
 
 ## Global Constraints
 
@@ -55,15 +55,16 @@
   - (h) O título "Seus próximos serviços" tem contraste de pelo menos 4,5:1 sobre o canto da cena (teste com a cor do fundo da cena no ponto mais claro do degradê).
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.65: acabamento da tela inicial (pool 36)`.
 
-### Task 3: a Grade geral (pool 35, 17 e 18)
+### Task 3: a Grade geral (pool 35, 17, 18 e K1)
 
 **Files:** Modify a Grade (`apps/web/src/routes/_app/grade.tsx` e os componentes da coluna do militar e dos filtros de equipe); Test os testes da Grade
 
 - [ ] **Step 1: testes:**
   - (35) Clicar na célula do militar (posto, nome de guerra e matrícula, na coluna fixa) abre a ficha do militar na escala, a mesma que a Escala do mês abre (6.32). O mesmo vale pelo teclado (Enter na célula). A Grade não perde a rolagem nem a seleção (Review Focus 3).
   - (17) O corte do celular dos filtros de equipe passa a 768 px, como o resto do site, e o nome fica centrado no segmento não marcado. Decidido pela PLANEJAMENTO: igualar ao resto do site.
+  - (K1) No painel do dia da Grade, o expediente lançado ganha "Tirar do expediente", que tira sem pôr nada no lugar (a API já aceita desde a 6.40, decisão 2: o calculado volta a valer e o choque, se houver, continua). Pede confirmação como as outras remoções do painel. Decidido pela PLANEJAMENTO: o botão fica no painel do dia, onde o expediente já aparece.
   - (18) Os testes do grupo com cinco segmentos e da soma das colunas da faixa da equipe. "ADM" no painel do dia vem da mesma função das outras telas, e não escrito à mão. Os comentários desatualizados da 6.46 são corrigidos.
-- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.65: a ficha pela Grade e o acabamento dos filtros (pool 35, 17, 18)`.
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.65: a ficha pela Grade, tirar o expediente e o acabamento dos filtros (pool 35, 17, 18, K1)`.
 
 ### Task 4: as escalas e a Minha escala (pool 25 e 27)
 
@@ -85,7 +86,7 @@
   - (30 d) A ficha de consulta volta a mostrar "Abrir a ficha completa" para quem pode abri-la (`podeAbrirFichaCompleta`). Para quem não pode, o botão não aparece.
   - (30 e) "Outro horário" com o fim vazio diz "Falta a hora do fim." (Review Focus 5). Com o início vazio, "Falta a hora do início.".
   - (30 f) No Pecúlio, religar "e as de baixo" não traz de volta a lotação escolhida antes; o filtro volta a "Todas".
-  - (30 g) A varredura de "Adm" olha também os contratos. O título de teste invertido é corrigido, a variável sem uso sai, e as matrículas de teste 9959xx passam à faixa 990xxx-x.
+  - (30 g) A varredura de "Adm" olha também os contratos. O título de teste invertido é corrigido, a variável sem uso sai, e as matrículas de teste 9959xx passam à faixa 990xxx-x. O mesmo para as matrículas fora do padrão nos testes da 6.54 (pool 31 h).
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega. Conferir no navegador, em 1440 e 390 px: a ficha pela Grade, a tela inicial depois de trocar de conta, a ficha de consulta e o "Outro horário".
 - [ ] **Step 5:** commit `Fase 6.65: acabamento do Pecúlio, da consulta e do voluntariado (pool 30)`.
 

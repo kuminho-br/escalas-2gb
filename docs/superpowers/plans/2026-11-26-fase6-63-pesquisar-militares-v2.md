@@ -19,7 +19,7 @@
 
 **Tech Stack:** Hono, Postgres/PGlite, zod (`contratos`), React, TanStack Query, Radix, Tailwind com os tokens da 6.20, Vitest.
 
-**Spec:** o mockup aprovado pelo usuário em 26/11/2026, em `docs/telas/refatoracao/pesquisar/index.html` (com `pesquisar.css` e `pesquisar.js`), com a tabela "O que muda" e a seção "O que você decidiu"; o pool, itens 37 a 42; `docs/decisoes.md` (26/11). Mockup é guia, não gabarito.
+**Spec:** o mockup aprovado pelo usuário em 26/11/2026, em `docs/telas/refatoracao/pesquisar/index.html` (com `pesquisar.css` e `pesquisar.js`), com a tabela "O que muda" e a seção "O que você decidiu"; o pool, itens 37 a 42 e 31 (e, f, g); `docs/decisoes.md` (26/11). Mockup é guia, não gabarito.
 
 ## Global Constraints
 
@@ -85,7 +85,8 @@
   - trocar o agrupamento não mexe na lista de resultados nem na seleção;
   - os casos dos Review Focus 3 e 4;
   - no celular, a barra "{n} selecionados" e "Ver" abre o painel numa folha;
-  - as ações de hoje (atualizar em lote, limpar a seleção, tirar um) continuam no painel.
+  - as ações de hoje (atualizar em lote, limpar a seleção, tirar um) continuam no painel;
+  - os limites da seleção (pool 31): (e) com a busca acima de 5000 e só os selecionados à vista, a contagem diz por quê ("A busca passou de 5000 militares: refine os critérios para ver a contagem.") em vez de "…"; (f) "{n} militares ficam de fora" antes de "Selecionar todos" conta pelo total da busca, e não pelos 500 da tela; (g) passar de 5000 selecionados dá a frase "Dá para selecionar até 5000 militares de uma vez.", e não o erro técnico da validação.
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.63: Selecionados num painel ao lado, com o agrupamento`.
 
 ### Task 4: Importar e Exportar no alto
