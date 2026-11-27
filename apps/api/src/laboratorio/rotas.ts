@@ -2,10 +2,12 @@
 // O sistema inteiro sobre o espelho vive em `/api/lab/*` (`rotas-lab.ts`).
 import { EscolherPerfil } from 'contratos';
 import { Hono } from 'hono';
-import { exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { exigirAdministradorRaiz, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import type { Banco } from '../banco/banco.ts';
+import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
+import { recomecarEspelho } from './recomecar.ts';
 import { EM_MANUTENCAO, PERFIL_NAO_ENCONTRADO, entrarNoLaboratorio, espelhoExiste, listarPerfis, perfilDoLaboratorio, sairDoLaboratorio } from './sessao.ts';
 
 export function rotasDoLaboratorio(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
@@ -25,6 +27,12 @@ export function rotasDoLaboratorio(dep: { banco: Banco; auth: Auth }): Hono<Ambi
   r.delete('/laboratorio/perfil', async (c) => {
     await sairDoLaboratorio(dep.banco, c.get('usuarioId'));
     return c.json({ ok: true });
+  });
+  // recomeçar: o espelho volta ao estado da carga de teste. Só o administrador DA CONTA REAL (o perfil de administrador de teste não vale aqui)
+  r.post('/laboratorio/recomecar', async (c) => {
+    const negado = await exigirAdministradorRaiz(c, 'Só o administrador do sistema recomeça o Laboratório.');
+    if (negado) return negado;
+    return c.json(await recomecarEspelho(dep.banco, `${hojeRecife().slice(0, 7)}-01`));
   });
   return r;
 }
