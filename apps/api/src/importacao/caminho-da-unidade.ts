@@ -1,18 +1,20 @@
 // A unidade pelo caminho de siglas nas planilhas (6.57): "2º GB / 1ª SB". Uma peça só para as duas pontas (a importação lê, a exportação, o modelo e a AJUDA escrevem), para a leitura
 // e a escrita nunca se desencontrarem. O banco garante que duas irmãs em vigor não têm a mesma sigla, então o caminho de siglas desde a raiz é único.
-import { normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import type { Leitura } from './peculio-colunas.ts';
 
 /** Uma unidade com as siglas da raiz até ela (a última é a dela). */
-export type UnidadeDoCaminho = { id: string; siglas: string[] };
+export type UnidadeDoCaminho = { id: string; siglas: string[]; /** a unidade já acabou (só vem quando ela entrou por `tambem`) */ extinta?: boolean };
 
-/** As unidades em vigor da corporação, cada uma com o caminho de siglas desde a raiz. */
-export async function unidadesDoCaminho(c: Consulta, hoje: string): Promise<UnidadeDoCaminho[]> {
+/**
+ * As unidades em vigor da corporação, cada uma com o caminho de siglas desde a raiz. `tambem` são ids de unidades que entram mesmo extintas: a lotação de um militar pode estar numa
+ * unidade que já acabou, e o rótulo dela precisa do caminho (e da conta de quem tem a mesma sigla).
+ */
+export async function unidadesDoCaminho(c: Consulta, hoje: string, tambem: string[] = []): Promise<UnidadeDoCaminho[]> {
   const { rows } = await c.query<UnidadeDoCaminho>(
-    `select u.id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as siglas
-       from unidade u where u.ate is null or u.ate >= $1::date order by nlevel(u.caminho), u.sigla`,
-    [hoje],
+    `select u.id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as siglas, (u.ate is not null and u.ate < $1::date) as extinta
+       from unidade u where u.ate is null or u.ate >= $1::date or u.id = any($2::uuid[]) order by nlevel(u.caminho), u.sigla`,
+    [hoje, tambem],
   );
   return rows;
 }
@@ -21,7 +23,11 @@ export async function unidadesDoCaminho(c: Consulta, hoje: string): Promise<Unid
 const SEPARADOR = /\s+\/\s*|\s*\/\s+/;
 export const separarCaminho = (texto: string): string[] => texto.split(SEPARADOR).map((s) => s.trim()).filter(Boolean);
 
-const mesmas = (a: string, b: string) => normalizar(a) === normalizar(b);
+/**
+ * A sigla como se compara: sem maiúsculas, acentos nem espaços, mas com o "º" e o "ª" (duas irmãs "1º SB" e "1ª SB" são unidades diferentes, e o banco as aceita).
+ */
+const normalizarSigla = (s: string): string => s.replace(/°/g, 'º').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9ºª]/g, '');
+const mesmas = (a: string, b: string) => normalizarSigla(a) === normalizarSigla(b);
 /** O caminho da unidade termina com estes pedaços (sem diferenciar maiúsculas nem acentos)? */
 const terminaCom = (u: UnidadeDoCaminho, pedacos: string[]) => pedacos.length <= u.siglas.length && pedacos.every((p, i) => mesmas(p, u.siglas[u.siglas.length - pedacos.length + i]!));
 
@@ -42,7 +48,7 @@ export function menorCaminhoUnico(u: UnidadeDoCaminho, todas: UnidadeDoCaminho[]
  * compara entre as que podem se confundir. O resultado é, unidade por unidade, o mesmo de `menorCaminhoUnico`.
  */
 export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, string> {
-  const normalizadas = new Map(todas.map((u) => [u.id, u.siglas.map(normalizar)]));
+  const normalizadas = new Map(todas.map((u) => [u.id, u.siglas.map(normalizarSigla)]));
   const porUltima = new Map<string, UnidadeDoCaminho[]>();
   for (const u of todas) {
     const ultima = normalizadas.get(u.id)!.at(-1)!;
@@ -66,6 +72,16 @@ export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, strin
     }
     rotulos.set(u.id, rotulo);
   }
+  return rotulos;
+}
+
+/** O rótulo (menor caminho único) de cada unidade em vigor e das extintas dadas, lido do banco de uma vez: uma leitura das unidades por pedido. */
+export async function rotulosDoBanco(c: Consulta, hoje: string, tambem: (string | null)[] = []): Promise<Map<string, string>> {
+  const todas = await unidadesDoCaminho(c, hoje, tambem.filter((x): x is string => !!x));
+  const emVigor = todas.filter((u) => !u.extinta);
+  // as em vigor se rotulam só entre si (o rótulo delas é o da exportação, qualquer que seja o resultado da busca); cada extinta, contra as em vigor e ela mesma
+  const rotulos = rotulosDasUnidades(emVigor);
+  for (const e of todas.filter((u) => u.extinta)) rotulos.set(e.id, rotulosDasUnidades([...emVigor, e]).get(e.id)!);
   return rotulos;
 }
 

@@ -25,8 +25,10 @@ export const TEMPOS = {
   recuo: 0.5,
   /** "Entrando…" aparece, se o servidor ainda não respondeu */
   entrando: 1.6,
-  /** as brasas ficam sobre a faixa depois do pouso */
-  brasas: 4,
+  /** as brasas ficam sobre a faixa depois do pouso (6.67: 4,2 s) */
+  brasas: 4.2,
+  /** e apagam nos últimos 1,6 s dessa duração */
+  apaga: 1.6,
 } as const;
 
 /** Só vale a resposta que já chegou em `t`. */

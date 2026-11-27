@@ -25,7 +25,7 @@ Automação das escalas de serviço da 1ª SB / 2º GB (Corpo de Bombeiros Milit
 - Antes de abrir PR: `pnpm test && pnpm typecheck`; mexeu na API ou no site: `pnpm build:vercel`.
 - `pnpm test:prototipo` roda só os testes do protótipo.
 - Mudou uma regra no protótipo: `pnpm casos:gravar`, conferir `git diff casos` e `pnpm --filter dominio test`. Regra só do sistema novo não grava caso: testa em `pacotes/dominio/test`.
-- Nenhum dado pessoal real em repositório, teste ou CI: matrículas fictícias `990xxx-x`. Nunca ler nem imprimir segredos (`.env*`).
+- Nenhum dado pessoal real em repositório, teste ou CI: nomes fictícios. A matrícula não diz o que é teste (`990xxx-x` é de militar real): no banco, o militar de teste tem a marca `de_teste`, e teste nunca grava nem apaga no banco real. Nunca ler nem imprimir segredos (`.env*`).
 
 ## Sessões
 

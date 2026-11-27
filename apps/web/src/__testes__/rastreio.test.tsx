@@ -8,7 +8,7 @@ import { Secao } from '@/componentes/militares/Secao';
 // Dados fictícios (D7). Hoje, nestes testes, é 24/11/2026.
 type Periodo = FichaMilitar['rastreio'][number];
 const periodo = (n: number, desde: string, ate: string | null, o: Partial<Periodo> = {}): Periodo => ({
-  id: `r${n}`, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', equipe: 'ALFA', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde, ate, alteradoPor: null, alteradoEm: null, ...o,
+  id: `r${n}`, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', equipe: 'ALFA', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde, ate, alteradoPor: null, alteradoEm: null, podeMexer: false, ...o,
 });
 const ficha = (rastreio: Periodo[], podeAlterar = false): FichaMilitar =>
   ({

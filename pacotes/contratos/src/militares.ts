@@ -283,6 +283,8 @@ export type FichaMilitar = LinhaMilitar & {
     alteradoPor: { patente: string; nomeGuerra: string } | null;
     /** Quando (data e hora de Recife, 'aaaa-mm-ddThh:mm:ss'); null quando não há autor. */
     alteradoEm: string | null;
+    /** Quem pede pode cancelar e editar este período: ainda não vale e a pessoa tem o nível de "Alterar situação"; na fase de testes, o administrador também nos que já valem. */
+    podeMexer: boolean;
   }[];
   afastamentos: { id: string; tipo: string; tipoAfastamentoId: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }[];
 };

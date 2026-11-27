@@ -2,6 +2,7 @@ import { textoFaixa, type OpcaoDeServico } from 'contratos';
 import { createContext, useContext, useState } from 'react';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
+import { tipoNaFrase } from '@/lib/afastamento-na-grade';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 
 /** Um turno de uma escala: as vagas em que o militar pode entrar nele, na ordem em que a API as manda ("Sem guarnição" por último). */
@@ -95,7 +96,7 @@ function Grupos({ opcoes, salvando, aoEscolher }: { opcoes: OpcaoDeServico[]; sa
 /** O militar a quem o serviço é adicionado ("CB ALMEIDA"): entra no nome acessível de cada "Escalar", que sem ele seria igual para o dia todo. */
 const Militar = createContext('');
 
-export function AdicionarServico({ opcoes, salvando, aoEscolher, militar = '' }: { opcoes: OpcaoDeServico[]; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void; militar?: string }) {
+export function AdicionarServico({ opcoes, salvando, aoEscolher, militar = '', afastadoDe = null }: { opcoes: OpcaoDeServico[]; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void; militar?: string; afastadoDe?: string | null }) {
   const [escolhida, setEscolhida] = useState<'ordinario' | 'operacoes'>('ordinario');
   if (!opcoes.length) return <p className="text-sm text-apagado">Nenhum serviço disponível para ele neste dia.</p>;
   const ordinario = opcoes.filter((o) => o.ordinario);
@@ -104,6 +105,8 @@ export function AdicionarServico({ opcoes, salvando, aoEscolher, militar = '' }:
   const aba = escolhida === 'ordinario' ? (ordinario.length ? 'ordinario' : 'operacoes') : operacoes.length ? 'operacoes' : 'ordinario';
   return (
     <Militar.Provider value={militar}>
+    {/* quem está afastado pode ser escalado: o aviso fica fixo e nada é bloqueado (a decisão é do escalante) */}
+    {afastadoDe && <p className="mb-2 rounded-md bg-pendencia-fundo px-2.5 py-1.5 text-sm text-pendencia">Ele está de {tipoNaFrase(afastadoDe)} neste dia. Dá para escalar mesmo assim: nada é bloqueado.</p>}
     <Tabs value={aba} onValueChange={(v) => setEscolhida(v === 'operacoes' ? 'operacoes' : 'ordinario')}>
       {/* as abas dividem a largura do painel; cada aba abre o seu painel, separado e com borda */}
       <TabsList className="w-full">

@@ -17,7 +17,7 @@ const dia1 = `${hoje.slice(0, 7)}-01`;
 const alvo: Record<string, string> = {};
 const quadro: Record<string, string> = {};
 const pessoa = {} as Record<'oficial' | 'chefe' | 'auxiliarDoGb', Pessoa>;
-const SO_IDENTIFICACAO = ['id', 'postoGrad', 'nomeGuerra', 'nomeCompleto', 'matricula', 'lotacao', 'quadro', 'podeAbrirFichaCompleta'];
+const SO_IDENTIFICACAO = ['id', 'postoGrad', 'nomeGuerra', 'nomeCompleto', 'matricula', 'lotacao', 'lotacaoCaminho', 'quadro', 'podeAbrirFichaCompleta'];
 const PROIBIDAS = ['cpf', 'nascimento', 'endereco'];
 
 type Quem = 'admin' | 'gestorGb' | 'escalante' | 'semPapel' | Pessoa;
@@ -115,7 +115,7 @@ describe('a busca', () => {
   it('a linha traz só a identificação: posto, nomes, matrícula, lotação e quadro', async () => {
     const r = await buscar('semPapel', 'texto=andrade');
     expect(r).toEqual({
-      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', quadro: 'QBMG' }],
+      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', lotacaoCaminho: '2ª SB', quadro: 'QBMG' }],
       haMais: false,
     });
   });
@@ -172,7 +172,7 @@ describe('a busca', () => {
 
   it('o militar sem lotação aparece na busca por texto, só com a identificação (Review Focus 3)', async () => {
     const r = await buscar('semPapel', 'texto=sem%20lotacao');
-    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, quadro: null }]);
+    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, lotacaoCaminho: null, quadro: null }]);
   });
 
   it('a unidade de escolha: a árvore da corporação inteira, na ordem da árvore, para qualquer pessoa com conta', async () => {
@@ -186,7 +186,11 @@ describe('a busca', () => {
     expect(siglas.indexOf('DivOp')).toBeLessThan(siglas.indexOf('1ª SB'));
     expect(unidades.find((u) => u.sigla === '1ª SB')!.nivel).toBe(unidades.find((u) => u.sigla === 'DivOp')!.nivel + 1);
     expect(unidades.find((u) => u.sigla === '3ª SB')!.nivel).toBe(unidades.find((u) => u.sigla === '2º GB')!.nivel + 1);
-    expect(Object.keys(unidades[0]!).sort()).toEqual(['id', 'maeId', 'nivel', 'sigla']);
+    expect(Object.keys(unidades[0]!).sort()).toEqual(['id', 'maeId', 'nivel', 'nome', 'sigla', 'tipoNome']);
+    // o nome do tipo vem do cadastro (os degraus do cabeçalho o usam para dizer "Seção", "Grupamento"); o nome da unidade, para distinguir siglas parecidas
+    expect(unidades.find((u) => u.sigla === '1ª SB')).toMatchObject({ tipoNome: 'Seção' });
+    expect(unidades.find((u) => u.sigla === '2º GB')).toMatchObject({ tipoNome: 'Grupamento' });
+    expect(unidades.every((u) => typeof u.nome === 'string' && u.nome.length > 0)).toBe(true);
     // as unidades extintas não entram
     const extinta = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '8ª SB', nome: '8ª Seção', mae_id: api.ids.gb, desde: '2020-01-01', ate: '2020-12-31' });
     expect(((await (await pedir('semPapel', '/api/consulta/unidades')).json()) as UnidadeDaConsulta[]).map((u) => u.id)).not.toContain(extinta);

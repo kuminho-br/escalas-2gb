@@ -13,7 +13,8 @@ import { avaliarFaixa, motivoDeFora, podeTirarDe, SEM_VOLUNTARIADO } from './ele
 export const JA_ESCALADO_NO_TURNO = 'Este militar já está escalado neste turno.';
 
 export class Recusa extends Error {
-  constructor(mensagem: string) {
+  /** `militarId`: na troca, o militar que impede (a Grade marca a linha dele no diálogo). */
+  constructor(mensagem: string, readonly militarId?: string) {
     super(mensagem);
   }
 }
@@ -92,7 +93,7 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
   // quem a pré-escala pôs neste turno desta escala sem guarnição (6.40) é movido para a vaga; qualquer outro caso é "já escalado"
   const mover = igual && igual.escala_id === escalaId && igual.guarnicao_id === null && d.guarnicaoId !== null ? igual : null;
   if (igual && !mover) throw new Recusa(JA_ESCALADO_NO_TURNO);
-  const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId, tirarDoExpediente: opcoes.tirarDoExpediente });
+  const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId, tirarDoExpediente: opcoes.tirarDoExpediente, ignorarAfastamento: d.mesmoAfastado });
   // só o voluntariado pode ser contornado: o escalante combina direto com o militar; as demais regras continuam recusando
   if (motivo && motivo !== SEM_VOLUNTARIADO) throw new Recusa(motivo);
 

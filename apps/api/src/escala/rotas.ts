@@ -351,7 +351,8 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       const p = respostaDoPassado(c, e);
       if (p) return p;
       if (e instanceof NaoEncontrada) return c.json({ erro: 'Alocação não encontrada.' }, 404);
-      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      // na troca, a recusa diz também qual militar impede (`militarId`): a Grade marca a linha dele no diálogo
+      if (e instanceof Recusa) return c.json({ erro: e.message, ...(e.militarId ? { militarId: e.militarId } : {}) }, 409);
       return respostaDoErroDoBanco(c, e);
     }
   });

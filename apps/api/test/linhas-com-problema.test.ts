@@ -172,3 +172,44 @@ describe('a célula que o Excel transformou em data (achado I1 da revisão)', ()
     expect(previa.ignoradas).toEqual([expect.objectContaining({ coluna: 'NASCIMENTO' })]);
   });
 });
+
+describe('acabamento da planilha (pool 34)', () => {
+  const COM_PROBLEMA = ['990891-1', 'XYZ', 'Posto Ruim', 'POSTORUIM', '', '', '1ª SB'];
+
+  it('(a) o arquivo devolvido, reenviado ainda com problema, volta com um par só de MOTIVO e COMO CORRIGIR, no fim', async () => {
+    const primeira = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', await planilha({ 'PECÚLIO': [CAB_PECULIO, COM_PROBLEMA] })));
+    const baixado = await primeira.wb.xlsx.writeBuffer();
+    const reenviado = new Uint8Array(baixado as ArrayBuffer).slice().buffer;
+    // o reenvio ainda tem o problema: o arquivo que volta tem um par só, e a linha com o mesmo motivo
+    const segunda = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', reenviado));
+    const aba = segunda.abas['PECÚLIO']!;
+    expect(aba[0]).toEqual([...CAB_PECULIO, 'MOTIVO', 'COMO CORRIGIR']);
+    expect(aba[1]!.slice(0, 7)).toEqual(COM_PROBLEMA);
+    expect(aba[1]![7]).toMatch(/posto/i);
+    // e uma terceira vez, o mesmo
+    const terceira = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', new Uint8Array((await segunda.wb.xlsx.writeBuffer()) as ArrayBuffer).slice().buffer));
+    expect(terceira.abas['PECÚLIO']![0]).toEqual([...CAB_PECULIO, 'MOTIVO', 'COMO CORRIGIR']);
+  });
+
+  it('(b) linha recusada que também tem célula ignorada: motivos e soluções alinhados, um por linha da célula; sem solução, a linha fica vazia', async () => {
+    const linha = ['990892-2', 'XYZ', 'Posto Ruim', 'POSTORUIM2', '31/02', '', '1ª SB']; // militar novo com posto que não existe: recusada (sem posto) e a célula POSTO/GRAD ignorada
+    const { abas } = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', await planilha({ 'PECÚLIO': [CAB_PECULIO, linha] })));
+    const motivos = abas['PECÚLIO']![1]![7]!.split(String.fromCharCode(10));
+    const solucoes = abas['PECÚLIO']![1]![8]!.split(String.fromCharCode(10));
+    expect(motivos).toHaveLength(2);
+    expect(solucoes).toHaveLength(2);
+    expect(motivos[0]).toMatch(/posto/i);
+    expect(solucoes[0]).not.toBe('');
+    expect(motivos[1]).toMatch(/^POSTO\/GRAD: /);
+    expect(solucoes[1]).toBe('');
+  });
+
+  it('(c) a matrícula repetida manda apagar a linha repetida e manter a certa', async () => {
+    const certa = ['990893-3', 'SD', 'Certo de Tal', 'CERTO3', '', '', '1ª SB'];
+    const { abas } = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', await planilha({ 'PECÚLIO': [CAB_PECULIO, certa, [...certa]] })));
+    const aba = abas['PECÚLIO']!;
+    expect(aba).toHaveLength(2); // só a repetida (a segunda) tem problema
+    expect(aba[1]![7]).toContain('repetida');
+    expect(aba[1]![8]).toBe('Apague a linha repetida e mantenha só a certa.');
+  });
+});

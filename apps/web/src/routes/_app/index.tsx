@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, typ
 import type { Eu } from '@/api/eu';
 import { consultaAvisos } from '@/api/avisos';
 import { consultaProximosServicos } from '@/api/visualizacao';
+import { JanelaDoAviso, type ModoDaJanela } from '@/componentes/inicio/JanelaDoAviso';
 import { QuadroDeAvisos } from '@/componentes/inicio/QuadroDeAvisos';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
 import { SeuProximoServico } from '@/componentes/inicio/SeuProximoServico';
@@ -109,6 +110,10 @@ function Inicio() {
   const dosAvisos = useQuery(consultaAvisos()).data;
   const avisos = Array.isArray(dosAvisos?.avisos) ? dosAvisos : undefined;
   const primeiroAviso = avisos?.avisos[0];
+  // o aviso à vista e a janela do painel moram aqui, e não no painel: ele sai de um lugar para o outro quando a tela cruza 1024 px, e nada se perde
+  const [idDoAviso, setIdDoAviso] = useState<string | null>(null);
+  const [janelaDoAviso, setJanelaDoAviso] = useState<ModoDaJanela | null>(null);
+  const painelDosAvisos = { idAtual: idDoAviso, aoMudarId: setIdDoAviso, aoAbrirJanela: setJanelaDoAviso };
   const larga = useTelaLarga();
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento
   const { fase, cartoes } = useTransicao();
@@ -131,14 +136,17 @@ function Inicio() {
           <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
           {/* ao encolher, a cena escurece um pouco, para a saudação e a linha do próximo serviço lerem bem sobre a imagem clara */}
           <div aria-hidden className="escurece pointer-events-none absolute inset-0" />
-          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
-            <h1 ref={titulo} tabIndex={-1} className="col-start-1 origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
-            <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/55 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
+            {/* o nome e a data num elemento só: a animação do login mede este retângulo e deixa as brasas mais fracas sobre ele (a saudação em duas linhas fica toda coberta) */}
+            <div data-saudacao-da-faixa className="col-start-1 row-span-2 grid min-w-0 content-start gap-1">
+              <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
+              <p className="data text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+            </div>
             {/* os cartões entram junto com a saudação (o mesmo data-chegada) e somem antes da barra */}
             {proximos && <div className="proximos-da-cena col-start-1 min-w-0 self-end pb-4 md:pb-6"><ProximosServicos servicos={proximos} /></div>}
             {/* o lugar dos avisos (6.56): à direita da cena, a partir de 1024 px; abaixo disso o painel desce para logo abaixo da cena */}
             <div data-lugar-dos-avisos className="hidden lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex lg:items-end lg:pb-6">
-              {larga && avisos && <QuadroDeAvisos eu={eu} quadro={avisos} className="w-full" />}
+              {larga && avisos && <QuadroDeAvisos quadro={avisos} {...painelDosAvisos} className="w-full" />}
             </div>
           </div>
           {/* a barra, quando o quadro encolhe: a saudação já é o título menor; aqui entra o próximo serviço (a leitura de tela o encontra nos cartões e no detalhe) */}
@@ -146,7 +154,7 @@ function Inicio() {
             <p data-barra-do-servico={primeiro ? '' : undefined} aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-2 left-4 flex h-[18px] items-center gap-4 md:right-7 md:bottom-0 md:left-auto md:h-16 md:max-w-[75%]">
               {/* no celular a linha fica embaixo da saudação, na largura toda; no computador, à direita dela, e o título do primeiro aviso depois (só no computador) */}
               {primeiro && <span className="min-w-0 truncate text-apoio text-white md:text-corpo">{`Próximo serviço: ${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>}
-              {primeiroAviso && <span data-barra-do-aviso className="hidden md:inline max-w-[40%] min-w-0 shrink-0 truncate text-corpo font-medium text-white">{primeiroAviso.titulo}</span>}
+              {primeiroAviso && <span data-barra-do-aviso className="hidden lg:inline max-w-[40%] min-w-0 shrink-0 truncate text-corpo font-medium text-white">{primeiroAviso.titulo}</span>}
             </p>
           )}
         </section>
@@ -155,7 +163,7 @@ function Inicio() {
       {/* abaixo de 1024 px o painel de avisos fica logo abaixo da cena, na largura da coluna */}
       {!larga && avisos && (avisos.avisos.length > 0 || avisos.podePublicar) && (
         <div data-chegada={chegadaDosCartoes} className="cartao-da-chegada mt-4">
-          <QuadroDeAvisos eu={eu} quadro={avisos} className="bg-tinta backdrop-blur-none" />
+          <QuadroDeAvisos quadro={avisos} {...painelDosAvisos} className="bg-tinta backdrop-blur-none" />
         </div>
       )}
       {aviso === 'outro-papel' && (
@@ -173,6 +181,19 @@ function Inicio() {
       </nav>
       {/* o detalhe do primeiro cartão (6.55) */}
       {primeiro && <div data-chegada={chegadaDosCartoes} className="cartao-da-chegada pb-8 md:pb-10"><SeuProximoServico servico={primeiro} /></div>}
+      {/* a janela de publicar, editar e retirar um aviso (6.56): uma só, fora do painel, que muda de lugar com a largura da tela */}
+      {janelaDoAviso && (
+        <JanelaDoAviso
+          eu={eu}
+          modo={janelaDoAviso}
+          aoFechar={() => setJanelaDoAviso(null)}
+          aoConcluir={(feito) => {
+            // quem publica passa a ver o próprio aviso; ao retirar, o foco vai para o painel (o botão "Retirar" saiu da tela)
+            if (feito.tipo === 'publicar') setIdDoAviso(feito.aviso.id);
+            if (feito.tipo === 'retirar') setTimeout(() => document.querySelector<HTMLElement>('[data-painel-de-avisos]')?.focus(), 0);
+          }}
+        />
+      )}
     </div>
   );
 }

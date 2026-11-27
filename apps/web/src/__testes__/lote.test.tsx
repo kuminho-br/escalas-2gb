@@ -6,8 +6,9 @@ import { abrir, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.52, Task 3: o painel "Atualizar em lote" sobre a seleção da pesquisa. Dados fictícios (D7).
 const NIVEL = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }] };
+/** Cada militar com a sua matrícula (m1 → 990001-1, m2 → 990002-2): o teste distingue quem é quem. */
 const linha = (id: string, nomeGuerra: string): LinhaDaBusca => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: `99000${id.slice(1)}-${id.slice(1)}`, lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true,
 });
 const BUSCA: ResultadoDaBusca = { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO')], haMais: false, naoEncontradas: [] };
 const PREVIA: PreviaDoLote = {
@@ -149,7 +150,7 @@ describe('o painel Atualizar em lote (6.52)', () => {
   });
 
   it('6.62, Review Focus 3: o lote que muda a lotação de um selecionado o deixa na seleção, com a lotação nova; os dados vêm de uma nova leitura', async () => {
-    api();
+    const f = api();
     const base = globalThis.fetch;
     const NOVA: ResultadoDaBusca = { ...BUSCA, militares: [{ ...linha('m1', 'ANDRADE'), lotacao: '2ª SB', lotacaoCaminho: '2ª SB', unidadeId: 'u-2sb' }, linha('m2', 'BARRETO')] };
     let aplicado = false;
@@ -180,8 +181,40 @@ describe('o painel Atualizar em lote (6.52)', () => {
     await waitFor(() => expect(depois.getByText('2ª SB')).toBeInTheDocument());
     expect(depois.getByRole('button', { name: 'Tirar SD ANDRADE' })).toBeInTheDocument();
     expect(depois.getByRole('button', { name: 'Tirar SD BARRETO' })).toBeInTheDocument();
-    // a leitura nova pediu os mesmos militares, pelas matrículas
-    expect(pedidos).toEqual([{ matriculas: ['990001-1', '990001-1'] }]);
+    // o lote trocou pelos ids (e só os campos marcados), e a leitura nova pediu os mesmos militares, pelas matrículas de cada um
+    expect(corpos(f, '/lote/aplicar')[0]).toMatchObject({ militarIds: ['m1', 'm2'], campos: { voluntarioJes: true } });
+    expect(pedidos).toEqual([{ matriculas: ['990001-1', '990002-2'] }]);
+    // cada linha ficou com a lotação do seu militar: o m1 mudou, o m2 não
+    expect(within(depois.getByRole('button', { name: 'Tirar SD ANDRADE' }).closest('li')!).getByText('2ª SB')).toBeInTheDocument();
+    expect(within(depois.getByRole('button', { name: 'Tirar SD BARRETO' }).closest('li')!).getByText('1ª SB')).toBeInTheDocument();
+  });
+
+  it('(pool 52 a) se a releitura dos selecionados falha, o painel avisa que a lotação mostrada pode estar desatualizada, em vez de calar', async () => {
+    api();
+    const base = globalThis.fetch;
+    let aplicado = false;
+    vi.stubGlobal('fetch', async (e: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof e === 'string' ? e : e instanceof URL ? e.href : e.url;
+      if (url.endsWith('/lote/aplicar')) aplicado = true;
+      if (aplicado && url.endsWith('/militares/buscar') && String(init?.body).includes('matriculas')) return new Response(JSON.stringify({ erro: 'Falhou.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return base(e, init);
+    });
+    abrir('/peculio/pesquisar');
+    await selecionarTodos();
+    const p = await abrirPainel();
+    await userEvent.click(p.getByRole('checkbox', { name: 'Voluntário JES' }));
+    await userEvent.click(p.getByRole('button', { name: 'Continuar' }));
+    await userEvent.selectOptions(await p.findByLabelText('Voluntário JES'), 'sim');
+    await userEvent.click(p.getByRole('button', { name: 'Ver a prévia' }));
+    await userEvent.click(await p.findByRole('button', { name: 'Aplicar a 2 militares' }));
+    await p.findByText('2 militares alterados');
+    await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
+    expect(await painel.findByText('Não foi possível ler de novo os dados dos selecionados: a lotação mostrada pode estar desatualizada.')).toBeInTheDocument();
+    // limpar a seleção leva o aviso junto
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
+    expect(screen.queryByText(/Não foi possível ler de novo/)).toBeNull();
   });
 
   it('6.62: cancelar a janela não mexe na seleção, e "Limpar" continua limpando', async () => {

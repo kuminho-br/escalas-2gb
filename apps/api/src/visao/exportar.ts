@@ -5,7 +5,7 @@ import { COLUNAS_DA_EXPORTACAO, LIMITE_DA_EXPORTACAO, mesParaData, type BlocoDaE
 import ExcelJS from 'exceljs';
 import { CADASTRO, ehAdministrador, papeisVigentes, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
-import { menorCaminhoUnico, unidadesDoCaminho } from '../importacao/caminho-da-unidade.ts';
+import { rotulosDoBanco } from '../importacao/caminho-da-unidade.ts';
 import { COLUNAS, ABA } from '../importacao/peculio.ts';
 import { cabecalho } from '../importacao/modelo.ts';
 import { buscarComFiltros } from './busca.ts';
@@ -65,8 +65,7 @@ export async function exportarMilitares(c: Consulta, usuarioId: string, pedido: 
   );
 
   // a lotação pelo caminho de siglas (6.57): o menor pedaço único na corporação inteira, que qualquer importação que alcance a unidade reconhece
-  const todas = await unidadesDoCaminho(c, hoje);
-  const rotuloDe = new Map(todas.map((u) => [u.id, menorCaminhoUnico(u, todas)]));
+  const rotuloDe = await rotulosDoBanco(c, hoje);
 
   // o que a pessoa vê, por lotação (uma vez por unidade, não por militar)
   const visao = new Map<string, { blocos: Awaited<ReturnType<typeof blocosDaUnidade>>; completa: boolean }>();

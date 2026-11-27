@@ -20,7 +20,7 @@ const MSG_ADMIN_NA_RAIZ = 'O nível de acesso de administrador só existe na uni
 const MSG_JA_ENCERRADO = 'Este nível de acesso já foi encerrado.';
 const MSG_FIM_ANTES = 'O fim não pode ser antes do início.';
 const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do nível de acesso.';
-const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
+export const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
 const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.';
 const MSG_SO_QUEM_DA_NIVEL = 'Desativar o acesso é de quem dá o nível de acesso.';
 const MSG_SEM_ACESSO = 'Este militar ainda não tem acesso ao sistema.';
@@ -206,6 +206,8 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
         [usuarioId],
       )).rows[0]!.ate;
       await tx.query('delete from sessao where usuario_id = $1', [usuarioId]);
+      // a senha provisória nova e o código por e-mail não convivem: o código pendente deixa de valer
+      await tx.query('delete from codigo_de_acesso where militar_id = $1', [id]);
       return new Date(prazo).toISOString();
       });
     } catch (e) {

@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils';
  * à direita, o contexto (o mês) e a ação principal; `antes` (um "Voltar") e `subtitulo` acompanham o título. `filtros` é a faixa de superfície com linha em cima e
  * embaixo, 52 px de altura mínima, que fica parada ao rolar. O resto é a área de trabalho, que usa a largura toda.
  */
-export function Moldura({ titulo, antes, subtitulo, contexto, acaoPrincipal, filtros, leitura, children }: { titulo: ReactNode; antes?: ReactNode; subtitulo?: ReactNode; contexto?: ReactNode; acaoPrincipal?: ReactNode; filtros?: ReactNode; /** Tela de leitura: o conteúdo tem até 720 px de largura. */ leitura?: boolean; children?: ReactNode }) {
+export function Moldura({ titulo, antes, subtitulo, contexto, acaoPrincipal, filtros, leitura, tituloOculto, children }: { titulo: ReactNode; antes?: ReactNode; subtitulo?: ReactNode; contexto?: ReactNode; acaoPrincipal?: ReactNode; filtros?: ReactNode; /** Tela de leitura: o conteúdo tem até 720 px de largura. */ leitura?: boolean; /** O título fica só para o leitor de tela (a tela cheia da Grade, 6.70). */ tituloOculto?: boolean; children?: ReactNode }) {
   return (
     <section className={cn('grid grid-cols-1 gap-4', leitura && 'mx-auto w-full max-w-180')}>
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <header className={cn('flex flex-wrap items-center justify-between gap-x-4 gap-y-2', tituloOculto && 'contents')}>
         <div className="min-w-0">
           {antes}
-          <h1 className="font-cond text-bloco leading-tight font-semibold md:text-titulo">{titulo}</h1>
+          <h1 className={cn('font-cond text-bloco leading-tight font-semibold md:text-titulo', tituloOculto && 'sr-only')}>{titulo}</h1>
           {subtitulo && <p className="text-corpo text-apagado">{subtitulo}</p>}
         </div>
         {(contexto || acaoPrincipal) && (

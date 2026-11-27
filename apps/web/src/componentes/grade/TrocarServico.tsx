@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Candidato, EscaladoNoDia } from 'contratos';
 import { useState } from 'react';
-import { foiCancelado, mensagemDe } from '@/api/cliente';
+import { ErroApi, foiCancelado, mensagemDe } from '@/api/cliente';
 import { consultaTrocas, trocar } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
@@ -24,16 +24,24 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
   const [turnoDe, setTurnoDe] = useState<Record<string, string>>({});
   const [escolha, setEscolha] = useState<Escolha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // quem impede a troca, segundo a API (6.70): a lista volta com o texto e a linha dele marcada
+  const [impede, setImpede] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
 
   const confirmar = travar(async () => {
     if (!escolha) return;
     setErro(null);
+    setImpede(null);
     try {
       await trocar(queryClient, alocacaoId, escolha.tipo === 'livre' ? { militarId: escolha.livre.militarId, turnoId: escolha.turnoId } : { comAlocacaoId: escolha.alocacaoId });
       aoFechar();
     } catch (e) {
       setErro(foiCancelado(e) ? null : mensagemDe(e));
+      // a recusa que diz quem impede volta à lista: o texto no alto e o contorno na linha desse militar
+      if (e instanceof ErroApi && e.militarId) {
+        setImpede(e.militarId);
+        setEscolha(null);
+      }
     }
   });
 
@@ -47,8 +55,9 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
       <li key={c.militarId} className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setEscolha({ tipo: 'livre', livre: c, turnoId, semVoluntariado: semVol })}
-          className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent"
+          data-impede={impede === c.militarId ? '' : undefined}
+          onClick={() => { setErro(null); setEscolha({ tipo: 'livre', livre: c, turnoId, semVoluntariado: semVol }); }}
+          className={`flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border px-3 py-2 text-left hover:bg-accent ${impede === c.militarId ? 'border-alerta ring-2 ring-alerta' : 'border-linha'}`}
         >
           <span className="text-xs text-apagado">{c.posto}</span>
           <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
@@ -100,6 +109,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
           <>
             {opcoes.isPending && <Espera />}
             {opcoes.error && <p role="alert" className="text-alerta">{mensagemDe(opcoes.error)}</p>}
+            {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
             {opcoes.data && (
               <>
                 {aptos.length === 0 ? (
@@ -127,8 +137,9 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
                               <li key={a.alocacaoId}>
                                 <button
                                   type="button"
-                                  onClick={() => setEscolha({ tipo: 'escalado', escalado: e, alocacaoId: a.alocacaoId, onde: a.onde, permuta: a.permuta })}
-                                  className="w-full rounded-md border border-linha px-3 py-2 text-left text-sm hover:bg-accent"
+                                  data-impede={impede === e.militarId ? '' : undefined}
+                                  onClick={() => { setErro(null); setEscolha({ tipo: 'escalado', escalado: e, alocacaoId: a.alocacaoId, onde: a.onde, permuta: a.permuta }); }}
+                                  className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent ${impede === e.militarId ? 'border-alerta ring-2 ring-alerta' : 'border-linha'}`}
                                 >
                                   {a.onde}
                                 </button>

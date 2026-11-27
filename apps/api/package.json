@@ -17,6 +17,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "@hono/node-server": "^2.1.8",
+    "@vercel/functions": "^3.11.4",
     "better-auth": "^1.7.25",
     "contratos": "workspace:*",
     "dominio": "workspace:*",

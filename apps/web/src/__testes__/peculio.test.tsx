@@ -5,7 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
 import { podeCadastrarMilitar, secoesDoCadastro, unidadeDoPeculio } from '@/api/peculio';
 import { hoje, mesAtual } from '@/lib/meses';
-import { guardarUnidade } from '@/lib/unidade-de-trabalho';
+import { esquecerUnidadeDaAba, guardarUnidade } from '@/lib/unidade-de-trabalho';
 import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 const MES = mesAtual();
@@ -76,7 +76,8 @@ describe('a unidade do módulo', () => {
 describe('módulo Pecúlio', () => {
   // o Pecúlio abre na unidade do Topo: estes testes são de quem trabalha no 2º GB (o gestor do 2º GB, que também tem nível na 1ª SB)
   beforeEach(() => guardarUnidade('u-gb'));
-  afterAll(() => guardarUnidade(''));
+  // o fim dos testes esquece a unidade da aba (sem gravar "" no navegador)
+  afterAll(() => esquecerUnidadeDaAba());
 
   it('o administrador da raiz com a 1ª SB no Topo vê o Pecúlio só da 1ª SB (a lista pede a 1ª SB, não a corporação)', async () => {
     const admin: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-cbmpe', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-cbmpe', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, ...EU_EXEMPLO.unidades] };
@@ -90,6 +91,16 @@ describe('módulo Pecúlio', () => {
     } finally {
       guardarUnidade('u-gb');
     }
+  });
+
+  it('(pool 52 j) sem unidade escolhida na aba, o gestor do 2º GB (com nível na 1ª SB) abre o Pecúlio na 1ª SB, a unidade mais baixa dele', async () => {
+    esquecerUnidadeDaAba();
+    try { window.localStorage.removeItem('unidade-de-trabalho'); } catch { /* sem armazenamento */ }
+    const f = api();
+    abrir('/peculio');
+    await militares();
+    expect(chamadasDaLista(f)[0]).toContain('/api/unidades/u-1sb/peculio');
+    expect(chamadasDaLista(f).some((u) => u.includes('u-gb'))).toBe(false);
   });
 
   it('o menu mostra "Pecúlio da unidade" para quem tem papel de cadastro e não para o militar comum', async () => {

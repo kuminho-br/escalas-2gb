@@ -63,25 +63,25 @@ beforeAll(async () => {
   const tipo = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'LTS'")).rows[0]!.id;
 
   // completos e em dia
-  await militar('ALFA1', '995901-1', sb1, { jornada: 'pronto', equipe: equipeA, mil: { motorista: true, cnh: ['D'], voluntario_jes: true, funcao_militar_id: funcao } });
-  await militar('ALFA2', '995902-2', sb1, { jornada: 'pronto', equipe: equipeA, posto: 'CB', mil: { cnh: ['B'] } });
-  await militar('ADM1', '995903-3', sb2, { jornada: 'adm' });
-  await militar('DOGB', '995904-4', sb3, { jornada: 'adm', posto: '3º SGT' });
-  await militar('OUTRO', '995905-5', sb9, { jornada: 'adm', mil: { voluntario_jes: true } });
+  await militar('ALFA1', '990501-1', sb1, { jornada: 'pronto', equipe: equipeA, mil: { motorista: true, cnh: ['D'], voluntario_jes: true, funcao_militar_id: funcao } });
+  await militar('ALFA2', '990502-2', sb1, { jornada: 'pronto', equipe: equipeA, posto: 'CB', mil: { cnh: ['B'] } });
+  await militar('ADM1', '990503-3', sb2, { jornada: 'adm' });
+  await militar('DOGB', '990504-4', sb3, { jornada: 'adm', posto: '3º SGT' });
+  await militar('OUTRO', '990505-5', sb9, { jornada: 'adm', mil: { voluntario_jes: true } });
   // cada pendência de cadastro, sozinha
   // a CNH pela hierarquia (6.53): quem só tem E, D, C, B ou A, todos no 9º GB
-  for (const [nome, cnh, n] of [['SOE', 'E', 1], ['SOA', 'A', 2], ['SOB', 'B', 3], ['SOC', 'C', 4]] as const) await militar(nome, `99592${n}-${n}`, sb9b, { jornada: 'adm', mil: { cnh: [cnh] } });
-  await militar('SEMEQUIPE', '995911-1', sb1, { jornada: 'pronto' });
-  await militar('SEMQUADRO', '995912-2', sb1, { jornada: 'adm', quadro: null });
-  await militar('MOTSEMCNH', '995913-3', sb1, { jornada: 'adm', mil: { motorista: true, cnh: [] } });
-  await militar('SEMNOME', '995914-4', sb1, { jornada: 'adm', mil: { nome_completo: null } });
-  await militar('SEMANTIG', '995915-5', sb1, { jornada: 'adm', mil: { antiguidade: null } });
-  await militar('SEMLOTACAO', '995916-6', null);
-  await militar('DESATIVADO', '995917-7', sb1, { jornada: 'adm', situacao: afastada });
+  for (const [nome, cnh, n] of [['SOE', 'E', 1], ['SOA', 'A', 2], ['SOB', 'B', 3], ['SOC', 'C', 4]] as const) await militar(nome, `99052${n}-${n}`, sb9b, { jornada: 'adm', mil: { cnh: [cnh] } });
+  await militar('SEMEQUIPE', '990511-1', sb1, { jornada: 'pronto' });
+  await militar('SEMQUADRO', '990512-2', sb1, { jornada: 'adm', quadro: null });
+  await militar('MOTSEMCNH', '990513-3', sb1, { jornada: 'adm', mil: { motorista: true, cnh: [] } });
+  await militar('SEMNOME', '990514-4', sb1, { jornada: 'adm', mil: { nome_completo: null } });
+  await militar('SEMANTIG', '990515-5', sb1, { jornada: 'adm', mil: { antiguidade: null } });
+  await militar('SEMLOTACAO', '990516-6', null);
+  await militar('DESATIVADO', '990517-7', sb1, { jornada: 'adm', situacao: afastada });
   await inserir(api.banco, 'afastamento', { militar_id: alvo.ALFA2, tipo_afastamento_id: tipo, inicio: somarDias(hoje, -2), fim: somarDias(hoje, 5) });
   await inserir(api.banco, 'afastamento', { militar_id: alvo.ADM1, tipo_afastamento_id: tipo, inicio: somarDias(hoje, 10), fim: somarDias(hoje, 15) });
 
-  escalante1sb = await entrarComo(api, { matricula: '995931-1', nome: 'CESCAL', nivel: { papel: 'escalante', unidadeId: sb1 } });
+  escalante1sb = await entrarComo(api, { matricula: '990531-1', nome: 'CESCAL', nivel: { papel: 'escalante', unidadeId: sb1 } });
 });
 afterAll(async () => {
   await api.fechar();
@@ -104,7 +104,7 @@ describe('a busca com filtros: o corpo', () => {
   it('a linha traz a identificação, a situação e se quem pede pode alterar; a rota antiga continua respondendo', async () => {
     const r = await buscar('gestorGb', { texto: 'ALFA1' });
     expect(r.militares).toHaveLength(1);
-    expect(r.militares[0]).toMatchObject({ nomeGuerra: 'ALFA1', matricula: '995901-1', postoGrad: 'SD', lotacao: expect.any(String), quadro: 'QBMG', equipe: 'Alfa', jornada: 'pronto', unidadeId: sb1, podeAlterar: true });
+    expect(r.militares[0]).toMatchObject({ nomeGuerra: 'ALFA1', matricula: '990501-1', postoGrad: 'SD', lotacao: expect.any(String), quadro: 'QBMG', equipe: 'Alfa', jornada: 'pronto', unidadeId: sb1, podeAlterar: true });
     expect(r.haMais).toBe(false);
     expect(r.naoEncontradas).toEqual([]);
     expect((await api.pedir('gestorGb', 'GET', '/api/consulta/militares?texto=ALFA1')).status).toBe(200);
@@ -184,13 +184,13 @@ describe('o filtro de CNH segue a hierarquia do CTB (6.53)', () => {
 
 describe('o arquivo de matrículas', () => {
   it('acha com e sem pontuação, repetidas e linhas vazias valem uma vez, e o que não existe vai em naoEncontradas', async () => {
-    const r = await buscar('admin', { matriculas: ['995901-1', '9959011', ' 995901-1 ', '995902-2', '995999-9', '9959999', 'abc'] });
+    const r = await buscar('admin', { matriculas: ['990501-1', '9905011', ' 990501-1 ', '990502-2', '990599-9', '9905999', 'abc'] });
     expect(nomes(r)).toEqual(['ALFA1', 'ALFA2']);
-    expect(r.naoEncontradas).toEqual(['995999-9', 'abc']);
+    expect(r.naoEncontradas).toEqual(['990599-9', 'abc']);
   });
 
   it('com outro filtro, quem sai pelo outro filtro não vira "não encontrado"', async () => {
-    const r = await buscar('admin', { matriculas: ['995901-1', '995902-2'], jornada: 'adm' });
+    const r = await buscar('admin', { matriculas: ['990501-1', '990502-2'], jornada: 'adm' });
     expect(nomes(r)).toEqual([]);
     expect(r.naoEncontradas).toEqual([]);
   });
@@ -271,13 +271,13 @@ describe('a busca sem corte (6.54, buscar/todos)', () => {
 
 describe('a borda de visão', () => {
   it('Review Focus 4: o militar comum manda filtro restrito e ele é ignorado (nem erro, nem vazamento)', async () => {
-    const r = await buscar('semPapel', { unidades: [{ id: api.ids.gb, comAsDeBaixo: true }], voluntarioJes: true, cadastroIncompleto: true, jornada: 'pronto', motorista: true, matriculas: ['995901-1'] });
+    const r = await buscar('semPapel', { unidades: [{ id: api.ids.gb, comAsDeBaixo: true }], voluntarioJes: true, cadastroIncompleto: true, jornada: 'pronto', motorista: true, matriculas: ['990501-1'] });
     // só a lotação vale: vem quem está no 2º GB, voluntário ou não, com cadastro em dia ou não
     expect(nomes(r)).toEqual(expect.arrayContaining(['ALFA1', 'ALFA2', 'ADM1', 'DOGB', 'SEMEQUIPE', 'SEMQUADRO']));
     expect(r.naoEncontradas).toEqual([]);
     // sem nenhum filtro que valha (só os restritos): 400
     expect((await enviar('semPapel', { voluntarioJes: true })).status).toBe(400);
-    expect((await enviar('semPapel', { matriculas: ['995901-1'] })).status).toBe(400);
+    expect((await enviar('semPapel', { matriculas: ['990501-1'] })).status).toBe(400);
   });
 
   it('o militar comum não recebe a situação dos militares nem pode alterar nenhum', async () => {

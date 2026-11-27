@@ -54,6 +54,8 @@ export function PainelDeSelecionados() {
   const { selecionados, tirar, limpar, atualizar } = useSelecao();
   const queryClient = useQueryClient();
   const [lote, setLote] = useState(false);
+  // a releitura dos selecionados depois do lote falhou: o que está na tela pode ser a lotação de antes, e o painel diz isso
+  const [releituraFalhou, setReleituraFalhou] = useState(false);
   if (selecionados.length === 0 && !lote) return null;
   const titulo = `Selecionados (${selecionados.length})`;
   // "Selecionar todos" (6.54) pode passar do que o lote aceita: avisa aqui, em vez de a API recusar depois de a pessoa preencher tudo
@@ -64,16 +66,18 @@ export function PainelDeSelecionados() {
         <h2 id="selecionados-titulo" className="font-cond text-lg font-semibold">{titulo}</h2>
         <div className="flex items-center gap-2">
           <Button type="button" disabled={passouDoLote} onClick={() => setLote(true)}>Atualizar em lote</Button>
-          <Button type="button" variant="discreto" onClick={limpar}>Limpar</Button>
+          <Button type="button" variant="discreto" onClick={() => { limpar(); setReleituraFalhou(false); }}>Limpar</Button>
         </div>
       </div>
+      {releituraFalhou && <p role="status" className="border-b border-linha px-4 py-2 text-apoio text-pendencia">Não foi possível ler de novo os dados dos selecionados: a lotação mostrada pode estar desatualizada.</p>}
       {passouDoLote && <p className="border-b border-linha px-4 py-2 text-apoio text-apagado">{`A atualização em lote vai até ${LIMITE_DO_LOTE} militares. Tire alguns da seleção.`}</p>}
       <ul className="max-h-60 divide-y divide-linha overflow-auto">
         {selecionados.map((s) => (
-          <li key={s.id} className="flex items-center gap-2 px-4 py-2">
-            <span className="font-cond text-apoio text-apagado">{s.postoGrad}</span>
-            <span className="font-cond font-semibold">{s.nomeGuerra}</span>
-            <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{s.lotacaoCaminho ?? s.lotacao ?? 'Sem lotação'}</span>
+          <li key={s.id} className="flex min-w-0 items-center gap-2 px-4 py-2">
+            <span className="shrink-0 font-cond text-apoio text-apagado">{s.postoGrad}</span>
+            <span className="shrink-0 font-cond font-semibold">{s.nomeGuerra}</span>
+            {/* o caminho longo corta com reticências; o nome não encolhe */}
+            <span title={s.lotacaoCaminho ?? s.lotacao ?? undefined} className="ml-auto min-w-0 truncate rounded border border-linha px-1.5 font-cond text-xs">{s.lotacaoCaminho ?? s.lotacao ?? 'Sem lotação'}</span>
             <Button type="button" variant="discreto" size="sm" aria-label={`Tirar ${s.postoGrad} ${s.nomeGuerra}`} onClick={() => tirar(s.id)}>
               <X aria-hidden />
               Tirar
@@ -87,7 +91,7 @@ export function PainelDeSelecionados() {
             setLote(false);
             // aplicou: a seleção continua com os mesmos militares (a pessoa pode seguir com eles), com os dados lidos de novo; a pesquisa e o Pecúlio buscam de novo (o que mudou já aparece)
             if (aplicou) {
-              void pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: selecionados.map((s) => s.matricula) }).then((r) => atualizar(r.militares), () => {});
+              void pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: selecionados.map((s) => s.matricula) }).then((r) => { atualizar(r.militares); setReleituraFalhou(false); }, () => setReleituraFalhou(true));
               // as fichas já lidas (a de consulta e a completa) saem do cache: abrir uma delas espera a leitura nova, em vez de mostrar o dado de antes do lote
               queryClient.removeQueries({ queryKey: ['consulta', 'militar'] });
               queryClient.removeQueries({ queryKey: ['militar'] });

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { navegador, pedir, saida } from '@/api/cliente';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 import type { EuDaApi } from '@/api/eu';
+import { guardarUnidade } from '@/lib/unidade-de-trabalho';
 
 async function clicarSair() {
   await userEvent.click(await screen.findByRole('button', { name: /SD ANDRADE/ }));
@@ -111,7 +112,7 @@ describe('casca', () => {
     const caminho = screen.getByRole('navigation', { name: 'Unidade' });
     expect(within(caminho).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
-    expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
+    expect(within(screen.getByRole('navigation', { name: 'Navegação principal' })).getByRole('img', { name: 'Brasão do 2º Grupamento de Bombeiros' })).toHaveAttribute('src', '/brasao-2gb.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByText('Estrutura')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
@@ -169,12 +170,12 @@ describe('trilho', () => {
   const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
-  it('no computador o menu é um trilho de 84 px', async () => {
+  it('no computador o menu abre largo (240 px); o trilho de 84 px é o estado recolhido (6.70)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
     await screen.findByText('SD ANDRADE');
-    expect(menu().parentElement?.className).toContain('md:grid-cols-[84px_1fr]');
-    expect(menu().className).toContain('md:w-[84px]');
+    expect(menu().parentElement?.className).toContain('md:grid-cols-[240px_1fr]');
+    expect(menu().className).toContain('md:w-60');
   });
 
   it('cada item do trilho mantém o nome', async () => {
@@ -302,47 +303,55 @@ describe('unidade de trabalho (fase 6)', () => {
   const GESTOR: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1, SB2] };
 
   afterEach(() => localStorage.clear());
+  /** A lista da corporação, com o nome do tipo de cada unidade (os degraus dizem "Seção" no próximo nível). */
+  const DO_GB = [
+    { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null, tipoNome: 'Corporação' }, { id: 'u-dgo', sigla: 'DGO', nivel: 1, maeId: 'u-cbmpe', tipoNome: 'Diretoria' },
+    { id: 'u-dinter', sigla: 'DInter/1', nivel: 2, maeId: 'u-dgo', tipoNome: 'Diretoria regional' }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: 'u-dinter', tipoNome: 'Grupamento' },
+    { id: 'u-1sb', sigla: '1ª SB', nivel: 4, maeId: 'u-gb', tipoNome: 'Seção' }, { id: 'u-2sb', sigla: '2ª SB', nivel: 4, maeId: 'u-gb', tipoNome: 'Seção' },
+  ];
 
-  it('6.45: com mais de uma unidade, o seletor do topo é a árvore, que abre nó a nó, com "Abrir tudo"; a unidade atual vem marcada', async () => {
-    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/militares': { status: 200, corpo: [] } });
+  it('6.61: com mais de uma unidade, o cabeçalho tem os degraus (um por nível), com a unidade atual no último e a lista de dentro do degrau de cima', async () => {
+    guardarUnidade('u-1sb');
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] } });
     abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    const arvore = await screen.findByRole('tree', { name: 'Unidade de trabalho' });
-    const itens = within(arvore).getAllByRole('treeitem');
-    expect(itens.map((i) => i.getAttribute('aria-label'))).toEqual(['2º GB', '1ª SB, em 2º GB', '2ª SB, em 2º GB']);
-    expect(itens.map((i) => i.getAttribute('aria-level'))).toEqual(['1', '2', '2']);
-    expect(itens[0]).toHaveAttribute('aria-selected', 'true');
-    // nó a nó: fechar o grupamento esconde as seções; "Abrir tudo" mostra todas de novo
-    await userEvent.click(within(arvore).getByRole('button', { name: 'Fechar 2º GB' }));
-    expect(within(arvore).getAllByRole('treeitem')).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', { name: 'Abrir tudo' }));
-    expect(within(arvore).getAllByRole('treeitem')).toHaveLength(3);
+    const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
+    expect(within(degraus).getAllByRole('listitem').map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
+    expect(within(degraus).getAllByRole('listitem').at(-1)!.querySelector('[aria-current="location"]')).not.toBeNull();
+    await userEvent.click(within(degraus).getByRole('button', { name: '1ª SB' }));
+    const lista = await screen.findByRole('listbox', { name: 'Unidades dentro de 2º GB' });
+    expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['1ª SB', '2ª SB']);
+    expect(within(lista).getByRole('option', { name: '1ª SB' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('6.45: a unidade de cima que a pessoa não alcança entra como passagem, apagada, e dá lugar às dela (com a árvore da corporação)', async () => {
+  it('6.61: a unidade de cima que a pessoa não alcança entra como passagem, só texto, e dá lugar às dela (com a árvore da corporação)', async () => {
     const arvoreInteira = [
       { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 1, maeId: 'u-cbmpe' },
       { id: 'u-1sb', sigla: '1ª SB', nivel: 2, maeId: 'u-gb' }, { id: 'u-2sb', sigla: '2ª SB', nivel: 2, maeId: 'u-gb' }, { id: 'u-3sb', sigla: '3ª SB', nivel: 2, maeId: 'u-gb' },
     ];
     const duasSecoes: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'escalante', unidadeId: 'u-2sb', unidadeSigla: '2ª SB' }], unidades: [SB1, SB2] };
+    guardarUnidade('u-1sb');
     simularApi({ '/api/eu': { status: 200, corpo: duasSecoes }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] }, 'GET /api/consulta/unidades': { status: 200, corpo: arvoreInteira } });
     abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    const arvore = await screen.findByRole('tree', { name: 'Unidade de trabalho' });
-    await waitFor(() => expect(within(arvore).getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'))).toEqual(['CBMPE', '2º GB, em CBMPE', '1ª SB, em 2º GB', '2ª SB, em 2º GB']));
-    expect(within(arvore).getByRole('treeitem', { name: '2º GB, em CBMPE' })).toHaveAttribute('aria-disabled', 'true');
+    const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
+    await waitFor(() => expect(within(degraus).getAllByRole('listitem').map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', '2º GB', '1ª SB']));
+    // o 2º GB é passagem e tem uma opção só: texto, sem botão; a 3ª SB, que a pessoa não alcança, não aparece
+    expect(within(degraus).queryByRole('button', { name: '2º GB' })).toBeNull();
+    await userEvent.click(within(degraus).getByRole('button', { name: '1ª SB' }));
+    expect(within(await screen.findByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['1ª SB', '2ª SB']);
   });
 
   it('escolher outra unidade guarda e leva para a lista da tela', async () => {
     simularApi({
       '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/consulta/unidades': { status: 200, corpo: DO_GB },
       'GET /api/unidades/u-gb/militares': { status: 200, corpo: [] },
       'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] },
       'GET /api/militares/abc': { status: 404 },
     });
     const router = abrir('/militares/abc');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('treeitem', { name: /^1ª SB/ }));
+    // a unidade atual é o 2º GB; o próximo nível ("Seção") abre a lista das seções de dentro dele
+    await userEvent.click(await screen.findByRole('button', { name: 'Seção' }));
+    await userEvent.click(await screen.findByRole('option', { name: /^1ª SB/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/militares'));
     expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
     expect(await screen.findByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB \/ 1ª SB/ })).toBeInTheDocument();
@@ -356,6 +365,7 @@ describe('unidade de trabalho (fase 6)', () => {
     };
     simularApi({
       '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/consulta/unidades': { status: 200, corpo: DO_GB },
       'GET /api/militares/m1': { status: 200, corpo: ficha },
       'GET /api/militares/m1/acesso': { status: 200, corpo: { situacao: 'sem-acesso', email: null, senhaProvisoriaAte: null, papeis: [], podeGerarSenha: false, papeisQuePodeDar: [], unidadesParaPapel: [] } },
       'GET /api/postos': { status: 200, corpo: [] },
@@ -365,8 +375,8 @@ describe('unidade de trabalho (fase 6)', () => {
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const router = abrir('/militares/m1');
     await userEvent.type(await screen.findByLabelText('Telefone'), '(81) 9');
-    await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('treeitem', { name: /^1ª SB/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Seção' }));
+    await userEvent.click(await screen.findByRole('option', { name: /^1ª SB/ }));
     expect(confirmar).toHaveBeenCalled();
     expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
     expect(router.state.location.pathname).toBe('/militares/m1');

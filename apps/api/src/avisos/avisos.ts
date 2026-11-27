@@ -1,6 +1,6 @@
 // Os avisos da tela inicial (6.56): quem vê (pela lotação de hoje), a ordem e quem pode alterar.
 import type { Aviso } from 'contratos';
-import { CADASTRO, papeisVigentes } from '../acesso.ts';
+import { CADASTRO } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 
 type Linha = {
@@ -41,14 +41,20 @@ export async function avisosVisiveis(c: Consulta, usuarioId: string, hoje: strin
   return rows.map(paraAviso);
 }
 
-/** Um aviso (não retirado) pelo id, do ponto de vista da conta; null se não existe ou foi retirado. */
+/** Um aviso no ar pelo id, do ponto de vista da conta; null se não existe, foi retirado ou já venceu (o vencido se trata como o retirado: não se edita nem se retira). */
 export async function umAviso(c: Consulta, usuarioId: string, hoje: string, id: string): Promise<Aviso | null> {
-  const { rows } = await c.query<Linha>(`${SELECIONAR} where a.id = $4 and a.retirado_em is null`, [usuarioId, hoje, CADASTRO, id]);
+  const { rows } = await c.query<Linha>(`${SELECIONAR} where a.id = $4 and a.retirado_em is null and (a.vale_ate is null or a.vale_ate >= $2::date)`, [usuarioId, hoje, CADASTRO, id]);
   return rows[0] ? paraAviso(rows[0]) : null;
 }
 
-/** A conta tem nível de acesso em alguma unidade? Então vê o botão de publicar. */
+/** A conta tem nível de acesso em alguma unidade em vigor? Então vê o botão de publicar (a unidade extinta não conta: não se publica nela). */
 export async function podePublicarEmAlgumaUnidade(c: Consulta, usuarioId: string, hoje: string): Promise<boolean> {
-  const papeis = await papeisVigentes(c, usuarioId, hoje);
-  return papeis.some((p) => (CADASTRO as string[]).includes(p.papel));
+  const { rows } = await c.query<{ ok: boolean }>(
+    `select exists (
+       select 1 from papel_usuario pu join unidade un on un.id = pu.unidade_id
+        where pu.usuario_id = $1 and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date) and pu.papel = any($3) and (un.ate is null or un.ate >= $2::date)
+     ) as ok`,
+    [usuarioId, hoje, CADASTRO],
+  );
+  return rows[0]!.ok;
 }

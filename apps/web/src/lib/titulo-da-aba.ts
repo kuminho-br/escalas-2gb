@@ -8,6 +8,8 @@ export const NOME_DO_SISTEMA = 'Sistema de Gestão - 2º GB';
 const FORA_DO_MENU: Record<string, string> = {
   entrar: 'Entrar',
   'criar-senha': 'Criar senha',
+  'primeiro-acesso': 'Primeiro acesso',
+  'esqueci-a-senha': 'Esqueci minha senha',
   'sem-lotacao': 'Sem lotação',
   'efetivo-do-dia': 'Efetivo do dia',
   guarnicoes: 'Guarnições',

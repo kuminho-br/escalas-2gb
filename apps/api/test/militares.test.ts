@@ -53,7 +53,7 @@ describe('cadastro de militares', () => {
   it('cria militar com a primeira lotação', async () => {
     const f = await criar('990101-1', { motorista: true, cnh: ['B'] });
     expect(f).toMatchObject({ matricula: '990101-1', posto: 'SD', equipe: 'Alfa', jornada: 'pronto', motorista: 'B', pendencias: [] });
-    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeId: api.ids.secao, unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null, alteradoPor: expect.objectContaining({ nomeGuerra: 'GESTORGB' }), alteradoEm: expect.any(String) }]);
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeId: api.ids.secao, unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null, alteradoPor: expect.objectContaining({ nomeGuerra: 'GESTORGB' }), alteradoEm: expect.any(String), podeMexer: false }]);
   });
 
   it('matrícula repetida é 409', async () => {
@@ -126,7 +126,7 @@ describe('alterar situação (rastreio)', () => {
     const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-01` });
     expect(r.status).toBe(200);
     const f = (await r.json()) as FichaMilitar;
-    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeId: api.ids.secao, unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null, alteradoPor: expect.objectContaining({ nomeGuerra: expect.any(String) }), alteradoEm: expect.any(String) }]);
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeId: api.ids.secao, unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null, alteradoPor: expect.objectContaining({ nomeGuerra: expect.any(String) }), alteradoEm: expect.any(String), podeMexer: false }]);
     expect(f).toMatchObject({ jornada: 'adm', equipe: null });
   });
 

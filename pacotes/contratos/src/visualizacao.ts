@@ -17,8 +17,8 @@ export type MeuServico = {
   servico: string;
   /** a cor do serviço (#RRGGBB), que a tela inicial usa no fundo do cartão (6.55) */
   cor: string;
-  /** a letra do turno (A, B ou C; U é só da leitura antiga) */
-  turno: 'A' | 'B' | 'C' | 'U';
+  /** a letra do turno: A, B ou C (o banco não tem outra desde a migração 0011) */
+  turno: 'A' | 'B' | 'C';
   escala: string;
   unidadeSigla: string;
   /** o id da unidade da escala: a tela distingue duas unidades de mesma sigla pela unidade de cima (6.53) */

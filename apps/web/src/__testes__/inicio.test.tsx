@@ -45,6 +45,17 @@ describe('tela inicial', () => {
     expect(titulo.closest('[data-chegada]')).toBeNull();
   });
 
+  it('6.67: o título da saudação e a linha da data ficam dentro de um elemento só, que a animação mede para as brasas ficarem mais fracas ali', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
+    abrir('/');
+    const titulo = await screen.findByRole('heading', { level: 1 });
+    const area = titulo.closest('[data-saudacao-da-faixa]');
+    expect(area).not.toBeNull();
+    expect(area!.querySelector('p.data')).not.toBeNull();
+    // e a área está dentro do quadro da faixa
+    expect(area!.closest('[data-faixa-boas-vindas]')).not.toBeNull();
+  });
+
   // 6.42: a cena num quadro com margens que encolhe ao rolar (docs/telas/refatoracao/tela-inicial/index.html)
   describe('o quadro da cena', () => {
     const quadro = async () => {

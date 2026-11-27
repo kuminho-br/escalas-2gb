@@ -253,7 +253,7 @@ describe('achados do pool (6.53, item 20): o fim "00:00" e a linha só com o in�
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Horários extras do dia 5' })).toBeNull());
     const reaberto = await abrirOPainel(5);
-    expect(await reaberto.findByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
+    expect(await reaberto.findByRole('alert')).toHaveTextContent('Falta a hora do fim.');
     expect(reaberto.getByLabelText('Fim do horário 1')).toHaveAttribute('aria-invalid', 'true');
   });
 
@@ -285,7 +285,26 @@ describe('achados do pool (6.53, item 20): o fim "00:00" e a linha só com o in�
     expect(painel.queryByRole('alert')).toBeNull();
     // saiu do fim sem preencher: o erro aparece no campo
     await userEvent.tab();
-    expect(await painel.findByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
+    expect(await painel.findByRole('alert')).toHaveTextContent('Falta a hora do fim.');
     expect(painel.getByLabelText('Fim do horário 1')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('(pool 30 e) com o fim digitado e o início vazio: "Falta a hora do início.", no campo do início; uma hora mal escrita continua dizendo o formato', async () => {
+    api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Fim do horário 1'), '1130');
+    // sai do fim sem nenhum aviso (o início ainda não foi visitado) e passa pelo início vazio
+    await userEvent.tab();
+    expect(painel.queryByRole('alert')).toBeNull();
+    await userEvent.click(painel.getByLabelText('Início do horário 1'));
+    await userEvent.tab();
+    expect(await painel.findByRole('alert')).toHaveTextContent('Falta a hora do início.');
+    expect(painel.getByLabelText('Início do horário 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(painel.getByLabelText('Fim do horário 1')).not.toHaveAttribute('aria-invalid', 'true');
+    await userEvent.type(painel.getByLabelText('Início do horário 1'), '9');
+    await userEvent.tab();
+    expect(await painel.findByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
   });
 });

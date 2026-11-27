@@ -1,5 +1,7 @@
 # Remover uma mudança do histórico de rastreio (6.66) — plano de implementação
 
+> **DESCARTADO em 26/11/2026.** O motivo deixou de ser obrigatório (decisão do usuário) e a 6.69 já cancela e edita a mudança, sem a migração 0050. Não executar. Fica como registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **Modelo: Sonnet** (o padrão, decisão do usuário de 25/11/2026). Revisão final no Opus.

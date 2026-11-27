@@ -1,5 +1,8 @@
-const TEXTO_ESCURO = '#1C2430';
-const TEXTO_CLARO = '#FFFFFF';
+/** A tinta do sistema (`--color-tinta` no estilo.css): o texto escuro e o que se mistura nos fundos que precisam escurecer. */
+export const TINTA = '#1C2430';
+const TEXTO_ESCURO = TINTA;
+/** O texto branco dos fundos escuros. */
+export const TEXTO_CLARO = '#FFFFFF';
 
 function luminancia(hex: string): number {
   const canal = (i: number) => {

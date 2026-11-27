@@ -8,4 +8,4 @@ Cada `<funcao_>.json` guarda chamadas reais às regras do protótipo (entrada e 
 
 Regra que só existe no sistema novo (como as remoções do escalante) não grava caso: ela é testada direto em `pacotes/dominio/test`.
 
-Os dados são fictícios (matrículas 990…, `M000`…). Nenhum dado pessoal real entra aqui.
+Os dados são fictícios (nomes inventados, matrículas 990… e `M000`…). A matrícula 990… existe de verdade, então ela não diz o que é teste: no banco, quem diz é a marca `de_teste`. Nenhum dado pessoal real entra aqui.

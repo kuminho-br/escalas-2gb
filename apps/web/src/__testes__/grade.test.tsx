@@ -20,7 +20,7 @@ const bloco = (servico: typeof PRONTO | typeof JES, letra: string, inicio = '08:
 });
 const EXPEDIENTE: BlocoDaGrade = { alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true };
 const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
-  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
+  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
 const GRADE: GradeDoMes = {
   mes: MES,
@@ -31,7 +31,7 @@ const GRADE: GradeDoMes = {
       linhas: [
         linha('CABO', {
           dias: { [dia(2)]: [bloco(PRONTO, 'A')], [dia(31)]: [bloco(PRONTO, 'B', '20:00', '08:00')] },
-          choques: [dia(31)], pjes: 4, diarias: 0, horasTiradas: 24 * 60, horasPedidas: 60 * 60,
+          choques: [dia(31)], afastamentos: [], pjes: 4, diarias: 0, horasTiradas: 24 * 60, horasPedidas: 60 * 60,
         }),
         linha('SD1', { dias: { [dia(5)]: [bloco(PRONTO, 'A'), bloco(JES, 'A', '20:00', '23:00')] }, pjes: 8, diarias: 2, horasTiradas: 90, horasPedidas: 180 }),
       ],
@@ -273,14 +273,14 @@ describe('grade geral: a tabela', () => {
   it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {
     const escolhida = { militarId: 'm-CABO', dia: dia(2) };
     const maximos = { pjes: 0, diarias: 0 };
-    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semLinhas.container.querySelector('[data-linha-marcada]')).toBeNull();
     // o dia escolhido não está nas colunas (a grade do mês não tem nenhum dia): nada é marcado e nada quebra
-    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semDias.container.querySelector('[data-coluna-marcada]')).toBeNull();
     expect(semDias.container.querySelector('[data-linha-marcada]')).not.toBeNull();
     // militar que não está na grade: nenhuma linha marcada
-    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semMilitar.container.querySelector('[data-linha-marcada]')).toBeNull();
     expect(semMilitar.container.querySelector('[data-coluna-marcada]')).not.toBeNull();
   });
@@ -292,8 +292,9 @@ describe('grade geral: a tabela', () => {
     const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     await waitFor(() => expect(c).toHaveAttribute('data-escolhida'));
     expect(c).toHaveAttribute('data-choque');
-    expect(c).toHaveClass('ring-alerta', 'bg-vinho/15');
-    expect(c).not.toHaveClass('ring-vinho');
+    // o contorno é um pseudo-elemento sobre a célula (6.70: o traço do afastado nunca o esconde)
+    expect(c).toHaveClass('after:ring-alerta', 'bg-vinho/15');
+    expect(c).not.toHaveClass('after:ring-vinho');
   });
 
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
@@ -301,7 +302,7 @@ describe('grade geral: a tabela', () => {
     abrir(`/?mes=${MES}`);
     const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     expect(c).toHaveAttribute('data-choque');
-    expect(c).toHaveClass('ring-alerta');
+    expect(c).toHaveClass('after:ring-alerta');
     const exp = celula('ADM', 2, 'expediente');
     expect(exp).toBeInTheDocument();
     expect(within(exp).queryByText(/^[A-C]$/)).toBeNull();
@@ -310,18 +311,20 @@ describe('grade geral: a tabela', () => {
 });
 
 describe('grade geral: a legenda', () => {
-  it('traz só os serviços que aparecem, o expediente e o choque', async () => {
+  it('traz só os serviços que aparecem, o expediente e o choque, e vem ACIMA da tabela', async () => {
     api();
     abrir(`/?mes=${MES}`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Pronto', 'Expediente do ADM', 'Choque de horário']);
+    expect(legenda.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // cada serviço leva o quadradinho com a letra do turno (6.70), e no fim a dica de rolar para os lados
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'APronto', 'Expediente do ADM', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 
   it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
     api();
     abrir(`/?mes=${MES}&equipe=eq-bravo`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES']);
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 });
 
@@ -354,34 +357,37 @@ describe('a cota de saldo na Grade geral (6.38)', () => {
     // a matrícula vem antes da barra na ordem do documento, e a linha das duas espalha: matrícula à esquerda, barra à direita
     const matricula = within(linhaDe('ADM')).getByText('990001-1');
     expect(matricula.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const linhaDaMatricula = barra.parentElement!;
+    // a matrícula (dentro do botão do militar) à esquerda e a barra à direita, na segunda linha de uma grade de duas colunas
+    // (6.70: a célula do nome é o botão de ponta a ponta, que é a grade de duas colunas; a barra vem dentro dele)
+    const linhaDaMatricula = barra.parentElement!.parentElement!;
     expect(linhaDaMatricula).toContainElement(matricula);
-    expect(linhaDaMatricula).toHaveClass('flex', 'justify-between');
-    // a célula tem 12 px de folga à direita, até a fronteira
-    expect(linhaDe('ADM').querySelector('th')).toHaveClass('pr-3');
+    expect(linhaDaMatricula).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
+    expect(barra.parentElement).toHaveClass('col-start-2', 'row-start-2');
+    // o botão tem 12 px de folga à direita, até a fronteira
+    expect(linhaDaMatricula).toHaveClass('pr-3');
     // a barra continua com 28 por 6 px
     expect(barra).toHaveClass('w-7', 'h-1.5');
     // Review Focus 3: no Pronto, a matrícula fica no mesmo lugar (a mesma linha, a mesma folga), sem barra
     const doPronto = within(linhaDe('CABO')).getByText('990001-1');
-    expect(doPronto.parentElement).toHaveClass('flex', 'justify-between');
+    expect(doPronto.parentElement).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
     expect(doPronto.className).toBe(matricula.className);
-    expect(linhaDe('CABO').querySelector('th')).toHaveClass('pr-3');
+    expect(doPronto.parentElement).toHaveClass('pr-3');
     expect(within(linhaDe('SOBRA')).getByRole('img', { name: '7 de 6 saldos no mês' })).toHaveAttribute('data-estado', 'acima');
     expect(within(linhaDe('CABO')).queryByRole('img')).toBeNull();
   });
 });
 
-// 6.46: a fronteira entre o fixo e o que rola é uma linha de 2 px no token `encaixe` (regra do Manual: "Tabela com rolagem")
-describe('a fronteira da rolagem na Grade geral (6.46)', () => {
+// 6.46 e 6.70: a fronteira entre o fixo e o que rola é uma linha de 3 px no token `tinta` (regra do Manual: "Tabela com rolagem"; ver tabela-com-rolagem.test.tsx)
+describe('a fronteira da rolagem na Grade geral (6.46 e 6.70)', () => {
   const abrirGrade = async () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
   };
-  const FRONTEIRA_A_DIREITA = ['border-r-2', 'border-r-encaixe'];
-  const FRONTEIRA_DO_PJES = ['min-[1440px]:border-l-2', 'min-[1440px]:border-l-encaixe'];
+  const FRONTEIRA_A_DIREITA = ['border-r-3', 'border-r-tinta'];
+  const FRONTEIRA_DO_PJES = ['min-[1440px]:border-l-3', 'min-[1440px]:border-l-tinta'];
 
-  it('a coluna do militar tem a borda direita de 2 px encaixe no cabeçalho, em cada linha e na faixa de cada equipe (contínua)', async () => {
+  it('a coluna do militar tem a borda direita de 3 px tinta no cabeçalho, em cada linha e na faixa de cada equipe (contínua)', async () => {
     await abrirGrade();
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass(...FRONTEIRA_A_DIREITA);
     expect(linhaDe('CABO').querySelector('th')).toHaveClass(...FRONTEIRA_A_DIREITA);
@@ -399,11 +405,11 @@ describe('a fronteira da rolagem na Grade geral (6.46)', () => {
     expect(document.querySelector('tr[data-grupo="eq-alfa"] td:first-child')).toHaveClass(...FRONTEIRA_A_DIREITA);
   });
 
-  it('a base do cabeçalho tem 2 px encaixe na largura toda: "Militar", cada dia, PJES e Diárias', async () => {
+  it('a base do cabeçalho tem 3 px tinta na largura toda: "Militar", cada dia, PJES e Diárias', async () => {
     await abrirGrade();
     const cabecalhos = screen.getAllByRole('columnheader');
     expect(cabecalhos.length).toBe(GRADE.dias.length + 3);
-    for (const c of cabecalhos) expect(c, c.textContent ?? '').toHaveClass('border-b-2', 'border-b-encaixe');
+    for (const c of cabecalhos) expect(c, c.textContent ?? '').toHaveClass('border-b-3', 'border-b-tinta');
   });
 
   it('Review Focus 1: a fronteira à esquerda de PJES só existe quando a coluna fica presa (1440 px ou mais), e atravessa a faixa da equipe; Diárias não tem', async () => {
@@ -411,9 +417,9 @@ describe('a fronteira da rolagem na Grade geral (6.46)', () => {
     expect(screen.getByRole('columnheader', { name: 'PJES' })).toHaveClass(...FRONTEIRA_DO_PJES);
     const finais = [...linhaDe('CABO').querySelectorAll('td')].slice(-2);
     expect(finais[0]).toHaveClass(...FRONTEIRA_DO_PJES);
-    expect(finais[1]!.className).not.toMatch(/border-l-encaixe/);
+    expect(finais[1]!.className).not.toMatch(/border-l-tinta/);
     // abaixo de 1440 px nada disso vale: a classe só existe com o prefixo
-    expect(finais[0]!.className.split(' ')).not.toContain('border-l-2');
+    expect(finais[0]!.className.split(' ')).not.toContain('border-l-3');
     const daFaixa = [...document.querySelectorAll<HTMLElement>('tr[data-grupo="eq-alfa"] td')].slice(-2);
     expect(daFaixa[0]).toHaveClass(...FRONTEIRA_DO_PJES, 'min-[1440px]:sticky', 'min-[1440px]:right-16');
     expect(daFaixa[1]).toHaveClass('min-[1440px]:sticky', 'min-[1440px]:right-0');
@@ -478,11 +484,11 @@ describe('o grupo de filtro das equipes (6.46)', () => {
     const grupo = await abrirGrade();
     const segmentos = within(grupo).getAllByRole('button');
     const caixa = segmentos[0]!.parentElement!;
-    expect(caixa).toHaveClass('grid', 'grid-cols-6', 'sm:flex');
-    for (const b of segmentos) expect(b).toHaveClass('col-span-2', 'h-11', 'sm:h-(--altura-controle)');
+    expect(caixa).toHaveClass('grid', 'grid-cols-6', 'md:flex');
+    for (const b of segmentos) expect(b).toHaveClass('col-span-2', 'h-11', 'md:h-(--altura-controle)');
     // quatro segmentos: três na primeira linha e o último sozinho, esticado até o fim
-    expect(segmentos.at(-1)).toHaveClass('max-sm:col-span-6');
-    expect(segmentos[2]!.className).not.toMatch(/max-sm:col-span-(3|6)/);
+    expect(segmentos.at(-1)).toHaveClass('max-md:col-span-6');
+    expect(segmentos[2]!.className).not.toMatch(/max-md:col-span-(3|6)/);
   });
 });
 
@@ -502,17 +508,19 @@ describe('a jornada se escreve "ADM" (6.46)', () => {
     const { NOME_JORNADA } = await import('@/lib/militares');
     expect(NOME_JORNADA.adm).toBe('ADM');
     const raiz = join(__dirname, '..');
+    // os textos que a API manda para a tela (as mensagens dos esquemas) estão nos contratos: a varredura olha o site e os contratos
+    const contratos = join(__dirname, '..', '..', '..', '..', 'pacotes', 'contratos', 'src');
     const arquivos = (pasta: string): string[] => readdirSync(pasta).flatMap((n) => {
       const p = join(pasta, n);
       if (statSync(p).isDirectory()) return n === '__testes__' ? [] : arquivos(p);
       return /\.tsx?$/.test(n) ? [p] : [];
     });
     const achados: string[] = [];
-    for (const a of arquivos(raiz)) {
+    for (const a of [...arquivos(raiz), ...arquivos(contratos)]) {
       readFileSync(a, 'utf8').split('\n').forEach((linha, i) => {
         // os comentários do código podem dizer "Adm"; o que vai para a tela (texto de JSX ou de string), não
         const semComentario = linha.replace(/\/\/.*$/, '').replace(/^\s*\/?\*.*$/, '').replace(/\{\/\*.*?\*\/\}/g, '');
-        if (/\bAdm\b/.test(semComentario)) achados.push(`${relative(raiz, a).split(sep).join('/')}:${i + 1}: ${linha.trim().slice(0, 100)}`);
+        if (/\bAdm\b/.test(semComentario)) achados.push(`${relative(join(raiz, '..', '..', '..'), a).split(sep).join('/')}:${i + 1}: ${linha.trim().slice(0, 100)}`);
       });
     }
     expect(achados).toEqual([]);

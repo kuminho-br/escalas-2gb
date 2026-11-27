@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
@@ -25,6 +25,21 @@ describe('Crie a sua senha', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar senha' }));
     expect(await screen.findByText('As duas senhas precisam ser iguais.')).toBeInTheDocument();
     expect(f.mock.calls.some(([e]) => String(e).endsWith('/api/eu/senha'))).toBe(false);
+  });
+
+  it('os requisitos da senha ficam à vista e marcam conforme a pessoa digita (6.68, pool 49)', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: PROVISORIA } });
+    abrir('/criar-senha');
+    const lista = await screen.findByRole('list', { name: 'Requisitos da senha' });
+    const comprimento = () => within(lista).getByText(/Pelo menos 10 caracteres/).closest('li')!;
+    const iguais = () => within(lista).getByText(/As duas senhas iguais/).closest('li')!;
+    expect(comprimento()).toHaveTextContent('falta');
+    expect(iguais()).toHaveTextContent('falta');
+    await userEvent.type(screen.getByLabelText('Nova senha'), 'senha-nova-12345');
+    expect(comprimento()).toHaveTextContent('cumprido');
+    expect(iguais()).toHaveTextContent('falta');
+    await userEvent.type(screen.getByLabelText('Repita a nova senha'), 'senha-nova-12345');
+    expect(iguais()).toHaveTextContent('cumprido');
   });
 
   it('tem "Sair", para quem não quer criar a senha agora (6.16)', async () => {

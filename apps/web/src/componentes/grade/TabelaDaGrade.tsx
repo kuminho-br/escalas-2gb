@@ -1,8 +1,10 @@
 import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } from 'contratos';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, IdCard } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
+import { afastadoNoMesTodo, afastamentoDoDia } from '@/lib/afastamento-na-grade';
 import { hoje } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
+import { CABECALHO_PRESO, COLUNA_PRESA_ESQUERDA, useSombraDaRolagem } from '@/lib/tabela-com-rolagem';
 import { cn } from '@/lib/utils';
 import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
 import { BarraComparativa } from './BarraComparativa';
@@ -24,20 +26,25 @@ function bordasDoDia(grade: GradeDoMes, i: number): string[] {
   return [segunda ? 'border-l border-l-[#C9CED6]' : '', vesperaDeSegunda ? '' : 'border-r border-r-[#EEF0F3]'];
 }
 
-// A fronteira da rolagem (6.46; Manual, "Tabela com rolagem"): entre o que fica preso e o que rola, uma linha de 2 px no token `encaixe`, contínua.
+// A fronteira da rolagem (6.46 e 6.70; `lib/tabela-com-rolagem.ts`): entre o que fica preso e o que rola, uma linha de 3 px na cor `tinta`, contínua, e uma sombra ao rolar.
 // Na Grade: à direita da coluna do militar, embaixo do cabeçalho (na largura toda) e, quando PJES e Diárias ficam presas (1440 px ou mais), à esquerda de PJES.
 // As linhas de dentro (entre dias, entre militares, a de segunda-feira) continuam mais fracas que ela.
-const FRONTEIRA_DO_MILITAR = 'border-r-2 border-r-encaixe';
-const FRONTEIRA_DO_CABECALHO = 'border-b-2 border-b-encaixe';
+const FRONTEIRA_DO_MILITAR = COLUNA_PRESA_ESQUERDA;
+const FRONTEIRA_DO_CABECALHO = CABECALHO_PRESO;
+/** Na tela cheia do celular (6.70) a coluna do militar estreita para 112 px (7rem): o posto em cima do nome, sem a matrícula, e cabem seis dias de 44 px. */
+const MILITAR_ESTREITO = 'max-md:w-28 max-md:min-w-28';
 /** O fundo da faixa de cada equipe. */
 const FUNDO_DA_FAIXA = 'bg-[#F1F3F6]';
+
+/** Quantos militares do grupo (as linhas que estão na tela) estão afastados no dia. */
+const contarAfastadosHoje = (g: GrupoDaGrade, dia: string) => g.linhas.filter((l) => afastamentoDoDia(l.afastamentos, dia)).length;
 
 /** O nome da equipe como a Grade o mostra: o grupo do expediente (chave `adm`) se escreve "ADM" (6.46). */
 export const nomeDoGrupo = (g: Pick<GrupoDaGrade, 'chave' | 'nome'>) => (g.chave === 'adm' ? NOME_JORNADA.adm : g.nome);
 
 /** PJES e Diárias: larguras fixas de verdade (w, min-w e max-w iguais; só w seria um mínimo) para as duas se empilharem presas à direita (right-16 = 4rem). */
 const COLUNAS_FINAIS = [
-  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-16', separador: 'min-[1440px]:border-l-2 min-[1440px]:border-l-encaixe' },
+  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-16', separador: 'min-[1440px]:border-l-3 min-[1440px]:border-l-tinta min-[1440px]:sombra-presa-dir' },
   { nome: 'Diárias', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-0', separador: '' },
 ] as const;
 const CELULA_FINAL = 'border-b border-b-[#EEF0F3] bg-superficie px-2 py-1 group-hover:bg-[#F7F7F8] min-[1440px]:sticky min-[1440px]:z-10';
@@ -49,12 +56,16 @@ const FUNDO_DA_MARCA_NO_CABECALHO = 'bg-[#F7EFEF]';
  * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES e Diárias. `grupos` são os
  * que aparecem (o filtro de equipes já aplicado); `maximos` vêm da grade inteira.
  */
-export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, recolhidas, aoAlternar }: {
+export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, aoAbrirFicha, recolhidas, aoAlternar, cheia = false }: {
+  /** Na tela cheia (6.70) a tabela ocupa quase a altura toda da janela. */
+  cheia?: boolean;
   grade: GradeDoMes;
   grupos: GrupoDaGrade[];
   maximos: { pjes: number; diarias: number };
   escolhida: { militarId: string; dia: string } | null;
   aoEscolher: (militarId: string, dia: string) => void;
+  /** Clicar no militar (posto, nome e matrícula) abre a ficha dele, por cima da Grade. Sem ela (quem só consulta a unidade), o militar é só texto. */
+  aoAbrirFicha?: (militarId: string) => void;
   /** As chaves das equipes recolhidas (só a faixa aparece) e o clique no nome da equipe. */
   recolhidas: Set<string>;
   aoAlternar: (chave: string) => void;
@@ -64,6 +75,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
   const temHoje = grade.dias.some((d) => d.data === diaDeHoje);
   const colunaDeHoje = useRef<HTMLTableCellElement>(null);
   const jaRolou = useRef(false);
+  const caixa = useSombraDaRolagem();
   useEffect(() => {
     if (jaRolou.current || !temHoje || !colunaDeHoje.current) return;
     jaRolou.current = true;
@@ -73,11 +85,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
     // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as duas colunas finais): a célula que rola à vista não para debaixo delas.
-    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32">
+    <div ref={caixa} data-rolagem="grade" className={cn(cheia ? 'max-h-[calc(100dvh-8rem)]' : 'max-h-[calc(100dvh-13rem)]', 'scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32', cheia && 'max-md:scroll-pl-28')}>
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>
-            <th scope="col" className={cn('sticky top-0 left-0 z-30 min-w-[13rem] bg-superficie py-2 pr-3 pl-4 text-left text-sm font-medium text-apagado', FRONTEIRA_DO_MILITAR, FRONTEIRA_DO_CABECALHO)}>Militar</th>
+            <th scope="col" className={cn('sticky top-0 left-0 z-30 min-w-[13rem] bg-superficie py-2 pr-3 pl-4 text-left text-sm font-medium text-apagado', cheia && MILITAR_ESTREITO + ' max-md:pr-1 max-md:pl-2', FRONTEIRA_DO_MILITAR, FRONTEIRA_DO_CABECALHO)}>Militar</th>
             {grade.dias.map((d, i) => {
               const n = Number(d.data.slice(8));
               const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
@@ -94,7 +106,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                   data-coluna={d.data}
                   data-coluna-marcada={escolhida?.dia === d.data ? '' : undefined}
                   title={d.feriado ?? undefined}
-                  className={cn('sticky top-0 z-20 min-w-12 bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
+                  className={cn('sticky top-0 z-20 min-w-12 px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', vinho ? 'bg-passa' : 'bg-superficie', cheia && 'max-md:min-w-11', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
                 >
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
@@ -113,7 +125,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
             <Fragment key={g.chave}>
               <tr data-grupo={g.chave}>
                 {/* é uma célula comum, e não um cabeçalho de linha: o nome da equipe não é o nome de um militar. A faixa tem as mesmas colunas presas das linhas (a do militar e, a partir de 1440 px, PJES e Diárias): assim as fronteiras da rolagem a atravessam, contínuas */}
-                <td className={cn('sticky left-0 z-10 min-w-[13rem] py-1.5 pr-3 pl-4 text-left', FUNDO_DA_FAIXA, FRONTEIRA_DO_MILITAR)}>
+                <td className={cn('sticky left-0 z-10 min-w-[13rem] py-1.5 pr-3 pl-4 text-left', cheia && MILITAR_ESTREITO + ' max-md:pr-1 max-md:pl-2', FUNDO_DA_FAIXA, FRONTEIRA_DO_MILITAR)}>
                   <span data-nome-do-grupo className="flex items-center gap-2 whitespace-nowrap">
                     <span aria-hidden className="h-4 w-[3px] rounded-full bg-vinho" />
                     <button type="button" aria-expanded={!recolhidas.has(g.chave)} aria-label={`${recolhidas.has(g.chave) ? 'Mostrar' : 'Recolher'} ${nomeDoGrupo(g)}`} onClick={() => aoAlternar(g.chave)} className="inline-flex items-center gap-1 rounded text-left hover:underline focus-visible:outline-2">
@@ -123,24 +135,53 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                     <span className="text-sm font-normal text-apagado">{g.linhas.length === 1 ? '1 militar' : `${g.linhas.length} militares`}</span>
                   </span>
                 </td>
-                <td colSpan={grade.dias.length} className={FUNDO_DA_FAIXA} />
+                <td colSpan={grade.dias.length} className={FUNDO_DA_FAIXA}>
+                  {/* "2 afastados hoje" (6.70): só quando há, e só no mês corrente; fica à vista ao rolar (preso logo depois da coluna do militar) */}
+                  {temHoje && contarAfastadosHoje(g, diaDeHoje) > 0 && (
+                    <span data-afastados-hoje className={cn('sticky left-[calc(13rem+0.875rem)] inline-flex items-center gap-1.5 text-[13px] font-medium text-apagado', cheia && 'max-md:left-[calc(7rem+0.5rem)]')}>
+                      <span aria-hidden className="inline-block h-[3px] w-4 rounded-sm bg-afastado" />
+                      {contarAfastadosHoje(g, diaDeHoje) === 1 ? '1 afastado hoje' : `${contarAfastadosHoje(g, diaDeHoje)} afastados hoje`}
+                    </span>
+                  )}
+                </td>
                 <td className={cn('min-[1440px]:sticky min-[1440px]:z-10', FUNDO_DA_FAIXA, COLUNAS_FINAIS[0].direita, COLUNAS_FINAIS[0].separador)} />
                 <td className={cn('min-[1440px]:sticky min-[1440px]:z-10', FUNDO_DA_FAIXA, COLUNAS_FINAIS[1].direita)} />
               </tr>
               {(recolhidas.has(g.chave) ? [] : g.linhas).map((l) => {
                 const linhaMarcada = escolhida?.militarId === l.militarId;
+                // afastado em todos os dias do mês mostrado: o nome em tom apagado (quem dá para escalar é quem não está assim)
+                const mesTodo = afastadoNoMesTodo(l.afastamentos, grade.dias.map((x) => x.data));
                 return (
                 <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
-                  <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
-                    <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                      <span className="text-sm text-apagado">{l.posto}</span>
-                      <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
-                    </span>
-                    {/* a matrícula à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
-                    <span className="flex items-center justify-between gap-1.5">
-                      <span className="text-xs text-apagado">{l.matricula}</span>
-                      {l.saldos && <CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} />}
-                    </span>
+                  <th scope="row" data-afastado-o-mes-todo={mesTodo ? '' : undefined} className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] p-0 text-left font-normal', cheia && MILITAR_ESTREITO, FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
+                    {/* a célula do nome é um botão só, da borda à borda (6.70): abre a ficha do militar. Ao passar o mouse, fundo vinho suave e o ícone da ficha no canto; no teclado, contorno por dentro.
+                        A matrícula fica à esquerda e a barra da cota de saldo encostada à direita; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
+                    {aoAbrirFicha ? (
+                      <button
+                        type="button"
+                        data-abrir-ficha
+                        aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
+                        onClick={() => aoAbrirFicha(l.militarId)}
+                        className={cn('group/nome grid h-11 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left outline-none hover:bg-vinho/8 focus-visible:bg-vinho/8 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:-outline-offset-4', cheia && 'max-md:h-12 max-md:pr-1 max-md:pl-2')}
+                      >
+                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 overflow-hidden whitespace-nowrap', cheia && 'max-md:row-span-2 max-md:flex-col max-md:items-start max-md:justify-center max-md:gap-0')}>
+                          <span className="text-sm text-apagado">{l.posto}</span>
+                          <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
+                        </span>
+                        <span className={cn('col-start-1 row-start-2 text-xs text-apagado', cheia && 'max-md:hidden')}>{l.matricula}</span>
+                        <IdCard aria-hidden data-icone-da-ficha className="col-start-2 row-start-1 size-4 justify-self-end text-vinho opacity-0 transition-opacity group-hover/nome:opacity-100 group-focus-visible/nome:opacity-100" />
+                        {l.saldos && <span className={cn('col-start-2 row-start-2 self-center', cheia && 'max-md:hidden')}><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                      </button>
+                    ) : (
+                      <div className={cn('grid h-11 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left', cheia && 'max-md:h-12 max-md:pr-1 max-md:pl-2')}>
+                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 whitespace-nowrap', cheia && 'max-md:row-span-2 max-md:flex-col max-md:items-start max-md:justify-center max-md:gap-0')}>
+                          <span className="text-sm text-apagado">{l.posto}</span>
+                          <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
+                        </span>
+                        <span className={cn('col-start-1 row-start-2 text-xs text-apagado', cheia && 'max-md:hidden')}>{l.matricula}</span>
+                        {l.saldos && <span className={cn('col-start-2 row-start-2 self-center', cheia && 'max-md:hidden')}><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                      </div>
+                    )}
                   </th>
                   {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
@@ -149,9 +190,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                       <td
                         key={d.data}
                         data-fim-de-semana={fds ? '' : undefined}
+                        data-feriado={d.feriado ? '' : undefined}
                         data-coluna={d.data}
                         data-coluna-marcada={colunaMarcada ? '' : undefined}
-                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
+                        // a coluna inteira do fim de semana e do feriado fica com um fundo levemente mais escuro (a marcada de vinho vence)
+                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', (fds || d.feriado) && 'bg-passa', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
                       >
                         <CelulaDaGrade
                           linha={l}
@@ -161,6 +204,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                           choque={l.choques.includes(d.data)}
                           escolhida={escolhida?.militarId === l.militarId && escolhida.dia === d.data}
                           aoEscolher={() => aoEscolher(l.militarId, d.data)}
+                          afastado={afastamentoDoDia(l.afastamentos, d.data)}
                         />
                       </td>
                     );

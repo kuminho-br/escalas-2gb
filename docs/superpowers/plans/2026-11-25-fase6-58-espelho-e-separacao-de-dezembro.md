@@ -4,7 +4,7 @@
 
 > **Modelo: Sonnet** (o padrão, decisão do usuário de 25/11/2026). Revisão final no Opus.
 
-**Goal:** o banco ganha uma área à parte, o **espelho** (schema `laboratorio`), com a mesma estrutura do real e só dados de teste; os militares fictícios (`990…`) e tudo o que for de teste saem do banco real e vão para o espelho, **antes da montagem das escalas de dezembro**.
+**Goal:** o banco ganha uma área à parte, o **espelho** (schema `laboratorio`), com a mesma estrutura do real e só dados de teste; os militares fictícios (os da carga de exemplo, **marcados como teste no cadastro**; a matrícula não diz nada, ver Task 5) e tudo o que for de teste saem do banco real e vão para o espelho, **antes da montagem das escalas de dezembro**.
 
 **Architecture:** o executor de migrações (`apps/api/src/banco/migrar.ts`) passa a aplicar cada arquivo `.sql` duas vezes, uma em cada schema, cada um com o seu registro de migrações aplicadas. Assim a estrutura do espelho é igual à do real **por construção** (mesmos arquivos, mesma ordem, inclusive gatilhos, funções e chaves), e nenhuma migração vale só de um lado. Um papel de banco `laboratorio_app`, sem acesso às tabelas do real, é o que a API vai assumir ao falar com o espelho (6.59): o isolamento é do banco, não só do código. Um script (`separar-teste`) lista, leva ao espelho e tira do real os registros de teste.
 
@@ -61,6 +61,8 @@
 
 ### Task 3: tirar o teste do banco real
 
+> **Critério substituído pela Task 5 (26/11):** onde esta task diz "matrícula `990…`", vale "militar marcado como teste". Matrícula 990xxx-x é de militar real.
+
 **Files:** Create `apps/api/scripts/separar-teste.ts`, `apps/api/src/laboratorio/separar.ts`; Test `apps/api/test/separar-teste.test.ts`
 
 **Interfaces (Produces):**
@@ -77,3 +79,30 @@
 **Files:** só o texto que já existir sobre como migrar, se houver (a frase passa a dizer: "as migrações valem para o real e para o espelho").
 
 - [ ] **Step 1:** `pnpm test && pnpm typecheck` (a entrega mexe só na API; `pnpm build:vercel` só se tocar o que a Vercel empacota). **Step 2:** conferir no banco de teste **só depois de autorizado pelo usuário, e só leitura**: `separar-teste` sem `--aplicar`; relatar a lista à PLANEJAMENTO. **Step 3:** commit `Fase 6.58: fechamento` e enviar a branch à PLANEJAMENTO com o resumo e a lista da conferência. **Não** rodar a migração nem `--aplicar` no banco de teste.
+
+### Task 5 (revisão de 26/11): a marca "de teste" no cadastro
+
+**Por quê.** O usuário corrigiu em 26/11: **matrícula no padrão 990xxx-x é de militar real.** A Task 3, como foi entregue, apaga do real tudo o que é `990%` e apagaria militares verdadeiros. Decisão do usuário (opção 1): o que é de teste passa a ser dito por uma **marca no cadastro**, nunca pela matrícula. Esta task vai na mesma branch `fase6-58-espelho-e-separacao` (PR #287, em rascunho até ela chegar) e substitui o critério da Task 3. O resto da entrega (Tasks 1, 2 e 4, e as rulings já aceitas) fica como está.
+
+**Files:** Create `apps/api/banco/migracoes/0048_militar_de_teste.sql` (se o número estiver ocupado, o próximo livre; as 6.59, 6.60, 6.66 e 6.68 renumeram as delas na hora, como os planos já mandam); Modify `apps/api/src/laboratorio/separar.ts`, `apps/api/scripts/separar-teste.ts`, `apps/api/src/laboratorio/espelho.ts`, `apps/api/src/carga/exemplo.ts`; Test `apps/api/test/separar-teste.test.ts`, `apps/api/test/espelho.test.ts`.
+
+**Regras fixas:**
+- **Nenhum código de produção decide "é teste" pela matrícula.** Sai `MATRICULA_DE_TESTE = '990%'`, a conferência "matrículas 990… no banco real" e os comentários que dizem que "matrícula real nunca é assim". Nos textos impressos, "militares marcados como teste" no lugar de "matrícula 990xxx-x".
+- **A marca:** `militar.de_teste boolean not null default false`, nos dois schemas. Quem grava `true`: só a carga do espelho e o `--marcar` do `separar-teste`. **A API e a importação nunca leem nem gravam a marca**: ela não entra em `contratos`, nem em resposta, nem na planilha. Criar ou editar militar pela API deixa `false`.
+- **A carga do espelho** grava `de_teste = true` nos 53 militares e nos 5 perfis. As matrículas da carga ficam como estão: o espelho é outro schema, e a marca é o que vale.
+- **Quem pode ser marcado no real (a lista de candidatos):** só o militar cuja **matrícula e nome** batem, juntos, com uma linha da carga de exemplo ou dos 5 perfis (a lista vem do próprio código da carga, sem repetir à mão). Matrícula igual com nome diferente não é candidato.
+- **Candidato seguro ou suspeito:** é **seguro** se o primeiro registro da auditoria daquele militar é a inclusão, já com a matrícula e o nome da carga (nasceu fictício). Qualquer outro caso é **suspeito**: sem registro de inclusão na auditoria, ou nasceu com outro nome e depois foi alterado para o da carga (pode ser militar real sobrescrito pela carga). O suspeito **nunca** é marcado pelo script: ele aparece na lista para o usuário decidir à mão.
+- **O script em três passos, cada um com conferência de quantidade:**
+  1. `separar-teste` (padrão, só lê): imprime os seguros, os suspeitos (com o motivo), os já marcados e, para os marcados, o que depende deles (como hoje: as contas de teste com o nível de acesso, e as linhas reais que só perdem a autoria).
+  2. `--marcar=N`: N é a quantidade de seguros que a lista mostrou. Recusa sem o N ou com outro número. A transação confere de novo antes de marcar.
+  3. `--aplicar=N`: N é a quantidade de **marcados**. Apaga só `de_teste = true` e o que depende deles, pelo percurso que já existe. A recusa "sem administrador" passa a olhar as contas de militares marcados.
+  A conferência final é "militares marcados como teste no banco real: 0".
+
+**Review Focus desta task (cada um com teste):**
+1. **Militar real com matrícula 990 e nome real:** não aparece como candidato, não é marcado, não é apagado, e tudo o que é dele fica intacto.
+2. **Militar real sobrescrito pela carga** (nasceu com outro nome; um update levou o nome e a matrícula da carga): aparece como suspeito, o `--marcar` não o marca e o `--aplicar` não o apaga.
+3. **A marca não vaza pela API:** criar militar e editar militar pela API gravam `de_teste = false`; uma requisição que manda `de_teste` não o grava; nenhuma resposta da API traz o campo.
+4. **N errado:** `--marcar` e `--aplicar` com número diferente do mostrado recusam e não mudam uma linha.
+5. **Repetir:** rodar `--marcar` e `--aplicar` de novo não faz mal e não encontra nada.
+
+- [ ] **Step 1:** os testes acima. Nos testes, militares reais fictícios têm matrícula 990 de propósito (é o caso que pegou). **Step 2:** FAIL. **Step 3:** migração, carga, `separar.ts` e script. **Step 4:** PASS, e `pnpm test && pnpm typecheck && pnpm build:vercel`. **Step 5:** commit `Fase 6.58: a marca de teste no cadastro (a matrícula não diz o que é teste)` e enviar a branch à PLANEJAMENTO. **Nada roda em banco remoto.**

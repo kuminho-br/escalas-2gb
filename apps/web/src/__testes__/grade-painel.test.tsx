@@ -12,7 +12,7 @@ const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
 const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
 const CABO: LinhaDaGrade = {
-  militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
+  militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
 };
 const GRADE: GradeDoMes = { mes: MES, dias: DIAS, grupos: [{ chave: 'eq-alfa', nome: 'Alfa', linhas: [CABO] }] };
 const opcao = (o: Partial<OpcaoDeServico>): OpcaoDeServico => ({
@@ -85,11 +85,11 @@ describe('grade geral: o painel do dia', () => {
   });
 
   it('sem nada marcado, afastado e com choque: as frases do dia', async () => {
-    api({ ...PAINEL, disponibilidade: [], afastamento: 'Férias', choques: ['Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)'], opcoes: [] });
+    api({ ...PAINEL, disponibilidade: [], afastamento: { tipo: 'Férias', inicio: '2026-12-08', fim: '2026-12-12' }, choques: ['Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)'], opcoes: [] });
     abrir(ABERTA);
     const p = await painel();
     expect(within(p).getByText('Não marcou voluntariado neste dia.')).toBeInTheDocument();
-    expect(within(p).getByText('Afastado: Férias')).toBeInTheDocument();
+    expect(within(p).getByText(/^Afastado:/)).toHaveTextContent('Afastado: Férias, de 8 a 12/12/2026');
     expect(within(p).getByText('Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)')).toHaveClass('text-alerta');
     await userEvent.click(within(p).getByRole('button', { name: 'Adicionar serviço neste dia' }));
     expect(await within(p).findByText('Nenhum serviço disponível para ele neste dia.')).toBeInTheDocument();

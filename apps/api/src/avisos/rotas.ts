@@ -32,7 +32,9 @@ export function rotasAvisos(dep: { banco: Banco; auth: Auth; agora?: () => Date 
     const d = corpo.dados;
     const usuarioId = c.get('usuarioId');
     const dia = hoje();
-    if (!(await dep.banco.query('select 1 from unidade where id = $1', [d.unidadeId])).rows.length) return c.json({ erro: 'Unidade não encontrada.' }, 404);
+    const unidade = (await dep.banco.query<{ extinta: boolean }>('select (ate is not null and ate < $2::date) as extinta from unidade where id = $1', [d.unidadeId, dia])).rows[0];
+    if (!unidade) return c.json({ erro: 'Unidade não encontrada.' }, 404);
+    if (unidade.extinta) return c.json({ erro: 'Esta unidade não existe mais.' }, 400);
     if (!(await temPapel(dep.banco, usuarioId, d.unidadeId, CADASTRO, dia))) return c.json({ erro: SEM_NIVEL }, 403);
     if (d.valeAte && d.valeAte < dia) return c.json(DATA_PASSADA, 400);
     const id = await comUsuario(dep.banco, usuarioId, async (tx) =>
@@ -58,21 +60,29 @@ export function rotasAvisos(dep: { banco: Banco; auth: Auth; agora?: () => Date 
     const d = corpo.dados;
     if (d.valeAte && d.valeAte < hoje()) return c.json(DATA_PASSADA, 400);
     const usuarioId = c.get('usuarioId');
-    await comUsuario(dep.banco, usuarioId, (tx) =>
+    const atual = acesso.aviso;
+    // editar sem mudar nada (corpo vazio, ou os mesmos valores) não grava: a auditoria só recebe mudança de verdade
+    const muda = (d.titulo !== undefined && d.titulo !== atual.titulo) || (d.texto !== undefined && d.texto !== atual.texto) || (d.fixado !== undefined && d.fixado !== atual.fixado) || (d.valeAte !== undefined && d.valeAte !== atual.valeAte);
+    if (!muda) return c.json(atual);
+    // `retirado_em is null`: se a retirada chegou entre a leitura e a gravação, o aviso retirado não é alterado
+    const gravou = await comUsuario(dep.banco, usuarioId, (tx) =>
       tx.query(
         `update aviso set titulo = coalesce($2::text, titulo), texto = coalesce($3::text, texto), fixado = coalesce($4::boolean, fixado),
-                vale_ate = case when $5::boolean then $6::date else vale_ate end where id = $1`,
-        [acesso.aviso.id, d.titulo ?? null, d.texto ?? null, d.fixado ?? null, d.valeAte !== undefined, d.valeAte ?? null],
+                vale_ate = case when $5::boolean then $6::date else vale_ate end where id = $1 and retirado_em is null returning id`,
+        [atual.id, d.titulo ?? null, d.texto ?? null, d.fixado ?? null, d.valeAte !== undefined, d.valeAte ?? null],
       ),
     );
-    return c.json(await umAviso(dep.banco, usuarioId, hoje(), acesso.aviso.id));
+    if (!gravou.rows.length) return c.json({ erro: NAO_ACHADO }, 404);
+    return c.json(await umAviso(dep.banco, usuarioId, hoje(), atual.id));
   });
 
   r.post('/avisos/:id/retirar', async (c) => {
     const acesso = await doAviso(c, c.req.param('id'));
     if ('resposta' in acesso) return acesso.resposta;
     const usuarioId = c.get('usuarioId');
-    await comUsuario(dep.banco, usuarioId, (tx) => tx.query('update aviso set retirado_em = now(), retirado_por = $2 where id = $1 and retirado_em is null', [acesso.aviso.id, usuarioId]));
+    const retirou = await comUsuario(dep.banco, usuarioId, (tx) => tx.query('update aviso set retirado_em = now(), retirado_por = $2 where id = $1 and retirado_em is null returning id', [acesso.aviso.id, usuarioId]));
+    // duas retiradas ao mesmo tempo: a que chegou depois acha o aviso já retirado
+    if (!retirou.rows.length) return c.json({ erro: NAO_ACHADO }, 404);
     return c.body(null, 204);
   });
 

@@ -10,7 +10,7 @@ const MENSAGEM_CURTA = 'Digite pelo menos 3 letras ou escolha uma unidade.';
 const AVISO_MAIS = 'Há mais militares. Refine a busca.';
 
 const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaConsulta> = {}): LinhaDaConsulta => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', ...extra,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', lotacaoCaminho: '1ª SB', quadro: 'QBMG', ...extra,
 });
 const UNIDADES: UnidadeDaConsulta[] = [
   { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: 'u-cbmpe' }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: 'u-gb' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop' },
@@ -24,7 +24,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
     // quem não tem nível de acesso sobre o militar recebe 403 na ficha completa, e a tela mostra a de consulta (6.50)
     'GET /api/militares/m1': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
     'GET /api/militares/m9': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
-    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, quadro: null, nomeCompleto: null })], haMais: false } },
+    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, lotacaoCaminho: null, quadro: null, nomeCompleto: null })], haMais: false } },
     ...extra,
   });
 }
@@ -67,6 +67,29 @@ describe('a consulta de militares', () => {
     await userEvent.click(screen.getByLabelText('Lotados em'));
     await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
     expect(screen.getByLabelText('Lotados em')).toHaveTextContent('Toda a corporação');
+  });
+
+  it('(pool 52 g) a lista da pesquisa e a ficha de consulta dizem a unidade pelo caminho, e o caminho longo corta com reticências sem espremer o nome (h)', async () => {
+    const longo = '2º GB / 1ª SB / 1ª Seção de Operações Aéreas e de Salvamento';
+    api({
+      [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE', { lotacaoCaminho: longo })], haMais: false } },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: { ...linha('m1', 'ANDRADE', { lotacaoCaminho: '2º GB / 1ª SB' }), podeAbrirFichaCompleta: false } },
+    });
+    abrir('/peculio/pesquisar');
+    await userEvent.type(await campoDaBusca(), 'andr');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    const item = within(await screen.findByRole('list', { name: 'Militares encontrados' })).getAllByRole('listitem')[0]!;
+    const placa = within(item).getByText(longo);
+    // 360 px: o caminho corta com reticências (e leva o texto inteiro no title); o posto e o nome não encolhem
+    expect(placa.className).toMatch(/truncate/);
+    expect(placa.className).toMatch(/min-w-0/);
+    expect(placa).toHaveAttribute('title', longo);
+    expect(within(item).getByText('ANDRADE').className).toMatch(/shrink-0/);
+    expect(within(item).getByText('SD').className).toMatch(/shrink-0/);
+    // a ficha de consulta
+    await userEvent.click(within(item).getByRole('link', { name: /ANDRADE/ }));
+    expect(await screen.findByText('Lotado em 2º GB / 1ª SB, QBMG')).toBeInTheDocument();
+    expect(screen.getByText('Lotação').nextElementSibling).toHaveTextContent('2º GB / 1ª SB');
   });
 
   it('busca por texto: mostra a identificação de cada militar, e a lotação e o quadro quando há', async () => {
@@ -252,7 +275,7 @@ describe('a ficha de consulta', () => {
   });
 
   it('o militar sem lotação hoje: o resumo diz isso e só a identificação aparece', async () => {
-    ficha({ ...FICHA_MINIMA, lotacao: null, quadro: null });
+    ficha({ ...FICHA_MINIMA, lotacao: null, lotacaoCaminho: null, quadro: null });
     abrir('/peculio/militar/m1');
     expect(await screen.findByText('Sem lotação hoje')).toBeInTheDocument();
     expect(blocos()).toEqual(['Identificação']);
@@ -261,7 +284,7 @@ describe('a ficha de consulta', () => {
   it('6.50: a ficha completa responde 404 (quem nunca foi lotado não aparece para ela), e a ficha de consulta abre mesmo assim', async () => {
     api({
       'GET /api/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
-      'GET /api/consulta/militares/m1': { status: 200, corpo: { ...FICHA_MINIMA, lotacao: null, quadro: null } },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: { ...FICHA_MINIMA, lotacao: null, lotacaoCaminho: null, quadro: null } },
     });
     abrir('/peculio/militar/m1?de=pesquisa&texto=andr');
     expect(await screen.findByText('Sem lotação hoje')).toBeInTheDocument();

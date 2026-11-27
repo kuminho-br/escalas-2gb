@@ -58,9 +58,10 @@ export function visibilidadeDoMes(c: Consulta, usuarioId: string, mes: string): 
     return dados.abaixo.get(unidadeId)!;
   };
   return async (e) => {
+    // a publicada, a retificada e a remessada, toda conta vê: sem consultar o nível de acesso da unidade (a lista do mês tem uma escala por unidade, e cada consulta custaria duas)
+    if (e.estado !== 'rascunho' && e.estado !== 'previa') return true;
     if (await lePorNivel(e.unidadeId)) return true;
     if (e.estado === 'rascunho') return false;
-    if (e.estado !== 'previa') return true;
     if (e.dosOficiais && !(await oficial())) return false;
     return (await lotadoAbaixo(e.unidadeId)) || (await escaladas()).has(e.id);
   };

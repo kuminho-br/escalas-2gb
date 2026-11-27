@@ -14,6 +14,8 @@ export type LinhaDaConsulta = {
   lotacao: string | null;
   /** A sigla do quadro do período de hoje; null sem quadro. */
   quadro: string | null;
+  /** A unidade de hoje pelo menor caminho que a identifica na corporação inteira ("2º GB / 1ª SB"; "CBMPE" na raiz), como na exportação; null sem lotação (6.62, 6.65). */
+  lotacaoCaminho: string | null;
   /** Só vem quando a busca é pedida com a unidade de trabalho: o militar já é dela (lotado nela ou numa de baixo), então não há o que trazer. */
   daUnidade?: boolean;
 };
@@ -45,7 +47,16 @@ export type FichaDeConsulta = LinhaDaConsulta & {
 };
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */
-export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number; maeId: string | null };
+export type UnidadeDaConsulta = {
+  id: string;
+  sigla: string;
+  nivel: number;
+  maeId: string | null;
+  /** O nome da unidade ("Caruaru"), que distingue siglas parecidas. A API sempre manda; as respostas antigas não têm. */
+  nome?: string;
+  /** O nome do tipo da unidade, do cadastro ("Seção", "Grupamento"): os degraus do cabeçalho o usam para nomear o nível. A API sempre manda; as respostas antigas não têm. */
+  tipoNome?: string;
+};
 
 /** A busca com filtros devolve no máximo isto; com mais, `haMais` e a tela pede para afinar a busca (6.51). */
 export const LIMITE_DA_BUSCA_COM_FILTROS = 500;
@@ -83,8 +94,6 @@ export type LinhaDaBusca = LinhaDaConsulta & {
   jornada: 'pronto' | 'adm' | null;
   situacao: string | null;
   unidadeId: string | null;
-  /** A unidade de hoje pelo menor caminho que a identifica na corporação inteira ("2º GB / 1ª SB"; "CBMPE" na raiz), como na exportação; null sem lotação (6.62). */
-  lotacaoCaminho: string | null;
   podeAlterar: boolean;
 };
 /** `naoEncontradas`: as matrículas do arquivo que não são de nenhum militar (como vieram, sem repetir). */

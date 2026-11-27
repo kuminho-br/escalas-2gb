@@ -34,7 +34,7 @@ describe('os próximos serviços na tela inicial', () => {
   it('os cartões ficam dentro da cena, embaixo da saudação, e a área dos avisos fica vazia à direita', async () => {
     const titulo = await abrirComServicos([servico('2026-11-26'), servico('2026-11-27', { inicio: '19:00', fim: '07:00', turno: 'A' })]);
     const cena = titulo.closest<HTMLElement>('[data-faixa-boas-vindas]')!;
-    const lista = await within(cena).findByRole('list', { name: 'Seus próximos serviços' });
+    const lista = within(await within(cena).findByRole('region', { name: 'Seus próximos serviços' })).getByRole('list');
     expect(within(lista).getAllByRole('listitem')).toHaveLength(2);
     // a lista vem depois da saudação, na mesma cena
     expect(titulo.compareDocumentPosition(lista) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -46,7 +46,8 @@ describe('os próximos serviços na tela inicial', () => {
 
   it('a coluna dos avisos só existe a partir de 1024 px: antes disso a saudação e os cartões têm a largura toda (a 768 px os cartões ficavam cortados)', async () => {
     const titulo = await abrirComServicos([servico('2026-11-26')]);
-    const grade = titulo.parentElement!;
+    // o título e a data ficam num elemento só (a área que a animação mede, 6.67); a grade é o elemento de cima dele
+    const grade = titulo.closest('[data-saudacao-da-faixa]')!.parentElement!;
     expect(grade.className).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,340px\)\]/);
     expect(grade.className).not.toMatch(/md:grid-cols-/);
     expect(grade.querySelector('[data-lugar-dos-avisos]')!.className).toMatch(/hidden lg:/);
@@ -140,13 +141,6 @@ describe('os próximos serviços na tela inicial', () => {
     expect(bloco).not.toHaveTextContent('como');
   });
 
-  it('o turno U não é dito', async () => {
-    await abrirComServicos([servico('2026-11-26', { turno: 'U' })]);
-    const bloco = (await screen.findByRole('heading', { name: 'Seu próximo serviço' })).closest('section')!;
-    expect(bloco).not.toHaveTextContent('Turno');
-    expect(bloco).toHaveTextContent('Na ABT, como combatente.');
-  });
-
   it('escala em prévia: o bloco avisa que pode mudar; publicada, não', async () => {
     await abrirComServicos([servico('2026-11-26', { estado: 'previa' })]);
     const previa = (await screen.findByRole('heading', { name: 'Seu próximo serviço' })).closest('section')!;
@@ -195,7 +189,7 @@ describe('os próximos serviços na tela inicial', () => {
   it('na chegada pela animação do login, os cartões entram junto com a saudação (o mesmo data-chegada)', async () => {
     transicao.atual = { fase: 'afastando', entrando: false, cartoes: true };
     const titulo = await abrirComServicos([servico('2026-11-26')]);
-    const lista = await screen.findByRole('list', { name: 'Seus próximos serviços' });
+    const lista = within(await screen.findByRole('region', { name: 'Seus próximos serviços' })).getByRole('list');
     const dasaudacao = titulo.closest('[data-chegada]')!;
     expect(dasaudacao).toHaveAttribute('data-chegada', 'escondida');
     expect(lista.closest('[data-chegada]')).toBe(dasaudacao);

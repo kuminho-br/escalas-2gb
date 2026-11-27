@@ -23,6 +23,8 @@ export type QuadroDaCamada = { t: number; resposta: Resposta; imagem: HTMLImageE
 const PARADA: Transicao = { fase: 'parada', entrando: false, cartoes: true };
 const SUMICO = 0.3;
 export const MARCA_DA_FAIXA = 'data-faixa-boas-vindas';
+/** A saudação (o nome e a data) dentro da faixa: as brasas ficam mais fracas sobre ela. */
+export const MARCA_DA_SAUDACAO = 'data-saudacao-da-faixa';
 
 let imagem: HTMLImageElement | null = null;
 let pronta = false;

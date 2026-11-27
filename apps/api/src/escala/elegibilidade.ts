@@ -30,8 +30,11 @@ import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade
 import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { nomeDaVaga } from './vagas.ts';
 
-/** `tirarDoExpediente` (6.38): o escalante decidiu pôr o serviço por cima do expediente do dia; vale só para o serviço cadastrado com a opção. */
-export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null; tirarDoExpediente?: boolean };
+/**
+ * `tirarDoExpediente` (6.38): o escalante decidiu pôr o serviço por cima do expediente do dia; vale só para o serviço cadastrado com a opção.
+ * `ignorarAfastamento` (6.70): o painel do dia da Grade escala quem está afastado depois do aviso; só o afastamento deixa de recusar, as outras regras continuam.
+ */
+export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null; tirarDoExpediente?: boolean; ignorarAfastamento?: boolean };
 
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string; tira: boolean };
 /** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
@@ -152,7 +155,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
-    if (afastados.has(m.id)) return pronto('Afastado');
+    if (afastados.has(m.id) && !v.ignorarAfastamento) return pronto('Afastado');
     const motivoCnh = exigida ? motivoDaCnh(m, exigida) : null;
     if (motivoCnh) return pronto(motivoCnh);
     const dele = todas.filter((a) => a.militarId === m.id);

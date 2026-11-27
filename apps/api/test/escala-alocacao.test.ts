@@ -129,6 +129,20 @@ describe('escalar', () => {
     expect((await escalar('CNHD', dia(13), { funcaoId: motorista })).status).toBe(201);
   });
 
+  it('6.70: com "mesmoAfastado" (o painel do dia da Grade, depois do aviso) o afastado é escalado; as outras regras continuam valendo', async () => {
+    const r = await escalar('AFASTADO', dia(22), { mesmoAfastado: true });
+    expect(r.status).toBe(201);
+    expect(await alocacoes('AFASTADO')).toHaveLength(1);
+    // sem a CNH exigida, a recusa continua, mesmo com "mesmoAfastado" (só o afastamento deixa de recusar)
+    const semCnh = await escalar('CNHB', dia(22), { funcaoId: motorista, mesmoAfastado: true });
+    expect(semCnh.status).toBe(409);
+    expect((await semCnh.json()).erro).toBe('Sem a CNH exigida');
+    // e o pedido comum, sem o campo, segue recusando o afastado
+    const comum = await escalar('AFASTADO', dia(23));
+    expect(comum.status).toBe(409);
+    expect((await comum.json()).erro).toBe('Afastado');
+  });
+
   it('vaga que não existe nesta escala é 409 com o motivo; guarnição sem função é 400', async () => {
     const outraFaixa = await escalar('TRES', dia(14), { turnoId: turnoB, guarnicaoId: outra });
     expect(outraFaixa.status).toBe(409);

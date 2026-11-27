@@ -10,7 +10,10 @@ import { useSoConsulta } from '@/componentes/FaixaSoConsulta';
 import { Button } from '@/componentes/ui/button';
 import { estiloDaCor } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
+import { periodoDoAfastamento } from '@/lib/afastamento-na-grade';
 import { dataPorExtenso } from '@/lib/meses';
+import { NOME_JORNADA } from '@/lib/militares';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { AdicionarServico } from './AdicionarServico';
 import { TrocarServico } from './TrocarServico';
 import { Espera } from '@/componentes/resposta/Espera';
@@ -21,6 +24,7 @@ import { Espera } from '@/componentes/resposta/Espera';
  */
 export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeId: string; militarId: string; data: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   // numa unidade só de consulta o painel mostra o dia e nada mais: sem trocar, remover nem adicionar
   const soConsulta = useSoConsulta();
   const painel = useQuery(consultaPainelDoDia(unidadeId, data.slice(0, 7), militarId, data));
@@ -40,13 +44,15 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
   const adicionar = travar(async (o: OpcaoDeServico, turnoId: string) => {
     setErro(null);
     try {
-      await escalar(queryClient, o.escalaId, { militarId, data, turnoId, guarnicaoId: o.guarnicaoId, funcaoId: o.funcaoId });
+      await escalar(queryClient, o.escalaId, { militarId, data, turnoId, guarnicaoId: o.guarnicaoId, funcaoId: o.funcaoId, ...(p?.afastamento ? { mesmoAfastado: true } : {}) });
       setAdicionando(false);
     } catch (e) {
       setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
-  const remover = travar(async (alocacaoId: string) => {
+  const remover = travar(async (alocacaoId: string, doExpediente = false) => {
+    // o expediente lançado (sem escala) sai sem pôr nada no lugar: o calculado volta a valer e o choque, se houver, continua
+    if (doExpediente && !(await confirmar({ titulo: 'Tirar do expediente?', texto: 'Nada entra no lugar. Se houver choque nesse horário, ele continua.', verbo: 'Tirar' }))) return;
     setErro(null);
     try {
       await removerAlocacao(queryClient, alocacaoId);
@@ -62,16 +68,18 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       tabIndex={-1}
       onKeyDown={teclar}
       aria-label={nome ? `Dia de ${nome}` : 'Dia do militar'}
-      className="outline-none max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:overflow-y-auto max-lg:bg-fundo max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
+      className="outline-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[64dvh] max-md:overflow-hidden max-md:rounded-t-2xl max-md:border-t max-md:border-linha max-md:bg-superficie max-md:shadow-2xl md:max-lg:fixed md:max-lg:inset-0 md:max-lg:z-40 md:max-lg:overflow-y-auto md:max-lg:bg-fundo md:max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
     >
-      <div className="divide-y divide-linha rounded-xl border border-linha bg-superficie">
+      {/* no celular o painel é uma folha que sobe de baixo (até 64% da altura): a alça mostra que é uma folha, e o corpo rola dentro dela */}
+      <span aria-hidden className="mx-auto mt-2 mb-1 block h-1 w-10 rounded-full bg-linha md:hidden" />
+      <div data-corpo-da-folha className="divide-y divide-linha rounded-xl border border-linha bg-superficie max-md:max-h-[calc(64dvh-1.25rem)] max-md:overflow-y-auto max-md:rounded-none max-md:border-0">
         <header className="flex items-start gap-3 p-4">
           <div className="min-w-0 flex-1">
             <h2 className="font-cond text-2xl leading-tight font-semibold">{nome ?? <Espera linhas={1} className="w-48" />}</h2>
             {p && (
               <>
                 <p className="mt-1 text-sm text-apagado">
-                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {p.militar.jornada === 'adm' ? 'ADM' : 'Pronto'}
+                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {NOME_JORNADA[p.militar.jornada]}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {p.militar.cnh.length > 0 && <span className="rounded border border-linha px-1.5 text-xs">CNH {[...p.militar.cnh].sort().at(-1)}</span>}
@@ -80,7 +88,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               </>
             )}
           </div>
-          <Button type="button" variant="discreto" size="icon" aria-label="Fechar" onClick={aoFechar}>
+          <Button type="button" variant="discreto" size="icon" aria-label="Fechar" className="max-md:h-11 max-md:w-11" onClick={aoFechar}>
             <X aria-hidden />
           </Button>
         </header>
@@ -90,14 +98,18 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
           <>
             <section className="grid gap-1.5 p-4 text-sm">
               <p className="font-medium">{dataPorExtenso(data)}</p>
-              {p.afastamento && <p className="text-pendencia">Afastado: {p.afastamento}</p>}
+              {p.afastamento && (
+                <p className="rounded-md bg-pendencia-fundo px-2.5 py-1.5 font-medium text-pendencia">
+                  Afastado: {p.afastamento.tipo}, de {periodoDoAfastamento(p.afastamento.inicio, p.afastamento.fim)}
+                </p>
+              )}
               <p className="text-apagado">
                 {p.disponibilidade.length ? `Marcou ${listaComE(p.disponibilidade.map((d) => textoFaixa(d.inicio, d.fim)))} no voluntariado.` : 'Não marcou voluntariado neste dia.'}
               </p>
               {p.choques.map((c) => <p key={c} className="text-alerta">{c}</p>)}
             </section>
 
-            <section className="grid gap-3 p-4">
+            <section className="grid gap-3 p-4 max-md:flex max-md:flex-col">
               {p.servicos.length === 0 ? (
                 <p className="text-sm text-apagado">Sem serviço neste dia.</p>
               ) : (
@@ -111,11 +123,11 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
                         {!soConsulta && (
                           <span className="ml-auto flex gap-1.5">
-                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
+                            <Button type="button" variant="secundario" size="sm" className="max-md:h-11" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
                               Trocar
                             </Button>
-                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
-                              Remover
+                            <Button type="button" variant="secundario" size="sm" className="max-md:h-11" disabled={salvando} onClick={() => void remover(s.alocacaoId, s.escalaId === null)}>
+                              {s.escalaId === null ? 'Tirar do expediente' : 'Remover'}
                             </Button>
                           </span>
                         )}
@@ -123,8 +135,8 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                       <p className="text-sm">{s.escala} · {s.guarnicao ? `${s.guarnicao}, ${s.funcao}` : 'sem guarnição'}</p>
                       {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Acumula {listaComE(s.acumulaCom)}.</p>}
                       {/* os avisos do "Remover", como na Escala do mês */}
-                      {!soConsulta && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
-                      {!soConsulta && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
+                      {!soConsulta && s.escalaId !== null && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
+                      {!soConsulta && s.escalaId !== null && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
                     </li>
                   ))}
                 </ul>
@@ -132,12 +144,13 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
               {!soConsulta && (
                 <>
-                  <div>
-                    <Button type="button" variant={adicionando ? 'discreto' : 'secundario'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
+                  {/* no celular o botão fica fixo no pé da folha (depois de tudo, mesmo com a lista de serviços aberta) */}
+                  <div className="max-md:sticky max-md:bottom-0 max-md:order-last max-md:-mx-4 max-md:-mb-4 max-md:border-t max-md:border-linha max-md:bg-superficie max-md:p-3">
+                    <Button type="button" variant={adicionando ? 'discreto' : 'secundario'} className="max-md:h-11 max-md:w-full" aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
                       Adicionar serviço neste dia
                     </Button>
                   </div>
-                  {adicionando && <AdicionarServico opcoes={p.opcoes} militar={nome ?? ''} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
+                  {adicionando && <AdicionarServico opcoes={p.opcoes} militar={nome ?? ''} afastadoDe={p.afastamento?.tipo ?? null} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
                 </>
               )}
             </section>

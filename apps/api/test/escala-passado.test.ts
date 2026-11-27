@@ -508,7 +508,7 @@ describe('o acabamento da 7.3 (7.3.1, Task 4)', () => {
     const publicada = await contar();
     expect(publicada).toBeLessThan(emRascunho);
     const gravadas = ((await (await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe })).json()) as { gravadas: number }).gravadas;
-    expect(gravadas).toBeGreaterThanOrEqual(publicada);
+    expect(gravadas).toBe(publicada);
   });
 });
 

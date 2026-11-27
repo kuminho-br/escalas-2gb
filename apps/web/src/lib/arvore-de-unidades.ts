@@ -1,7 +1,8 @@
 // A árvore de unidades montada no navegador (6.45): toda escolha de unidade é feita por ela, nó a nó. As listas da API trazem cada unidade com a
 // unidade de cima (`maeId`); aqui elas viram nós, com as "passagens" (as unidades de cima que a pessoa não pode escolher, mas que dão lugar às de baixo).
 
-export type UnidadeDaArvore = { id: string; sigla: string; maeId: string | null };
+/** `nome` e `tipoNome` (o nome do tipo, do cadastro) só vêm da lista da corporação; os degraus do cabeçalho os usam. */
+export type UnidadeDaArvore = { id: string; sigla: string; maeId: string | null; nome?: string; tipoNome?: string };
 
 export interface No {
   id: string;
@@ -13,6 +14,9 @@ export interface No {
   /** As siglas do alto até este nó. */
   caminho: string[];
   filhos: No[];
+  /** O nome da unidade ("Caruaru") e o do tipo dela ("Seção"), quando a lista da corporação já chegou. */
+  nome?: string;
+  tipoNome?: string;
 }
 
 const ORDEM = new Intl.Collator('pt-BR', { numeric: true });
@@ -25,7 +29,8 @@ const ORDEM = new Intl.Collator('pt-BR', { numeric: true });
 export function montarArvore(unidades: UnidadeDaArvore[], todas: UnidadeDaArvore[] = []): No[] {
   const conhecidas = new Map<string, UnidadeDaArvore>();
   for (const x of todas) conhecidas.set(x.id, x);
-  for (const x of unidades) conhecidas.set(x.id, x);
+  // a unidade da pessoa não traz o nome nem o tipo: junta com o que a lista da corporação sabe dela
+  for (const x of unidades) conhecidas.set(x.id, { ...conhecidas.get(x.id), ...x });
   const permitidas = new Set(unidades.map((x) => x.id));
   // entram as permitidas e as de cima delas, até onde a árvore conhecida alcança
   const dentro = new Set<string>();
@@ -43,7 +48,7 @@ export function montarArvore(unidades: UnidadeDaArvore[], todas: UnidadeDaArvore
       .sort((a, b) => ORDEM.compare(a.sigla, b.sigla))
       .map((x) => {
         const dele = [...caminho, x.sigla];
-        return { id: x.id, sigla: x.sigla, nivel, passagem: !permitidas.has(x.id), caminho: dele, filhos: montar(x.id, nivel + 1, dele) };
+        return { id: x.id, sigla: x.sigla, nivel, passagem: !permitidas.has(x.id), caminho: dele, filhos: montar(x.id, nivel + 1, dele), ...(x.nome ? { nome: x.nome } : {}), ...(x.tipoNome ? { tipoNome: x.tipoNome } : {}) };
       });
   return montar(null, 0, []);
 }

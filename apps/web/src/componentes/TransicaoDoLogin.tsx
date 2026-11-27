@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MARCA_DA_FAIXA, registrarPintor, useTransicao, type QuadroDaCamada } from '@/lib/transicao-login/armazem';
+import { MARCA_DA_FAIXA, MARCA_DA_SAUDACAO, registrarPintor, useTransicao, type QuadroDaCamada } from '@/lib/transicao-login/armazem';
 import { desenhar } from '@/lib/transicao-login/cena';
 import { medidasDaCamada } from '@/lib/transicao-login/medidas';
 
@@ -31,7 +31,9 @@ export function TransicaoDoLogin() {
       canvas.hidden = false;
       canvas.style.opacity = String(q.some);
       const faixa = document.querySelector(`[${MARCA_DA_FAIXA}]`)?.getBoundingClientRect() ?? null;
-      desenhar(ctx, { t: q.t, resposta: q.resposta, largura, altura, faixa, imagem: q.imagem, botao: q.botao });
+      // a saudação é medida a cada quadro, como a faixa: segue a tela se ela mudar (redimensionar, nome em duas linhas)
+      const saudacao = document.querySelector(`[${MARCA_DA_SAUDACAO}]`)?.getBoundingClientRect() ?? null;
+      desenhar(ctx, { t: q.t, resposta: q.resposta, largura, altura, faixa, imagem: q.imagem, botao: q.botao, saudacao });
     }
     registrarPintor(pintar);
     return () => registrarPintor(null);

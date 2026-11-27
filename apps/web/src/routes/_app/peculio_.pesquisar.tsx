@@ -322,10 +322,11 @@ function LinhaDaPesquisa({ m, texto, unidade, selecionavel = false }: { m: Linha
         </span>
       )}
       <Link to="/peculio/militar/$id" params={{ id: m.id }} search={{ de: 'pesquisa', texto: texto || undefined, unidade: unidade || undefined }} className={`${classeDaLinhaDeMilitar} min-w-0 flex-1`}>
-        <span className="flex items-center gap-2">
-          <span className="font-cond text-apoio text-apagado">{m.postoGrad}</span>
-          <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
-          <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{m.lotacaoCaminho ?? m.lotacao ?? 'Sem lotação'}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 font-cond text-apoio text-apagado">{m.postoGrad}</span>
+          <span className="shrink-0 font-cond text-base font-semibold">{m.nomeGuerra}</span>
+          {/* o caminho longo corta com reticências; o nome não encolhe (em 360 px) */}
+          <span title={m.lotacaoCaminho ?? m.lotacao ?? undefined} className="ml-auto min-w-0 truncate rounded border border-linha px-1.5 font-cond text-xs">{m.lotacaoCaminho ?? m.lotacao ?? 'Sem lotação'}</span>
         </span>
         <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
           {m.nomeCompleto && <span>{m.nomeCompleto}</span>}

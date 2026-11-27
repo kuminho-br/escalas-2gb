@@ -17,7 +17,20 @@ export function deveTentarDeNovoNaBusca(falhas: number, erro: Error): boolean {
   return deveTentarDeNovo(falhas, erro);
 }
 
-/** O cliente de consultas do site (os testes usam o próprio, sem tentativas). */
+/**
+ * O cliente de consultas do site (os testes usam o próprio, sem tentativas). Quando a conta de `['eu']` muda para outra pessoa (outra entra na mesma aba, depois do Sair
+ * ou de uma sessão que terminou), as consultas da conta anterior são descartadas na hora: a tela inicial e a Minha escala nunca mostram, nem por um instante, o que era dela.
+ * A mesma conta de novo não descarta nada.
+ */
 export function criarQueryClient(): QueryClient {
-  return new QueryClient({ defaultOptions: { queries: { retry: deveTentarDeNovo } } });
+  const cliente = new QueryClient({ defaultOptions: { queries: { retry: deveTentarDeNovo } } });
+  let ultimaConta: string | null = null;
+  cliente.getQueryCache().subscribe((evento) => {
+    if (evento.type !== 'updated' || evento.action.type !== 'success' || evento.query.queryKey[0] !== 'eu') return;
+    const id = (evento.query.state.data as { usuario?: { id?: string } } | null | undefined)?.usuario?.id;
+    if (!id) return; // sem sessão: o Sair já limpa tudo, e quem entrar depois é conferido contra a última conta
+    if (ultimaConta && ultimaConta !== id) void cliente.resetQueries({ predicate: (q) => q.queryKey[0] !== 'eu' });
+    ultimaConta = id;
+  });
+  return cliente;
 }

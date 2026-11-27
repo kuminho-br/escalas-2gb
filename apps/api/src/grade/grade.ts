@@ -1,6 +1,6 @@
 // Grade geral: o mês de todo o efetivo da seção. Uma linha por militar (agrupada por equipe, o Adm à parte e, no fim, quem é de outra
 // unidade e foi escalado aqui), uma coluna por dia. Leitura: quem escala é o painel do dia.
-import type { BlocoDaGrade, GradeDoMes, GrupoDaGrade, LinhaDaGrade } from 'contratos';
+import type { AfastamentoNaGrade, BlocoDaGrade, GradeDoMes, GrupoDaGrade, LinhaDaGrade } from 'contratos';
 import {
   compararAntiguidade,
   detectarChoques,
@@ -21,6 +21,22 @@ import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-e
 type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; postoOrdem: number; antiguidade: number | null; ativo: boolean };
 type Lotado = Pessoa & { jornada: 'pronto' | 'adm'; equipeId: string | null; equipe: string | null; ordemCiclo: number | null; desde: string; ate: string | null };
 type Alocacao = { id: string; militarId: string; data: string; servicoId: string; nome: string; cor: string; tipo: Tipo; letra: string; inicio: string; fim: string };
+
+/**
+ * Junta os dias seguidos do mesmo tipo de afastamento em períodos. `dias` são os dias que valem (em ordem, podem ter buracos: dias que não são seguidos nunca se juntam) e
+ * `tipoDoDia` diz o tipo do afastamento em cada um (null: sem afastamento).
+ */
+export function periodosDeAfastamento(dias: string[], tipoDoDia: (dia: string) => string | null): { tipo: string; inicio: string; fim: string }[] {
+  const periodos: { tipo: string; inicio: string; fim: string }[] = [];
+  for (const d of dias) {
+    const tipo = tipoDoDia(d);
+    if (tipo === null) continue;
+    const ultimo = periodos.at(-1);
+    if (ultimo && ultimo.tipo === tipo && somarDias(ultimo.fim, 1) === d) ultimo.fim = d;
+    else periodos.push({ tipo, inicio: d, fim: d });
+  }
+  return periodos;
+}
 
 /** O dia de 'aaaa-mm-dd' pertence ao mês 'aaaa-mm'? */
 const doMes = (d: string, mes: string) => d.slice(0, 7) === mes;
@@ -81,8 +97,10 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const ids = [...idsLotados, ...idsDeFora];
   const afastamentos = ids.length
     ? (
-        await c.query<{ militar_id: string; inicio: string; fim: string }>(
-          "select militar_id, to_char(inicio, 'YYYY-MM-DD') as inicio, to_char(fim, 'YYYY-MM-DD') as fim from afastamento where militar_id = any($1::uuid[]) and inicio <= $3::date and fim >= $2::date",
+        await c.query<{ militar_id: string; tipo: string; inicio: string; fim: string }>(
+          `select a.militar_id, ta.nome as tipo, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim
+             from afastamento a join tipo_afastamento ta on ta.id = a.tipo_afastamento_id
+            where a.militar_id = any($1::uuid[]) and a.inicio <= $3::date and a.fim >= $2::date order by a.inicio`,
           [ids, antes, depois],
         )
       ).rows
@@ -157,10 +175,16 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
       for (const lado of [x.a.dia, x.b.dia]) if (doMes(lado, mes)) marcados.add(lado);
     }
 
+    // os afastamentos da linha: cada período só com os dias do mês em que a linha vale; as datas reais vêm do afastamento inteiro
+    const daLinha: AfastamentoNaGrade[] = periodosDeAfastamento(dias.filter(dentro), (d) => afastamentos.find((a) => a.militar_id === p.id && a.inicio <= d && a.fim >= d)?.tipo ?? null).map((per) => {
+      const inteiro = afastamentos.find((a) => a.militar_id === p.id && a.tipo === per.tipo && a.inicio <= per.inicio && a.fim >= per.inicio)!;
+      return { ...per, inicioReal: inteiro.inicio, fimReal: inteiro.fim };
+    });
+
     const doTipo = dele.filter((a) => doMes(a.data, mes) && (a.tipo === 'pjes' || a.tipo === 'diaria'));
     return {
       militarId: p.id, posto: p.posto, nomeGuerra: p.nomeGuerra, matricula: p.matricula, jornada, ...(jornada === 'adm' ? { saldos: cotas.get(p.id) } : {}),
-      dias: blocos, choques: [...marcados].sort(),
+      dias: blocos, choques: [...marcados].sort(), afastamentos: daLinha,
       pjes: doTipo.filter((a) => a.tipo === 'pjes').length,
       diarias: doTipo.filter((a) => a.tipo === 'diaria').length,
       horasTiradas: doTipo.reduce((soma, a) => soma + duracao(a), 0),
