@@ -153,6 +153,143 @@
   }
 }
 
+/* O cenário do login (6.67), o mesmo no login e nas telas de primeiro acesso e esqueci minha senha. A foto (docs/telas/refatoracao/img/quartel.jpg, 1280 x 960) tem um
+   enquadramento por plataforma (decisões de 25/11): no computador, as bandeiras livres no céu e a marca embaixo, sobre a parte densa do véu vinho; no celular (abaixo de
+   1024 px), sem bandeiras e sem céu: a fachada, a estátua e o jardim, e a marca encostada no cartão. Sem a foto, o fundo é vinho liso. */
+.cenario-login {
+  position: relative;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  background: var(--color-superficie);
+}
+.cenario-login__fundo {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-vinho-escuro);
+}
+.cenario-login__fundo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center 18%;
+}
+.cenario-login__fundo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 10%, transparent) 0%, color-mix(in srgb, var(--color-vinho-escuro) 28%, transparent) 38%, color-mix(in srgb, var(--color-vinho-escuro) 90%, transparent) 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-vinho-escuro) 40%, transparent) 0%, transparent 55%);
+}
+.cenario-login__marca {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 600px;
+  color: white;
+}
+.cenario-login__marca img {
+  display: block;
+  width: 132px;
+  height: auto;
+  filter: drop-shadow(0 4px 14px color-mix(in srgb, black 35%, transparent));
+}
+.cenario-login__marca .nome {
+  font-family: var(--font-cond);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.cenario-login__marca .linha {
+  font-size: 18px;
+  line-height: 26px;
+  color: color-mix(in srgb, white 86%, transparent);
+}
+/* o branco nunca fica sobre o céu aberto: o nome e a linha de baixo levam sombra */
+.cenario-login__marca :is(.nome, .linha) {
+  text-shadow: 0 1px 3px color-mix(in srgb, black 40%, transparent);
+}
+.cenario-login__cartao {
+  position: relative;
+  z-index: 10;
+  background: var(--color-superficie);
+}
+@media (min-width: 64rem) {
+  /* a marca embaixo, sobre a parte densa do véu (só no computador: abaixo disso ela segue a largura da coluna) */
+  .cenario-login__marca {
+    align-self: end;
+    padding-bottom: 12px;
+  }
+  .cenario-login {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    align-items: center;
+    column-gap: 2.5rem;
+    padding: 3rem clamp(1.5rem, 5vw, 4rem);
+    background: var(--color-fundo);
+  }
+  .cenario-login__cartao {
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-tinta) 8%, transparent), 0 18px 40px color-mix(in srgb, black 28%, transparent);
+  }
+}
+@media (max-width: 63.999rem) {
+  /* a foto (1280 x 960) ampliada 1,06 vez e posta de modo que o pedaço x 500-870, y 430-960 caia sobre a parte de cima da tela, qualquer que seja a largura dela:
+     1280 x 1,06 / 390 = 347,9% da largura; os deslocamentos (530 / 1357 e 456 / 1018) são porcentagens do tamanho da própria foto */
+  .cenario-login__fundo img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 347.9%;
+    height: auto;
+    object-fit: fill;
+    transform: translate(-39.06%, -44.79%);
+    transform-origin: 0 0;
+  }
+  .cenario-login__fundo::after {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-vinho-escuro) 20%, transparent) 0%, color-mix(in srgb, var(--color-vinho-escuro) 24%, transparent) 24%, color-mix(in srgb, var(--color-vinho-escuro) 86%, transparent) 44%, color-mix(in srgb, var(--color-vinho-escuro) 96%, transparent) 100%);
+  }
+  /* a marca encosta no cartão: o nome e a linha de baixo à esquerda, o brasão à direita */
+  .cenario-login__marca {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "nome brasao" "linha brasao";
+    column-gap: 14px;
+    row-gap: 6px;
+    align-items: center;
+    max-width: none;
+    margin-top: auto;
+    padding: 0 22px 20px;
+  }
+  .cenario-login__marca img {
+    grid-area: brasao;
+    width: 72px;
+  }
+  .cenario-login__marca .nome {
+    grid-area: nome;
+    font-size: 28px;
+  }
+  .cenario-login__marca .linha {
+    grid-area: linha;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .cenario-login__cartao {
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -10px 40px color-mix(in srgb, black 25%, transparent);
+  }
+}
+
 /* Imprimir o memorial de cálculo (6.30): sai só o memorial, em preto sobre branco (sem o menu, nem os botões, nem o resto da tela). */
 @media print {
   body * {

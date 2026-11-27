@@ -46,7 +46,8 @@ describe('os próximos serviços na tela inicial', () => {
 
   it('a coluna dos avisos só existe a partir de 1024 px: antes disso a saudação e os cartões têm a largura toda (a 768 px os cartões ficavam cortados)', async () => {
     const titulo = await abrirComServicos([servico('2026-11-26')]);
-    const grade = titulo.parentElement!;
+    // o título e a data ficam num elemento só (a área que a animação mede, 6.67); a grade é o elemento de cima dele
+    const grade = titulo.closest('[data-saudacao-da-faixa]')!.parentElement!;
     expect(grade.className).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,340px\)\]/);
     expect(grade.className).not.toMatch(/md:grid-cols-/);
     expect(grade.querySelector('[data-lugar-dos-avisos]')!.className).toMatch(/hidden lg:/);

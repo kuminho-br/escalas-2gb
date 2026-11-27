@@ -15,8 +15,6 @@ const EXCECOES: Record<string, string> = {
   'componentes/grade/CelulaDaGrade.tsx': 'a Grade geral (N3): marca provisória',
   'componentes/grade/TabelaDaGrade.tsx': 'a Grade geral (N3): tamanhos próprios da tabela',
   'componentes/grade/LegendaDaGrade.tsx': 'a Grade geral (N3)',
-  'routes/entrar.tsx': 'a tela de entrar: o brilho do login',
-  'componentes/acesso/MoldeDoAcesso.tsx': 'o mesmo cenário do login (routes/entrar.tsx) nas telas de primeiro acesso e esqueci minha senha',
 };
 
 function arquivos(pasta: string): string[] {

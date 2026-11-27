@@ -16,23 +16,31 @@ const linha = (id: string, nome: string): LinhaMilitar => ({
 
 afterEach(() => localStorage.clear());
 
+/** A lista da corporação, com o nome do tipo de cada unidade (os degraus dizem "Seção" no próximo nível). */
+const DO_GB = [
+  { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null, tipoNome: 'Corporação' }, { id: 'u-dgo', sigla: 'DGO', nivel: 1, maeId: 'u-cbmpe', tipoNome: 'Diretoria' },
+  { id: 'u-dinter', sigla: 'DInter/1', nivel: 2, maeId: 'u-dgo', tipoNome: 'Diretoria regional' }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: 'u-dinter', tipoNome: 'Grupamento' },
+  { id: 'u-1sb', sigla: '1ª SB', nivel: 4, maeId: 'u-gb', tipoNome: 'Seção' }, { id: 'u-2sb', sigla: '2ª SB', nivel: 4, maeId: 'u-gb', tipoNome: 'Seção' },
+];
+
 describe('o seletor de unidade (6.16, Task 3)', () => {
   it('item 1: trocar de unidade mantém o ?mes= da tela (a ficha aberta, como hoje, fecha)', async () => {
-    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [] }, 'GET /api/unidades/u-2sb/escalas': { status: 200, corpo: [] } });
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/consulta/unidades': { status: 200, corpo: DO_GB }, 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [] }, 'GET /api/unidades/u-2sb/escalas': { status: 200, corpo: [] } });
     const router = abrir('/escala-do-mes?mes=2026-10');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('treeitem', { name: /^2ª SB/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Seção' }));
+    await userEvent.click(await screen.findByRole('option', { name: /^2ª SB/ }));
     await waitFor(() => expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-2sb'));
     expect(router.state.location.pathname).toBe('/escala-do-mes');
     expect(router.state.location.search).toMatchObject({ mes: '2026-10' });
   });
 
-  it('item 2: cada nó diz ao leitor de tela em que unidade fica ("1ª SB, em 2º GB")', async () => {
-    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] } });
+  it('item 2: a lista de cada degrau diz ao leitor de tela dentro de que unidade está ("Unidades dentro de 2º GB")', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/consulta/unidades': { status: 200, corpo: DO_GB }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] } });
     abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    expect(await screen.findByRole('treeitem', { name: '1ª SB, em 2º GB' })).toBeInTheDocument();
-    expect(screen.getByRole('treeitem', { name: '2º GB' })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Seção' }));
+    const lista = await screen.findByRole('listbox', { name: 'Unidades dentro de 2º GB' });
+    expect(within(lista).getByRole('option', { name: /^1ª SB/ })).toBeInTheDocument();
+    expect(within(lista).getByRole('option', { name: /^2ª SB/ })).toBeInTheDocument();
   });
 
   it('item 6: o item "Oficiais" do trilho olha o nível de acesso na unidade escolhida, e não em qualquer unidade', async () => {

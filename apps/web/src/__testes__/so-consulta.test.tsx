@@ -20,6 +20,14 @@ const CHEFE: EuDaApi = {
 };
 /** O oficial: sem nível de acesso, lotado na 2ª SB; com a marca ligada, vê a escala em montagem de toda a corporação. */
 const OFICIAL: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [SB2], lotacao: SB2, unidadesSoConsulta: [GB, DIVOP, SB1, DA, SB2] };
+/** A lista da corporação, com o nome do tipo de cada unidade (os degraus do cabeçalho). */
+const CORPORACAO = [
+  { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null, tipoNome: 'Grupamento' }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: 'u-gb', tipoNome: 'Divisão' },
+  { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop', tipoNome: 'Seção' }, { id: 'u-da', sigla: 'DA', nivel: 4, maeId: 'u-gb', tipoNome: 'Divisão' },
+  { id: 'u-2sb', sigla: '2ª SB', nivel: 5, maeId: 'u-da', tipoNome: 'Seção' },
+];
+/** As unidades que a lista aberta mostra, com a etiqueta (o texto de cada opção). */
+const opcoesAbertas = () => within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent!.replace(/\s+/g, ' ').trim());
 const FAIXA_DE_CONSULTA = 'Só consulta: você não altera nada em 2ª SB.';
 const MES = mesAtual();
 const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
@@ -102,6 +110,7 @@ afterEach(() => {
 function api(eu: EuDaApi = CHEFE, extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: eu },
+    'GET /api/consulta/unidades': { status: 200, corpo: CORPORACAO },
     [`GET /api/unidades/u-2sb/grade/${MES}`]: { status: 200, corpo: GRADE },
     [`GET /api/unidades/u-2sb/grade/${MES}/militares/m-cabo/dias/${dia(10)}`]: { status: 200, corpo: PAINEL },
     'GET /api/unidades/u-2sb/escalas': { status: 200, corpo: ESCALAS },
@@ -119,25 +128,29 @@ const abrirEmConsulta = (caminho: string) => {
   return abrir(caminho);
 };
 
-describe('o seletor de unidade: o grupo "Só consulta"', () => {
-  it('lista as unidades de trabalho e, num grupo à parte, as só de consulta, com o recuo da árvore', async () => {
+describe('os degraus: as unidades "Só consulta"', () => {
+  it('as só de consulta vêm na mesma hierarquia das de trabalho, com a etiqueta "Só consulta" (6.61)', async () => {
+    guardarUnidade('u-divop');
     api();
     abrir('/grade');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    // duas árvores: a de trabalho e, à parte, a só de consulta (6.45: cada uma abre nó a nó)
-    const nomes = (arvore: HTMLElement) => within(arvore).getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'));
-    expect(nomes(await screen.findByRole('tree', { name: 'Unidade de trabalho' }))).toEqual(['DivOp', '1ª SB, em DivOp']);
-    expect(screen.getByText('Só consulta')).toBeInTheDocument();
-    const consulta = screen.getByRole('tree', { name: 'Só consulta' });
-    expect(nomes(consulta)).toEqual(['DA', '2ª SB, em DA']);
-    expect(within(consulta).getAllByRole('treeitem').map((i) => i.getAttribute('aria-level'))).toEqual(['1', '2']);
+    const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
+    await userEvent.click(await within(degraus).findByRole('button', { name: 'DivOp' }));
+    // dentro do 2º GB: a DA (só consulta) e a DivOp (de trabalho)
+    expect(opcoesAbertas()).toEqual(['DASó consulta', 'DivOp']);
+    expect(within(screen.getByRole('option', { name: /^DivOp/ })).queryByText('Só consulta')).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    // as seções de dentro de cada divisão: a da DivOp é de trabalho; a da DA, só de consulta
+    await userEvent.click(within(degraus).getByRole('button', { name: 'Seção' }));
+    expect(opcoesAbertas()).toEqual(['1ª SB']);
   });
 
-  it('sem unidade só de consulta (sem divisão irmã), o grupo não aparece (Review Focus 2)', async () => {
+  it('sem unidade só de consulta (sem divisão irmã), nenhuma lista tem a etiqueta (Review Focus 2)', async () => {
+    guardarUnidade('u-divop');
     api({ ...CHEFE, unidadesSoConsulta: [] });
     abrir('/grade');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    await screen.findAllByRole('treeitem');
+    const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
+    await userEvent.click(await within(degraus).findByRole('button', { name: 'Seção' }));
+    await screen.findAllByRole('option');
     expect(screen.queryByText('Só consulta')).toBeNull();
   });
 
@@ -147,8 +160,11 @@ describe('o seletor de unidade: o grupo "Só consulta"', () => {
     abrir('/grade');
     await screen.findByRole('heading', { name: 'Grade geral' });
     expect(screen.queryByText(/^Só consulta:/)).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('treeitem', { name: '2ª SB, em DA' }));
+    const degraus = screen.getByRole('navigation', { name: 'Unidade de trabalho' });
+    await userEvent.click(await within(degraus).findByRole('button', { name: 'DivOp' }));
+    // a DA tem seções abaixo: escolhida, as seções abrem sozinhas, e a pessoa para na 2ª SB
+    await userEvent.click(screen.getByRole('option', { name: /^DA/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /^2ª SB/ }));
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
     expect(lerUnidadeDeConsulta()).toBe('u-2sb');
     // o navegador continua com a última unidade de trabalho
@@ -162,8 +178,10 @@ describe('o seletor de unidade: o grupo "Só consulta"', () => {
     api(CHEFE, { [`GET /api/unidades/u-1sb/grade/${MES}`]: { status: 200, corpo: GRADE } });
     abrirEmConsulta('/grade');
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('treeitem', { name: '1ª SB, em DivOp' }));
+    const degraus = screen.getByRole('navigation', { name: 'Unidade de trabalho' });
+    await userEvent.click(await within(degraus).findByRole('button', { name: 'DA' }));
+    await userEvent.click(screen.getByRole('option', { name: /^DivOp/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /^1ª SB/ }));
     await waitFor(() => expect(screen.queryByText(/^Só consulta:/)).toBeNull());
     expect(lerUnidadeDeConsulta()).toBeNull();
     expect(lerUnidadeGuardada()).toBe('u-1sb');
@@ -319,15 +337,13 @@ describe('quem só tem unidades de consulta: o oficial, com a marca ligada', () 
     expect(chamadasA(f, `GET /api/unidades/u-2sb/grade/${MES}`)).toBeGreaterThan(0);
   });
 
-  it('o seletor só tem o grupo "Só consulta", com a corporação inteira na ordem da árvore', async () => {
+  it('os degraus só têm unidades "Só consulta", com a corporação na ordem da hierarquia', async () => {
     api(OFICIAL);
     abrir('/grade');
-    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    // a unidade em que ele está (a 2ª SB, dentro da DA) vem com o caminho aberto; a DivOp fica fechada até ele abrir
-    const consulta = await screen.findByRole('tree', { name: 'Só consulta' });
-    expect(within(consulta).getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'))).toEqual(['2º GB', 'DA, em 2º GB', '2ª SB, em DA', 'DivOp, em 2º GB']);
-    expect(screen.queryByRole('tree', { name: 'Unidade de trabalho' })).toBeNull();
-    expect(screen.getByText('Só consulta')).toBeInTheDocument();
+    const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
+    // a unidade em que ele está (a 2ª SB, dentro da DA) vem no caminho; a divisão irmã (DivOp) está na lista do degrau dela
+    await userEvent.click(await within(degraus).findByRole('button', { name: 'DA' }));
+    expect(opcoesAbertas()).toEqual(['DASó consulta', 'DivOpSó consulta']);
   });
 
   it('a lotação do oficial está nas duas listas do /api/eu, e vale como de consulta: sem botão de alterar na Escala do mês', async () => {
