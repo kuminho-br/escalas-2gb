@@ -23,7 +23,7 @@ export interface ApiDeTeste {
   auth: Auth;
   ids: { raiz: string; gb: string; secao: string };
   usuarios: Record<Quem, string>;
-  pedir(quem: Quem, metodo: string, caminho: string, corpo?: unknown): Promise<Response>;
+  pedir(quem: Quem, metodo: string, caminho: string, corpo?: unknown, cabecalhos?: Record<string, string>): Promise<Response>;
   /** Corpo cru, com o tipo que a pessoa quiser (para entradas malformadas). */
   pedirBruto(quem: Quem, metodo: string, caminho: string, tipo: string, corpo: BodyInit): Promise<Response>;
   fechar(): Promise<void>;
@@ -94,8 +94,8 @@ export async function montarApi(
     auth,
     ids,
     usuarios: { admin, escalante, gestorGb, semPapel },
-    async pedir(quem, metodo, caminho, corpo) {
-      const headers: Record<string, string> = { Cookie: cookies[quem]!, Origin: URL_BASE };
+    async pedir(quem, metodo, caminho, corpo, cabecalhos) {
+      const headers: Record<string, string> = { Cookie: cookies[quem]!, Origin: URL_BASE, ...cabecalhos };
       let body: BodyInit | undefined;
       if (corpo instanceof FormData) body = corpo;
       else if (corpo !== undefined) {

@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { criarApp } from '../src/app.ts';
 import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import { bancoPglite } from '../src/banco/pglite.ts';
+import { migrar } from '../src/banco/migrar.ts';
 import { exigirMigracoesEmDia } from '../src/migracoes-pendentes.ts';
 import { montarApi } from './apoio-api.ts';
 import { bancoDeTeste } from './banco-teste.ts';
@@ -107,4 +108,39 @@ describe('as rotas da fase 4 também passam pela conferência', () => {
       await api.fechar();
     }
   });
+});
+
+// 6.59: o espelho (Laboratório) tem o registro de migrações dele. Atrasado ou ausente, só o Laboratório avisa; o real segue normal.
+describe('o espelho atrás do real', () => {
+  const FRASE_LAB = 'O Laboratório está em manutenção.';
+  const dosDois = (b: Banco) => criarApp({ banco: b, auth: undefined, migracoesEsperadas: reais, intervaloMs: 0 });
+
+  it('sem o espelho no banco: o Laboratório responde manutenção (503) e o real não é barrado', async () => {
+    const log = noLog();
+    const a = dosDois(banco);
+    for (const caminho of ['/api/lab/postos', '/api/laboratorio/perfis']) {
+      const r = await a.request(caminho);
+      expect(r.status, caminho).toBe(503);
+      expect(await r.json()).toEqual({ erro: FRASE_LAB });
+    }
+    expect((await a.request('/api/postos')).status).not.toBe(503);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Faltam migrações no espelho'));
+  });
+
+  it('com o espelho um arquivo atrás: manutenção só no Laboratório; em dia de novo, o guarda deixa passar', async () => {
+    noLog();
+    const completo = await bancoPglite();
+    try {
+      await migrar(completo);
+      const a = dosDois(completo);
+      const ultima = reais[reais.length - 1]!;
+      await completo.query('delete from laboratorio.migracao_aplicada where nome = $1', [ultima]);
+      expect((await a.request('/api/lab/postos')).status).toBe(503);
+      expect((await a.request('/api/postos')).status).not.toBe(503);
+      await completo.query('insert into laboratorio.migracao_aplicada (nome) values ($1)', [ultima]);
+      expect((await a.request('/api/lab/postos')).status).not.toBe(503);
+    } finally {
+      await completo.fechar();
+    }
+  }, 120000);
 });

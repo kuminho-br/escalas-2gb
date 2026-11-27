@@ -58,19 +58,25 @@ const rotulo = (tabela: string, n: number) => {
   return `${n} ${n === 1 ? um : varios}`;
 };
 
-let tabelasLigadas: Promise<{ tabela: string; coluna: string }[]> | null = null;
+// uma entrada por schema (o real e o espelho do Laboratório): a leitura do catálogo é do caminho da sessão, e cada schema tem as suas tabelas
+const tabelasLigadas = new Map<string, Promise<{ tabela: string; coluna: string }[]>>();
 /** Toda tabela que aponta para `unidade` (menos a própria árvore), lida do catálogo do banco: uma tabela nova entra na conta sem mudar o código. */
-function tabelasQueApontamParaUnidade(c: Consulta) {
-  tabelasLigadas ??= c
-    .query<{ tabela: string; coluna: string }>(
-      `select c.conrelid::regclass::text as tabela, a.attname as coluna
-         from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
-        where c.contype = 'f' and c.confrelid = 'unidade'::regclass and c.conrelid <> 'unidade'::regclass
-        order by 1`,
-    )
-    .then((r) => r.rows)
-    .catch((e) => { tabelasLigadas = null; throw e; });
-  return tabelasLigadas;
+async function tabelasQueApontamParaUnidade(c: Consulta) {
+  const schema = (await c.query<{ s: string }>('select current_schema() as s')).rows[0]!.s;
+  let lidas = tabelasLigadas.get(schema);
+  if (!lidas) {
+    lidas = c
+      .query<{ tabela: string; coluna: string }>(
+        `select c.conrelid::regclass::text as tabela, a.attname as coluna
+           from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+          where c.contype = 'f' and c.confrelid = 'unidade'::regclass and c.conrelid <> 'unidade'::regclass
+          order by 1`,
+      )
+      .then((r) => r.rows)
+      .catch((e) => { tabelasLigadas.delete(schema); throw e; });
+    tabelasLigadas.set(schema, lidas);
+  }
+  return lidas;
 }
 
 /** O histórico de cada unidade (em palavras): tudo o que um dia foi ligado a ela, mesmo o que já passou. As filhas, ainda que extintas, contam. */

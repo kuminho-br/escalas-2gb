@@ -3,7 +3,7 @@ import { perfisDeTeste } from './espelho.ts';
 import type { Consulta } from '../banco/banco.ts';
 
 export const PERFIL_NAO_ENCONTRADO = 'Perfil de teste não encontrado.';
-export const EM_MANUTENCAO = 'O Laboratório está em manutenção.';
+export { MENSAGEM_LABORATORIO_EM_MANUTENCAO as EM_MANUTENCAO } from '../migracoes-pendentes.ts';
 
 export interface PerfilEmUso {
   perfilId: string;

@@ -107,22 +107,32 @@ export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidad
   return c.json({ erro: `A importação do Pecúlio é de quem tem nível de acesso no ${cima ?? 'nível acima'}.` }, 403);
 }
 
+/** O resultado de conferir a sessão: a conta, ou a recusa com o status e a frase. */
+export type SessaoConferida = { ok: true; usuarioId: string } | { ok: false; status: 401 | 403; erro: string };
+
+/** Confere a sessão do pedido: a conta existe e está ativa e, com a senha provisória, só a tela de criar a senha abre. Não mexe no contexto. */
+export async function conferirSessao(banco: Banco, auth: Auth, headers: Headers): Promise<SessaoConferida> {
+  const sessao = await auth.api.getSession({ headers });
+  if (!sessao) return { ok: false, status: 401, erro: 'Entre no sistema para continuar.' };
+  // usuário desativado perde o acesso na hora: a sessão já aberta não vale (o gancho do login só barra sessão nova)
+  const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
+    'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
+    [sessao.user.id],
+  )).rows[0];
+  if (!u?.ativo) return { ok: false, status: 401, erro: 'Entre no sistema para continuar.' };
+  // com a senha provisória, a pessoa só chega à tela de criar a senha (as rotas de /api/eu): o resto espera a troca
+  if (u.provisoria) return { ok: false, status: 403, erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA };
+  return { ok: true, usuarioId: sessao.user.id };
+}
+
 /** Exige sessão; põe o usuário e o banco no contexto. */
 export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<AmbienteApi> {
   return async (c, next) => {
     // vários conjuntos de rotas montam este conferidor no mesmo caminho: quem já passou por ele não confere a sessão de novo
     if (c.get('usuarioId')) return next();
-    const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!sessao) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
-    // usuário desativado perde o acesso na hora: a sessão já aberta não vale (o gancho do login só barra sessão nova)
-    const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
-      'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
-      [sessao.user.id],
-    )).rows[0];
-    if (!u?.ativo) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
-    // com a senha provisória, a pessoa só chega à tela de criar a senha (as rotas de /api/eu): o resto espera a troca
-    if (u.provisoria) return c.json({ erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA }, 403);
-    c.set('usuarioId', sessao.user.id);
+    const r = await conferirSessao(banco, auth, c.req.raw.headers);
+    if (!r.ok) return c.json({ erro: r.erro }, r.status);
+    c.set('usuarioId', r.usuarioId);
     c.set('banco', banco);
     await next();
   };
