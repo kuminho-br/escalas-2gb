@@ -3,10 +3,11 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { saida } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { authCliente } from '@/auth-cliente';
+import { MoldeDoAcesso } from '@/componentes/acesso/MoldeDoAcesso';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { aprovar, cenaPronta, cobrir, iniciar, preparar, recusar, useTransicao } from '@/lib/transicao-login/armazem';
+import { aprovar, cenaPronta, cobrir, iniciar, recusar, useTransicao } from '@/lib/transicao-login/armazem';
 import { entradaDaVez, lerQuando, lerUltimaInteira, pedeMenosMovimento } from '@/lib/transicao-login/regra';
 
 /** Só caminho interno do próprio site (começa com uma barra, não com duas nem com barra e contrabarra): nada que mande a pessoa para fora. */
@@ -23,9 +24,6 @@ export const Route = createFileRoute('/entrar')({
 const ERRO_CREDENCIAIS = 'E-mail ou senha incorretos.';
 const ERRO_REDE = 'Não foi possível falar com o servidor. Tente de novo.';
 
-/** No clique, com a cena: o cartão, o brasão e o título crescem um pouco, desfocam e somem (0,28 s); no erro, voltam. */
-const DESFAZ = 'transition-[opacity,transform,filter] duration-300 in-data-[cena=tocando]:pointer-events-none in-data-[cena=tocando]:scale-105 in-data-[cena=tocando]:opacity-0 in-data-[cena=tocando]:blur-[7px]';
-
 function Entrar() {
   const navigate = useNavigate();
   const router = useRouter();
@@ -37,7 +35,6 @@ function Entrar() {
   const botao = useRef<HTMLButtonElement>(null);
   // a cena das mangueiras (docs/superpowers/specs/2026-11-20-transicao-login-design.md): a imagem é carregada quando o login abre
   const cena = useTransicao().fase !== 'parada';
-  useEffect(() => preparar(), []);
   // a cada erro, o foco vai para a senha; num efeito, porque a tela só destrava (sai o `inert`) depois de desenhada de novo
   const [falhas, setFalhas] = useState(0);
   useEffect(() => {
@@ -88,35 +85,15 @@ function Entrar() {
     }
   }
 
-  // o mockup aprovado (docs/telas/login-e-inicio/mockup.html): no computador, a foto do quartel ao fundo coberta de vinho à esquerda, a
-  // marca à esquerda e o cartão à direita; no celular, a foto em cima com a marca e o cartão subindo sobre ela
+  // o cenário e o cartão são os de `componentes/acesso/MoldeDoAcesso` (o mesmo das telas de primeiro acesso e esqueci minha senha)
   return (
-    <main data-cena={cena ? 'tocando' : undefined} className="relative flex min-h-dvh flex-col bg-superficie lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-10 lg:bg-fundo lg:px-[clamp(24px,5vw,64px)] lg:py-12">
-      <figure className="absolute inset-x-0 top-0 m-0 h-[380px] overflow-hidden bg-[#3a2626] lg:inset-0 lg:h-auto">
-        <img src="/quartel.png" alt="" className="size-full object-cover object-[center_30%]" />
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(111,20,20,.55)_0%,rgba(111,20,20,.35)_35%,rgba(111,20,20,.92)_100%)] lg:bg-[linear-gradient(90deg,rgba(111,20,20,.92)_0%,rgba(111,20,20,.70)_42%,rgba(28,36,48,.25)_100%)]"
-        />
-        <figcaption className="absolute top-3 right-2 rounded bg-[rgba(28,36,48,.62)] px-1.5 py-0.5 text-[11.5px] leading-tight text-white lg:top-auto lg:bottom-2">
-          Quartel do 2º GB
-        </figcaption>
-      </figure>
-
-      <div className={`${DESFAZ} relative z-10 flex h-[380px] flex-none flex-col justify-end gap-2.5 px-[22px] pb-11 text-white lg:h-auto lg:max-w-[600px] lg:justify-center lg:gap-[18px] lg:p-0`}>
-        <img src="/brasao-2gb.png" alt="Brasão do 2º GB" className="w-[84px] drop-shadow-[0_4px_14px_rgba(0,0,0,.35)] lg:w-[132px]" />
-        <h1 className="font-cond text-[32px] leading-[1.05] font-semibold tracking-tight text-balance lg:text-5xl">
-          Sistema de Gestão <span className="whitespace-nowrap">- 2º GB</span>
-        </h1>
-        <p className="text-[15px] text-white/85 lg:text-lg">2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco</p>
-      </div>
-
-      <div className={`${DESFAZ} relative z-10 -mt-[22px] flex-1 rounded-t-[22px] bg-superficie lg:mt-0 lg:flex-none lg:overflow-hidden lg:rounded-xl lg:shadow-[0_1px_2px_rgba(28,36,48,.08),0_18px_40px_rgba(0,0,0,.28)]`}>
-        <header className="px-[22px] pt-6 lg:bg-vinho lg:px-6 lg:py-[18px] lg:text-white">
-          <h2 className="font-cond text-2xl font-semibold">Entrar</h2>
-          <p className="text-sm text-apagado lg:text-white/80">Use o e-mail cadastrado pela sua seção.</p>
-          {sessao === 'terminou' && <p role="alert" className="mt-2 text-sm font-medium text-alerta lg:text-white">Sua sessão terminou. Entre de novo.</p>}
-        </header>
+    <MoldeDoAcesso
+      titulo="Entrar"
+      descricao="Use o e-mail cadastrado pela sua seção."
+      marcaEhTitulo
+      cena={cena}
+      aviso={sessao === 'terminou' && <p role="alert" className="mt-2 text-sm font-medium text-alerta lg:text-white">Sua sessão terminou. Entre de novo.</p>}
+    >
         <form onSubmit={enviar} className="grid gap-4 px-[22px] pt-5 pb-8 lg:p-6" noValidate>
           <div className="grid gap-1.5">
             <Label htmlFor="email">E-mail</Label>
@@ -143,7 +120,6 @@ function Entrar() {
             </Link>
           </div>
         </form>
-      </div>
-    </main>
+    </MoldeDoAcesso>
   );
 }
