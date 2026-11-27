@@ -120,7 +120,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 67 | Entrada v2 (login): a foto nova do quartel por plataforma, as brasas que esfriam até virar cinza (59, por 4,2 s), mais fracas sobre a saudação, e o pouso no quadro da tela inicial v3 | mesclada (#302, entrega A com a 6.61) |
 | 68 | Primeiro acesso e "Esqueci minha senha" por código no e-mail institucional (Brevo), e trocar a senha estando logado, na Minha ficha: o militar cria a própria senha; a senha provisória fica como reserva; os requisitos da senha à vista (migração 0051) | mesclada (#298); migração 0051 aplicada em 26/11 com a autorização do usuário |
 | 69 | Histórico de rastreio: "Cancelar" e "Editar mudança" (na fase de testes o administrador mexe em qualquer período) e o aviso de militar do Pronto sem equipe, na pré-escala e em "Alterar situação" | mesclada (#292); sem migração |
-| 70 | Grade geral redesenhada e menu lateral novo: o afastado (traço no dia, com o período na dica), a célula do nome clicável, a borda espessa e escura entre a área fixa e a que rola, a legenda com a cor certa e o menu pelo mockup da DESIGN (com os itens de hoje) | em execução na DESENVOLVIMENTO desde 27/11 (entrega B, depois da A); sem migração |
+| 70 | Grade geral redesenhada e menu lateral novo: o afastado (traço no dia, com o período na dica), a célula do nome clicável, a borda espessa e escura entre a área fixa e a que rola, a legenda com a cor certa e o menu pelo mockup da DESIGN (com os itens de hoje) | mesclada (#304), publicada em 27/11; sem migração |
 
 **Ordem de execução das entregas com plano pronto** (26/11/2026, a pedido do usuário; o critério é o piloto de dezembro). Cada uma só começa quando o usuário mandar:
 
