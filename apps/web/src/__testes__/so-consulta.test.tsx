@@ -43,7 +43,7 @@ const GRADE: GradeDoMes = {
   grupos: [{
     chave: 'eq-alfa', nome: 'Alfa',
     linhas: [{
-      militarId: 'm-cabo', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
+      militarId: 'm-cabo', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
       dias: { [dia(10)]: [{ alocacaoId: 'a1', servico: { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false }] },
     }],
   }],

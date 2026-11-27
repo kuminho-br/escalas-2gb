@@ -12,6 +12,12 @@ export type BlocoDaGrade = {
   expediente: boolean;
 };
 
+/**
+ * Um período de afastamento da linha, com o tipo ("Férias", do cadastro). `inicio` e `fim` valem para a marca na tabela (recortados ao mês e aos dias que a linha vale; 'aaaa-mm-dd');
+ * `inicioReal` e `fimReal` são o período inteiro, para a dica e o painel (podem ser de outro mês).
+ */
+export type AfastamentoNaGrade = { tipo: string; inicio: string; fim: string; inicioReal: string; fimReal: string };
+
 export type LinhaDaGrade = {
   militarId: string;
   posto: string;
@@ -22,6 +28,8 @@ export type LinhaDaGrade = {
   dias: Record<string, BlocoDaGrade[]>;
   /** os dias do mês com choque de horário */
   choques: string[];
+  /** os períodos de afastamento da linha, em ordem de início; vazio sem afastamento */
+  afastamentos: AfastamentoNaGrade[];
   /** quantas alocações do mês em serviços PJES e Diária */
   pjes: number;
   diarias: number;

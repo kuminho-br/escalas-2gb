@@ -234,9 +234,48 @@ describe('trocar de lugar com quem já está escalado', () => {
     // o F2 iria para o Bioma (08h–16h) e continuaria com o Pronto A (08h–20h)
     const r = await trocar(meu, { comAlocacaoId: noite });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD F2 não pode ir para a vaga de SD F1: Choque de horário. Escolha outro serviço para trocar.');
+    // o texto nomeia quem é e o motivo (6.70): o F2 já tem o Pronto A, das 08h às 20h (o horário é o do que ele já tem); o corpo diz qual militar (a Grade marca a linha dele)
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para trocar: F2 já tem Pronto das 08h às 20h neste dia.');
+    expect(corpo.militarId).toBe(militar.F2);
     expect(await de('F1', d)).toEqual([expect.objectContaining({ id: meu })]);
     expect(await de('F2', d)).toHaveLength(2);
+  });
+
+  it('a permuta recusada por choque tem o texto da permuta, com o serviço da vaga e o que o militar já faz, e o militarId dele (6.70)', async () => {
+    const d = dia(20);
+    const noiteDoD1 = await alocar('D1', 'Pronto', 'b', d, { funcao: combatente });
+    await alocar('D1', 'Bioma', 'a', d);
+    const diaDoD2 = await alocar('D2', 'Pronto', 'a', d, { funcao: combatente });
+    // as duas são ordinárias: é uma permuta. O D1 ficaria com o Pronto das 08h às 20h e já está no Bioma, que cobre parte do mesmo horário
+    const r = await trocar(noiteDoD1, { comAlocacaoId: diaDoD2 });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para permutar: D1 ficaria com o Pronto (08h às 20h) e já está no Bioma deste dia.');
+    expect(corpo.militarId).toBe(militar.D1);
+    expect(await de('D2', d)).toEqual([expect.objectContaining({ id: diaDoD2 })]);
+  });
+
+  it('o substituto que já tem serviço no horário: "Não dá para trocar: {NOME} já tem {serviço} das {hh} às {hh} neste dia.", com o militarId dele (6.70)', async () => {
+    const d = dia(21);
+    const id = await alocar('C1', 'Pronto', 'a', d, { funcao: combatente });
+    await alocar('E1', 'Bioma', 'a', d);
+    const r = await trocar(id, { militarId: militar.E1, turnoId: servico.Pronto!.a });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para trocar: E1 já tem Bioma das 08h às 16h neste dia.');
+    expect(corpo.militarId).toBe(militar.E1);
+    expect(await de('C1', d)).toEqual([expect.objectContaining({ id })]);
+  });
+
+  it('as outras recusas (CNH, fora do quadro) seguem com o texto de antes, e agora também dizem qual militar (6.70)', async () => {
+    const d = dia(22);
+    const id = await alocar('C2', 'Pronto', 'a', d, { funcao: motorista });
+    const r = await trocar(id, { militarId: militar.SEMCNH, turnoId: servico.Pronto!.a });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Sem a CNH exigida');
+    expect(corpo.militarId).toBe(militar.SEMCNH);
   });
 
   it('com a outra alocação de outro dia é 409; a mesma alocação, também; a que não existe é 404', async () => {

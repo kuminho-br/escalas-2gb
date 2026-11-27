@@ -20,7 +20,7 @@ const bloco = (servico: typeof PRONTO | typeof JES, letra: string, inicio = '08:
 });
 const EXPEDIENTE: BlocoDaGrade = { alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true };
 const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
-  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
+  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
 const GRADE: GradeDoMes = {
   mes: MES,
@@ -31,7 +31,7 @@ const GRADE: GradeDoMes = {
       linhas: [
         linha('CABO', {
           dias: { [dia(2)]: [bloco(PRONTO, 'A')], [dia(31)]: [bloco(PRONTO, 'B', '20:00', '08:00')] },
-          choques: [dia(31)], pjes: 4, diarias: 0, horasTiradas: 24 * 60, horasPedidas: 60 * 60,
+          choques: [dia(31)], afastamentos: [], pjes: 4, diarias: 0, horasTiradas: 24 * 60, horasPedidas: 60 * 60,
         }),
         linha('SD1', { dias: { [dia(5)]: [bloco(PRONTO, 'A'), bloco(JES, 'A', '20:00', '23:00')] }, pjes: 8, diarias: 2, horasTiradas: 90, horasPedidas: 180 }),
       ],

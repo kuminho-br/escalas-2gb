@@ -13,7 +13,8 @@ import { avaliarFaixa, motivoDeFora, podeTirarDe, SEM_VOLUNTARIADO } from './ele
 export const JA_ESCALADO_NO_TURNO = 'Este militar já está escalado neste turno.';
 
 export class Recusa extends Error {
-  constructor(mensagem: string) {
+  /** `militarId`: na troca, o militar que impede (a Grade marca a linha dele no diálogo). */
+  constructor(mensagem: string, readonly militarId?: string) {
     super(mensagem);
   }
 }
