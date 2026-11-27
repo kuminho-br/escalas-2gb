@@ -1,5 +1,5 @@
 import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } from 'contratos';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, IdCard } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import { afastadoNoMesTodo, afastamentoDoDia } from '@/lib/afastamento-na-grade';
 import { hoje } from '@/lib/meses';
@@ -33,6 +33,9 @@ const FRONTEIRA_DO_MILITAR = COLUNA_PRESA_ESQUERDA;
 const FRONTEIRA_DO_CABECALHO = CABECALHO_PRESO;
 /** O fundo da faixa de cada equipe. */
 const FUNDO_DA_FAIXA = 'bg-[#F1F3F6]';
+
+/** Quantos militares do grupo (as linhas que estão na tela) estão afastados no dia. */
+const contarAfastadosHoje = (g: GrupoDaGrade, dia: string) => g.linhas.filter((l) => afastamentoDoDia(l.afastamentos, dia)).length;
 
 /** O nome da equipe como a Grade o mostra: o grupo do expediente (chave `adm`) se escreve "ADM" (6.46). */
 export const nomeDoGrupo = (g: Pick<GrupoDaGrade, 'chave' | 'nome'>) => (g.chave === 'adm' ? NOME_JORNADA.adm : g.nome);
@@ -128,7 +131,15 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                     <span className="text-sm font-normal text-apagado">{g.linhas.length === 1 ? '1 militar' : `${g.linhas.length} militares`}</span>
                   </span>
                 </td>
-                <td colSpan={grade.dias.length} className={FUNDO_DA_FAIXA} />
+                <td colSpan={grade.dias.length} className={FUNDO_DA_FAIXA}>
+                  {/* "2 afastados hoje" (6.70): só quando há, e só no mês corrente; fica à vista ao rolar (preso logo depois da coluna do militar) */}
+                  {temHoje && contarAfastadosHoje(g, diaDeHoje) > 0 && (
+                    <span data-afastados-hoje className="sticky left-[calc(13rem+0.875rem)] inline-flex items-center gap-1.5 text-[13px] font-medium text-apagado">
+                      <span aria-hidden className="inline-block h-[3px] w-4 rounded-sm bg-afastado" />
+                      {contarAfastadosHoje(g, diaDeHoje) === 1 ? '1 afastado hoje' : `${contarAfastadosHoje(g, diaDeHoje)} afastados hoje`}
+                    </span>
+                  )}
+                </td>
                 <td className={cn('min-[1440px]:sticky min-[1440px]:z-10', FUNDO_DA_FAIXA, COLUNAS_FINAIS[0].direita, COLUNAS_FINAIS[0].separador)} />
                 <td className={cn('min-[1440px]:sticky min-[1440px]:z-10', FUNDO_DA_FAIXA, COLUNAS_FINAIS[1].direita)} />
               </tr>
@@ -138,34 +149,35 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                 const mesTodo = afastadoNoMesTodo(l.afastamentos, grade.dias.map((x) => x.data));
                 return (
                 <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
-                  <th scope="row" data-afastado-o-mes-todo={mesTodo ? '' : undefined} className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
-                    {/* o posto, o nome e a matrícula são um botão: abre a ficha do militar. A matrícula fica à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-1.5">
-                      {aoAbrirFicha ? (
-                        <button
-                          type="button"
-                          data-abrir-ficha
-                          aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
-                          onClick={() => aoAbrirFicha(l.militarId)}
-                          className="col-start-1 row-span-2 grid cursor-pointer justify-items-start rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-tinta"
-                        >
-                          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                            <span className="text-sm text-apagado">{l.posto}</span>
-                            <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
-                          </span>
-                          <span className="text-xs text-apagado">{l.matricula}</span>
-                        </button>
-                      ) : (
-                        <div className="col-start-1 row-span-2 grid justify-items-start text-left">
-                          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                            <span className="text-sm text-apagado">{l.posto}</span>
-                            <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
-                          </span>
-                          <span className="text-xs text-apagado">{l.matricula}</span>
-                        </div>
-                      )}
-                      {l.saldos && <span className="col-start-2 row-start-2"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
-                    </div>
+                  <th scope="row" data-afastado-o-mes-todo={mesTodo ? '' : undefined} className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] p-0 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
+                    {/* a célula do nome é um botão só, da borda à borda (6.70): abre a ficha do militar. Ao passar o mouse, fundo vinho suave e o ícone da ficha no canto; no teclado, contorno por dentro.
+                        A matrícula fica à esquerda e a barra da cota de saldo encostada à direita; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
+                    {aoAbrirFicha ? (
+                      <button
+                        type="button"
+                        data-abrir-ficha
+                        aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
+                        onClick={() => aoAbrirFicha(l.militarId)}
+                        className="group/nome grid h-11 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left outline-none hover:bg-vinho/8 focus-visible:bg-vinho/8 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:-outline-offset-4"
+                      >
+                        <span className="col-start-1 row-start-1 flex items-baseline gap-1.5 overflow-hidden whitespace-nowrap">
+                          <span className="text-sm text-apagado">{l.posto}</span>
+                          <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
+                        </span>
+                        <span className="col-start-1 row-start-2 text-xs text-apagado">{l.matricula}</span>
+                        <IdCard aria-hidden data-icone-da-ficha className="col-start-2 row-start-1 size-4 justify-self-end text-vinho opacity-0 transition-opacity group-hover/nome:opacity-100 group-focus-visible/nome:opacity-100" />
+                        {l.saldos && <span className="col-start-2 row-start-2 self-center"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                      </button>
+                    ) : (
+                      <div className="grid h-11 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left">
+                        <span className="col-start-1 row-start-1 flex items-baseline gap-1.5 whitespace-nowrap">
+                          <span className="text-sm text-apagado">{l.posto}</span>
+                          <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
+                        </span>
+                        <span className="col-start-1 row-start-2 text-xs text-apagado">{l.matricula}</span>
+                        {l.saldos && <span className="col-start-2 row-start-2 self-center"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                      </div>
+                    )}
                   </th>
                   {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
