@@ -193,8 +193,6 @@
   flex-direction: column;
   gap: 18px;
   max-width: 600px;
-  align-self: end;
-  padding-bottom: 12px;
   color: white;
 }
 .cenario-login__marca img {
@@ -226,6 +224,11 @@
   background: var(--color-superficie);
 }
 @media (min-width: 64rem) {
+  /* a marca embaixo, sobre a parte densa do véu (só no computador: abaixo disso ela segue a largura da coluna) */
+  .cenario-login__marca {
+    align-self: end;
+    padding-bottom: 12px;
+  }
   .cenario-login {
     display: grid;
     grid-template-columns: 1fr 400px;

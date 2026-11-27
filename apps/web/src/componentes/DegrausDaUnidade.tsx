@@ -122,7 +122,7 @@ export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEsco
       <div
         role="listbox"
         aria-label={de ? `Unidades dentro de ${de}` : 'Corporação'}
-        className="absolute top-full left-0 z-30 mt-1.5 grid max-w-85 min-w-72 gap-0.5 rounded-lg border border-linha bg-superficie p-1.5 font-sans shadow-lg max-md:static max-md:mt-1 max-md:w-full max-md:max-w-none max-md:min-w-0 max-md:shadow-none"
+        className="absolute top-full left-0 z-30 mt-1.5 grid max-w-85 min-w-72 gap-0.5 rounded-lg border border-linha bg-superficie p-1.5 font-sans shadow-lg md:max-h-[min(26rem,calc(100dvh-5rem))] md:overflow-y-auto max-md:static max-md:mt-1 max-md:w-full max-md:max-w-none max-md:min-w-0 max-md:shadow-none"
       >
         {de && <p className="px-2 pt-1.5 pb-1 text-apoio text-apagado">{`Dentro de ${de}`}</p>}
         {opcoesDe(i).map((n) => {
@@ -159,8 +159,12 @@ export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEsco
         aria-expanded={painel}
         aria-label={`Unidade de trabalho: ${unidade.caminho.join(' / ')}${soConsulta ? ' (só consulta)' : ''}`}
         onClick={() => {
-          setAberto(-1);
-          setPainel(!painel);
+          // fechar o painel pelo botão é fechar de verdade: numa passagem, volta à unidade de antes
+          if (painel) fechar();
+          else {
+            setAberto(-1);
+            setPainel(true);
+          }
         }}
         className="flex max-w-full items-center gap-1.5 rounded-controle border border-encaixe px-2.5 py-1.5 font-cond text-corpo font-semibold text-tinta md:hidden"
       >

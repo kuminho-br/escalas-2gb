@@ -63,6 +63,12 @@ describe('os arquivos', () => {
 });
 
 describe('o enquadramento por plataforma (o CSS do cenário)', () => {
+  it('a marca só vai para baixo no computador: no celular e no tablet ela ocupa a largura, em vez de encostar à direita (achado da revisão)', () => {
+    expect(bloco('.cenario-login__marca {')).not.toContain('align-self');
+    const computador = css.slice(css.indexOf('@media (min-width: 64rem)'));
+    expect(computador.slice(0, computador.indexOf('@media (max-width')) ).toMatch(/\.cenario-login__marca\s*{[^}]*align-self:\s*end/);
+  });
+
   it('o fundo é vinho liso por baixo da foto', () => {
     expect(bloco('.cenario-login__fundo {')).toMatch(/background:\s*var\(--color-vinho/);
   });

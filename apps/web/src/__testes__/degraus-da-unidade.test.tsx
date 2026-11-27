@@ -187,6 +187,18 @@ describe('os degraus', () => {
     expect(botao(n, '1ª SB')).toHaveFocus();
   });
 
+  it('a lista rola por dentro no computador (muitas unidades não passam do fim da tela, com o cabeçalho parado)', async () => {
+    guardarUnidade('u-1sb');
+    api(GESTOR);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    await userEvent.click(botao(n, '1ª SB'));
+    const lista = screen.getByRole('listbox');
+    expect(lista.className).toContain('md:max-h-[min(26rem,calc(100dvh-5rem))]');
+    expect(lista.className).toContain('md:overflow-y-auto');
+  });
+
   it('um clique fora fecha a lista, sem trocar de unidade', async () => {
     guardarUnidade('u-1sb');
     api(GESTOR);
@@ -244,11 +256,18 @@ describe('os degraus', () => {
 
   it('antes de a lista da corporação chegar, os níveis de cima continuam à vista (do caminho da unidade) e depois seguem iguais', async () => {
     guardarUnidade('u-1sb');
-    api(GESTOR, { 'GET /api/consulta/unidades': { status: 200, corpo: CORPORACAO } });
+    let chegou!: () => void;
+    const segura = new Promise<void>((r) => (chegou = r));
+    api(GESTOR, { 'GET /api/consulta/unidades': { status: 200, corpo: CORPORACAO, espera: segura } });
     abrir('/militares');
     const n = await nav();
-    expect(within(n).getAllByRole('listitem').length).toBeGreaterThanOrEqual(2);
+    // com a lista da corporação ainda no ar, só há a árvore da pessoa (2º GB e as seções): CBMPE, DGO e DInter/1 vêm do caminho da unidade, só para leitura
     await waitFor(() => expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']));
+    expect(within(n).queryByRole('button', { name: 'CBMPE' })).toBeNull();
+    expect(within(n).getAllByRole('button').filter((b) => b.hasAttribute('data-degrau')).map((b) => b.textContent)).toEqual(['1ª SB']);
+    chegou();
+    await waitFor(() => expect(within(n).getAllByRole('listitem').length).toBe(5));
+    expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
   });
 });
 
@@ -346,6 +365,23 @@ describe('os degraus no celular (6.61, Task 3)', () => {
     expect(await within(n).findByRole('button', { name: 'Escolha: seção' })).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']));
+    expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
+  });
+
+  it('Review Focus 4 no celular: tocar de novo no botão com o painel aberto numa passagem fecha e volta à unidade de antes', async () => {
+    guardarUnidade('u-1sb');
+    api(DUAS_SECOES);
+    abrir('/militares');
+    const n = await nav();
+    await userEvent.click(gatilho(n));
+    await userEvent.click(botao(n, '2º GB'));
+    await userEvent.click(screen.getByRole('option', { name: /^4º GB/ }));
+    expect(await within(n).findByRole('button', { name: 'Escolha: seção' })).toBeInTheDocument();
+    // fecha pelo botão da unidade: nada a meio caminho fica guardado
+    await userEvent.click(gatilho(n));
+    expect(gatilho(n)).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(gatilho(n));
+    expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
     expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
   });
 });
