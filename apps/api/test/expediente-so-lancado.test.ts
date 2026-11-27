@@ -75,6 +75,8 @@ describe('Adm sem o expediente lançado (6.71)', () => {
 
   it('o defeito do JES que virava Saldo: depois de tirar o expediente lançado, o JES escolhido na lista do turno grava JES', async () => {
     const adm = await criar('ADMJES');
+    // 6.72: "Adicionar serviço" só mostra o PJES que tem cota no mês
+    await inserir(api.banco, 'cota', { mes: `${atual}-01`, unidade_id: api.ids.secao, servico_id: servico.JES!.id, quantidade: 50, prioridade: 1 });
     const lancado = await lancarExpediente(adm, dia(9));
     expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${lancado}`)).status).toBe(200);
     const painel = (await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/grade/${atual}/militares/${adm}/dias/${dia(9)}`)).json()) as { opcoes: { inicio: string; fim: string; servicos: { turnoId: string; nome: string }[] }[] };
