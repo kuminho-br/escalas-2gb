@@ -74,6 +74,11 @@ describe('a célula do dia afastado', () => {
     render(<CelulaDaGrade linha={l} dia={11} data={d(11)} blocos={[]} choque={false} escolhida={false} aoEscolher={() => undefined} {...extra} />).container.querySelector('button')!;
   const feriasDe10a19 = { tipo: 'Férias', comeca: false, termina: false, inicioReal: d(10), fimReal: d(19) };
 
+  it('cada célula é uma camada isolada: o quadrinho e o rótulo (z-10) não passam por cima da coluna do nome presa quando a tabela rola de lado', () => {
+    const b = celula({ afastado: { ...feriasDe10a19, comeca: true } });
+    expect(b.className).toContain('isolate');
+  });
+
   it('tem o tracejado (data-afastado, aria-hidden), a dica com o período inteiro e o nome acessível com o afastamento', () => {
     const b = celula({ afastado: feriasDe10a19 });
     expect(b).toHaveAttribute('data-afastado');

@@ -18,8 +18,10 @@ function ItemTrilho({ item, aoNavegar, recolhido }: { item: Item; aoNavegar: () 
       <Link
         to={item.para}
         onClick={aoNavegar}
-        className={cn(classe, 'text-white/90 hover:bg-white/12 hover:text-white')}
-        activeProps={{ className: 'bg-white font-semibold text-vinho hover:bg-white hover:text-vinho' }}
+        className={classe}
+        // a cor vem de um só lado (ativo ou não): as duas juntas brigariam, e o texto branco sumiria no fundo branco do item ativo
+        activeProps={{ className: 'bg-white font-semibold text-vinho' }}
+        inactiveProps={{ className: 'text-white/90 hover:bg-white/12 hover:text-white' }}
         activeOptions={item.exato ? { exact: true } : undefined}
       >
         <Icone className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -65,12 +67,12 @@ export function Trilho({ modulo, eu, aberto, aoFechar, estado, aoMudarEstado }: 
   );
   return (
     <>
-      {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}
+      {aberto && <div className="fixed inset-0 z-45 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}
       <nav
         ref={nav}
         aria-label="Navegação principal"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84%] flex-col gap-3 bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:h-dvh md:max-w-none md:translate-x-0 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[84%] flex-col gap-3 bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:z-40 md:h-dvh md:max-w-none md:translate-x-0 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           estado === 'largo' && 'md:w-60',
           recolhido && 'md:w-[84px] md:items-center md:px-1.5 md:py-3',
           estado === 'escondido' && 'md:hidden',

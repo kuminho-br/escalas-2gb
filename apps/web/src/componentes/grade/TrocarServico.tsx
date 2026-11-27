@@ -56,7 +56,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
         <button
           type="button"
           data-impede={impede === c.militarId ? '' : undefined}
-          onClick={() => setEscolha({ tipo: 'livre', livre: c, turnoId, semVoluntariado: semVol })}
+          onClick={() => { setErro(null); setEscolha({ tipo: 'livre', livre: c, turnoId, semVoluntariado: semVol }); }}
           className={`flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border px-3 py-2 text-left hover:bg-accent ${impede === c.militarId ? 'border-alerta ring-2 ring-alerta' : 'border-linha'}`}
         >
           <span className="text-xs text-apagado">{c.posto}</span>
@@ -138,7 +138,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
                                 <button
                                   type="button"
                                   data-impede={impede === e.militarId ? '' : undefined}
-                                  onClick={() => setEscolha({ tipo: 'escalado', escalado: e, alocacaoId: a.alocacaoId, onde: a.onde, permuta: a.permuta })}
+                                  onClick={() => { setErro(null); setEscolha({ tipo: 'escalado', escalado: e, alocacaoId: a.alocacaoId, onde: a.onde, permuta: a.permuta }); }}
                                   className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent ${impede === e.militarId ? 'border-alerta ring-2 ring-alerta' : 'border-linha'}`}
                                 >
                                   {a.onde}

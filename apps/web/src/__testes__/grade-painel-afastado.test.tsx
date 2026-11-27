@@ -127,6 +127,18 @@ describe('a troca recusada que diz quem (6.70)', () => {
     expect(within(d).getByRole('button', { name: /CHARLIE/ })).toHaveAttribute('data-impede');
   });
 
+  it('ao escolher outro militar depois da recusa, o erro do anterior não vai junto para a confirmação', async () => {
+    apiDaTroca({ erro: 'Não dá para permutar: BRAVO ficaria com o Pronto (08h às 20h) e já está no Bioma deste dia.', militarId: 'm-bravo' });
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    await userEvent.click(await within(d).findByRole('button', { name: 'Ordinário, 20h–08h, sem guarnição' }));
+    await userEvent.click(within(d).getByRole('button', { name: 'Fazer a permuta' }));
+    await within(d).findByRole('alert');
+    await userEvent.click(within(d).getByRole('button', { name: /CHARLIE/ }));
+    expect(within(d).getByText('Trocar CABO por CHARLIE?')).toBeInTheDocument();
+    expect(within(d).queryByRole('alert')).toBeNull();
+  });
+
   it('sem o militarId (as outras recusas), o diálogo continua como antes, na confirmação, com o erro', async () => {
     apiDaTroca({ erro: 'Sem a CNH exigida' });
     abrir(ABERTA);

@@ -69,6 +69,9 @@ describe('o menu largo (o estado de quem nunca escolheu)', () => {
     expect(ativo).toHaveAttribute('aria-current', 'page');
     expect(ativo.className).toContain('bg-white');
     expect(ativo.className).toContain('text-vinho');
+    // o texto branco do item comum não pode vir junto: no fundo branco ele sumiria
+    expect(ativo.className).not.toContain('text-white');
+    expect(within(menu()).getByRole('link', { name: 'Escala do mês' }).className).toContain('text-white/90');
     const recolher = within(menu()).getByRole('button', { name: 'Recolher' });
     expect(recolher.className).toContain('focus-visible:outline-white');
     // no celular não há o que recolher: o menu abre de lado e fecha no "x"
@@ -189,5 +192,16 @@ describe('o celular', () => {
     expect(within(menu()).getAllByRole('link').map((l) => l.textContent)).toEqual(expect.arrayContaining(['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala']));
     await userEvent.click(screen.getByRole('button', { name: 'Fechar menu' }));
     expect(menu().className).toContain('-translate-x-full');
+  });
+
+  it('o menu aberto e o fundo escuro ficam por cima da folha do painel do dia (z-40), que também é do celular', async () => {
+    await entrar();
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
+    const classe = (el: Element | null) => (el?.getAttribute('class') ?? '').split(/\s+/);
+    expect(classe(menu())).toContain('z-50');
+    // o fundo escuro, acima da folha e abaixo do menu
+    expect(classe(document.querySelector('div.fixed.inset-0[aria-hidden]'))).toContain('z-45');
+    // no computador o menu volta ao nível de sempre
+    expect(classe(menu())).toContain('md:z-40');
   });
 });

@@ -2,7 +2,8 @@ import type { OpcoesDeTroca } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
-import { fraseDaRecusaDaTroca } from '../src/escala/trocar.ts';
+import { fraseDaRecusaDaTroca, trocar as trocarNoBanco } from '../src/escala/trocar.ts';
+import { Recusa } from '../src/escala/alocacoes.ts';
 
 // Cenário fictício (D7), dezembro de 2026. Escala Ordinário: Pronto (A 08–20, B 20–08), Bioma (diária, A 08–16) e JES (PJES, A 08–20), com a
 // guarnição ABT (Motorista CNH D, 1 vaga; Combatente, 1 a 2 vagas) vinculada às faixas 08–20 e 20–08. Cada cenário usa o seu dia.
@@ -140,6 +141,31 @@ describe('substituir por um militar livre', () => {
     const r = await trocar(id, { militarId: militar.LIVRE, turnoId: servico.Pronto!.b });
     expect(r.status).toBe(409);
     expect(await de('D1', d2)).toHaveLength(1);
+  });
+});
+
+describe('dois escalantes ao mesmo tempo (revisão final da 6.70)', () => {
+  it('a violação de unicidade que aborta a transação continua uma recusa (409), e não vira erro do servidor', async () => {
+    const d = dia(21);
+    const id = await alocar('F1', 'Pronto', 'a', d, { funcao: combatente });
+    // o banco recusa o insert do substituto como o Postgres faz numa corrida (23505) e, daí em diante, a transação está abortada: toda consulta falha
+    let abortada = false;
+    const tx = {
+      query: async (sql: string, params?: unknown[]) => {
+        if (abortada) throw new Error('current transaction is aborted, commands ignored until end of transaction block');
+        if (/^\s*insert into alocacao \(/.test(sql)) {
+          abortada = true;
+          throw Object.assign(new Error('duplicate key'), { code: '23505' });
+        }
+        return api.banco.query(sql, params as never);
+      },
+    };
+    const resultado = await trocarNoBanco(tx as never, id, { militarId: militar.LIVRE!, turnoId: servico.Pronto!.a }, api.usuarios.escalante).catch((e: unknown) => e);
+    expect(resultado).toBeInstanceOf(Recusa);
+    expect((resultado as Recusa).message).toBe('Este militar já está escalado neste turno.');
+    expect((resultado as Recusa).militarId).toBe(militar.LIVRE);
+    // a recusa desfaz tudo na transação do chamador: aqui, só desfazemos o que o teste fez de verdade
+    await api.banco.query('delete from alocacao where id = $1', [id]).catch(() => undefined);
   });
 });
 

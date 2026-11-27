@@ -129,8 +129,9 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     } catch (e) {
       if (!(e instanceof Recusa)) throw e;
       // o novo não pode ocupar a vaga: a recusa diz quem é (a linha dele fica marcada) e, se é por horário, o serviço que ele já tem
-      const impede = await servicoQueImpede(tx, troca.militarId, a);
-      const nome = (await tx.query<{ nome_guerra: string }>('select nome_guerra from militar where id = $1', [troca.militarId])).rows[0]?.nome_guerra ?? '';
+      // (numa corrida entre dois escalantes o banco já abortou a transação: as consultas daqui falham, e a recusa segue com o texto de antes)
+      const impede = await servicoQueImpede(tx, troca.militarId, a).catch(() => null);
+      const nome = (await tx.query<{ nome_guerra: string }>('select nome_guerra from militar where id = $1', [troca.militarId]).catch(() => null))?.rows[0]?.nome_guerra ?? '';
       throw new Recusa(impede ? fraseDaTrocaComConflito(nome, impede.servico, impede.inicio, impede.fim) : e.message, troca.militarId);
     }
     return [{ escalaId: a.escala_id, mes }];
@@ -160,7 +161,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     } catch (e) {
       if (!(e instanceof Recusa)) throw e;
       // por horário (o militar já tem outro serviço que cobre o da vaga): o texto nomeia o serviço, o da permuta quando as duas alocações são ordinárias; nas outras recusas, o de antes
-      const impede = await servicoQueImpede(tx, quem.militar_id, daVaga);
+      const impede = await servicoQueImpede(tx, quem.militar_id, daVaga).catch(() => null);
       const nome = nomes.get(quem.militar_id)?.nome_guerra ?? '';
       if (impede) {
         const permuta = a.tipo === 'ordinario' && b.tipo === 'ordinario';

@@ -39,7 +39,7 @@ export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoE
       data-afastado={afastado ? '' : undefined}
       onClick={aoEscolher}
       className={cn(
-        'relative flex h-7 w-full min-w-12 items-center justify-evenly max-md:h-11 rounded px-px outline-none focus-visible:ring-2 focus-visible:ring-tinta',
+        'relative isolate flex h-7 w-full min-w-12 items-center justify-evenly max-md:h-11 rounded px-px outline-none focus-visible:ring-2 focus-visible:ring-tinta',
         // o contorno do choque e o da escolhida ficam por cima do traço do afastado (um pseudo-elemento sobre tudo), então o traço nunca os esconde
         (choque || escolhida) && `after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded after:ring-2 after:ring-inset after:content-['']`,
         choque && 'after:ring-alerta',
