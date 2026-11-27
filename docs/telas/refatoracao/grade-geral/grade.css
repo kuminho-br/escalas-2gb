@@ -140,8 +140,8 @@
 .gg-cb:hover{background:rgba(28,36,48,.06)}
 .gg-cb:focus-visible{outline:2px solid var(--tinta);outline-offset:-3px}
 .gg-q{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:20px;height:18px;border-radius:3px;font:700 11px/1 var(--cond);color:#fff}
-/* o expediente: um tom claro, menor, sem letra: o normal fica calado */
-.gg-q.exp{height:12px;background:#D9DEE5}
+/* o expediente: a cor cadastrada em Configurações, como qualquer serviço (o cinza é só o exemplo) */
+.gg-q.exp{background:#8A94A1}
 .gg-cb.choque{background:var(--alerta-fundo);box-shadow:inset 0 0 0 2px var(--alerta)}
 .gg-t td.sel .gg-cb{background:rgba(142,27,27,.15);box-shadow:inset 0 0 0 2px var(--vinho)}
 .gg-t td.sel .gg-cb.choque{box-shadow:inset 0 0 0 2px var(--alerta)}
@@ -210,10 +210,9 @@
 .gg.cel .gg-nb{height:48px;padding-left:12px}
 .gg.cel .gg-nb .ficha{display:none}
 .gg.cel .gg-q{width:22px;height:20px}
-.gg.cel .gg-q.exp{height:12px}
 .gg.cel.com-folha .gg-pag{pointer-events:none}
 /* com a folha aberta, o alto da tela fica só com a tabela: o cabeçalho dos dias e a linha escolhida, à vista acima da folha */
-.gg.cel.com-folha .gg-pag h3,.gg.cel.com-folha .gg-barra,.gg.cel.com-folha .gg-leg{display:none}
+.gg.cel.com-folha .gg-tit,.gg.cel.com-folha .gg-barra,.gg.cel.com-folha .gg-leg{display:none}
 .gg.cel .gg-eq small{display:none}
 .gg-folha .gg-pd header{padding:10px 4px 12px}
 .gg-folha .gg-pd .chips{margin-top:4px}
@@ -258,3 +257,33 @@
 .gg-celulares figure{flex:none;width:390px;max-width:100%;min-width:0}
 .gg-celulares figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
 @media (max-width:440px){.gg-celulares figure{width:351px}}
+
+/* versão 2 (26/11): o título com o botão de expandir no celular; a tela cheia; o menu escondido e o botão flutuante */
+.gg-tit{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.gg.cel .gg-tit .botao{min-height:44px;padding:0 12px}
+.gg-cheia-barra{display:none}
+.gg.cel.cheia .gg-cheia-barra{display:flex;align-items:center;gap:8px;min-width:0}
+.gg-cheia-barra .eqs{flex:1;min-width:0;font:500 var(--t13)/16px var(--texto);color:var(--apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gg-cheia-barra .botao{min-height:44px;padding:0 10px;flex:none}
+.gg-mes.mini{height:44px;flex:none}
+.gg-mes.mini button{width:36px}
+.gg-mes.mini span{padding:0 2px;font-size:var(--t15)}
+.gg.cel.cheia .gg-topo,.gg.cel.cheia .gg-tit,.gg.cel.cheia .gg-barra,.gg.cel.cheia .gg-leg{display:none}
+.gg.cel.cheia .gg-pag{padding:8px 6px 0;gap:6px}
+/* na tela cheia a coluna do militar estreita (o posto em cima do nome, sem a matrícula): cabem seis dias em vez de cinco */
+.gg.cel.cheia{--w-nome:112px}
+.gg.cel.cheia .gg-nb{padding-left:8px;padding-right:4px}
+.gg.cel.cheia .gg-nb .mat{display:none}
+.gg.cel.cheia .gg-nb .l1 small{display:block;margin:0 0 2px;font-size:12px}
+.gg.cel.cheia .gg-nb .l1 strong{font-size:var(--t15)}
+.gg.cel.cheia .gg-resumo{left:calc(var(--w-nome) + 10px)}
+.gg.oculto .gg-menu{display:none}
+.gg-flutua{position:absolute;left:16px;bottom:16px;z-index:30;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px 0 14px;border:0;border-radius:22px;background:var(--vinho);color:var(--claro);font:600 var(--t15)/1 var(--cond);box-shadow:var(--por-cima);cursor:pointer}
+.gg-flutua:hover{background:var(--vinho-escuro)}
+.gg-flutua .i{width:20px;height:20px;stroke-width:1.75}
+.gg-flutua:focus-visible{outline:2px solid var(--tinta);outline-offset:3px}
+.gg .gg-flutua{color:var(--claro)}
+/* com o menu escondido, a página ganha folga embaixo: o botão flutuante não cobre a última linha da tabela */
+
+.gg.cel .gg-mes.mini{width:auto;justify-content:center}
+.gg.cel .gg-mes.mini button{width:36px}

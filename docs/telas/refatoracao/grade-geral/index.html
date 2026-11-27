@@ -9,18 +9,19 @@
 <link rel="stylesheet" href="grade.css">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-ficha" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 6 6v1"/></symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-ficha" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 6 6v1"/></symbol><symbol id="i-esconder" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M16 10l-2 2 2 2"/></symbol><symbol id="i-expandir" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol><symbol id="i-recolher" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol></svg>
 <div class="pagina">
 
 <header class="abre">
   <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
   <h1>Grade geral e menu lateral</h1>
-  <p>A Grade inteira redesenhada, junto com o menu. A ideia: o que é normal fica calado (o expediente, os fins de semana) e o que foge do normal fala alto (serviço, afastado, choque). Uma borda escura e grossa diz onde a rolagem começa.</p>
-  <p class="menor">Versão 1, para você revisar. Desenhada sobre a tela de hoje, com a lista de itens do menu de hoje. Cada mudança de comportamento está marcada como proposta. Os nomes e as matrículas são inventados.</p>
+  <p>A Grade inteira redesenhada, junto com o menu. A ideia: o que foge do normal (o afastado, o choque, o fim de semana) salta aos olhos sem mexer nas cores dos serviços, que são cadastro seu. Uma borda escura e grossa diz onde a rolagem começa.</p>
+  <p class="menor">Versão 2, para você revisar, com as suas respostas de 26/11: o menu pode ser escondido de vez, com um botão flutuante para trazê-lo de volta; a Grade do celular abre em tela cheia; e o expediente volta à cor cadastrada. Cada mudança de comportamento está marcada como proposta. Os nomes e as matrículas são inventados.</p>
   <div class="gg-controles">
     <div role="radiogroup" aria-label="Menu"><span class="rot">Menu do computador</span>
       <label class="marcar"><input type="radio" name="menu" value="largo" checked><span>Largo</span></label>
-      <label class="marcar"><input type="radio" name="menu" value="recolhido"><span>Recolhido</span></label></div>
+      <label class="marcar"><input type="radio" name="menu" value="recolhido"><span>Recolhido</span></label>
+      <label class="marcar"><input type="radio" name="menu" value="oculto"><span>Escondido</span></label></div>
     <div role="radiogroup" aria-label="Tamanho"><span class="rot">Tamanho da tela</span>
       <label class="marcar"><input type="radio" name="tam" value="ajustado" checked><span>Reduzida para caber</span></label>
       <label class="marcar"><input type="radio" name="tam" value="real"><span>Tamanho real (rola de lado)</span></label></div>
@@ -30,7 +31,7 @@
 <section class="bloco largo" id="tela">
   <div class="regra">
     <h2>A tela, no computador</h2>
-    <p>Experimente: passe o mouse no nome de um militar (a célula toda responde), role a tabela para os lados e veja a sombra nascer sob a borda, passe o mouse no traço do afastado (a dica mostra o período inteiro) e clique num dia para abrir o painel. Ao abrir o painel, o menu recolhe sozinho para dar lugar.</p>
+    <p>Experimente: passe o mouse no nome de um militar (a célula toda responde), role a tabela para os lados e veja a sombra nascer sob a borda, passe o mouse no traço do afastado (a dica mostra o período inteiro) e clique num dia para abrir o painel. Ao abrir o painel, o menu recolhe sozinho para dar lugar. No pé do menu, "Esconder menu" tira o menu da tela; o botão flutuante "Menu", no canto de baixo, traz de volta.</p>
     <p class="nota">Dezembro de 2026, com "hoje" em 3/12. O menu é o de hoje: Grade geral, Escala do mês, Efetivo por dia, Oficiais, Voluntariado, Cotas, Militares, Turnos, Escalas, Feriados e Configurações da escala.</p>
   </div>
   <div class="gg-quadros">
@@ -42,10 +43,12 @@
   <div class="regra">
     <h2>No celular</h2>
     <p>O celular tem desenho próprio: alvos de 44 px, o nome numa coluna mais estreita e o painel do dia como uma folha que sobe de baixo, com a célula escolhida ainda à vista no alto. O menu abre de lado, com a mesma lista do computador.</p>
-    <p class="nota">Toque numa célula para abrir a folha e no ≡ para abrir o menu.</p>
+    <p>"Expandir grade", ao lado do título, deixa a tabela na tela inteira: o cabeçalho, os filtros e a legenda saem, ficam só o mês, as equipes que valem e o botão "Recolher grade". A coluna do militar estreita (o posto vai para cima do nome e a matrícula sai), e cabem seis dias em vez de cinco. Tocar numa célula continua abrindo o dia; tocar no nome, a ficha.</p>
+    <p class="nota">Toque em "Expandir grade", numa célula ou no ≡ para experimentar.</p>
   </div>
   <div class="gg-celulares">
-    <figure><div class="gg" data-gg="cel"></div><figcaption>Grade.</figcaption></figure>
+    <figure><div class="gg" data-gg="cel"></div><figcaption>Grade, com "Expandir grade" ao lado do título.</figcaption></figure>
+    <figure><div class="gg" data-gg="cel-cheia"></div><figcaption>Grade em tela cheia: seis dias à vista e onze militares sem rolar.</figcaption></figure>
     <figure><div class="gg" data-gg="cel-folha"></div><figcaption>Dia de quem está afastado. A folha sobe até dois terços; em cima ficam só a linha escolhida e o cabeçalho dos dias.</figcaption></figure>
     <figure><div class="gg" data-gg="cel-servicos"></div><figcaption>Dia com dois serviços e um choque. Os horários aparecem na primeira tela da folha, sem rolar.</figcaption></figure>
     <figure><div class="gg" data-gg="cel-menu"></div><figcaption>Menu aberto.</figcaption></figure>
@@ -83,6 +86,7 @@
   <div class="regra">
     <h2>O que muda em relação à tela de hoje</h2>
     <p>Dezesseis mudanças. As que mexem no comportamento estão em negrito.</p>
+    <p class="nota">O expediente do ADM fica como hoje: a cor de cada serviço, inclusive a do expediente, é cadastro seu, em Configurações.</p>
     <p class="nota">"Seu pedido" é o que você disse. "Pendência" saiu do pool do piloto ou do código. "Proposta" é da DESIGN ou da PLANEJAMENTO, e você decide.</p>
   </div>
   <div class="prancha">
@@ -94,16 +98,16 @@
           <tr><td>Afastado</td><td class="quebra">Só aparece no painel, depois do clique.</td><td class="quebra">Um traço de lado a lado, contínuo entre dias seguidos, com o tipo no primeiro dia ("Férias"). Quem está afastado o mês todo tem o nome em tom apagado. <b>A Grade passa a mostrar o afastamento; a API manda os períodos.</b></td><td class="quebra">Seu pedido. O tom apagado do nome é proposta.</td></tr>
           <tr><td>Dica do afastado</td><td class="quebra">Não há.</td><td class="quebra">Ao passar o mouse: "Férias: 10 a 19/12", com o período inteiro, mesmo quando começa ou termina em outro mês.</td><td class="quebra">Você já aprovou.</td></tr>
           <tr><td>Célula do nome</td><td class="quebra">Só o texto responde ao clique, e o nome é sublinhado ao passar o mouse.</td><td class="quebra">A célula inteira é um botão, sem sublinhado. Ao passar o mouse: fundo vinho suave e o ícone da ficha no canto. No teclado, contorno por dentro. <b>O clique vale na célula toda.</b></td><td class="quebra">Seu pedido.</td></tr>
-          <tr><td>Expediente do ADM</td><td class="quebra">Quadrado cinza escuro em todo dia útil: um paredão de cinza em que nada se destaca.</td><td class="quebra">Um tom claro e menor, sem letra. Serviço, afastado e choque aparecem por cima do calado.</td><td class="quebra">Proposta da DESIGN.</td></tr>
           <tr><td>Fim de semana e feriado</td><td class="quebra">Só o número vermelho no cabeçalho.</td><td class="quebra">A coluna inteira ganha um fundo levemente mais escuro. O feriado leva um ponto vinho no cabeçalho.</td><td class="quebra">Proposta da DESIGN.</td></tr>
           <tr><td>Legenda</td><td class="quebra">No pé da tabela, onde ninguém olha; mostra a cor crua do serviço, e as células, a ajustada.</td><td class="quebra">Numa linha acima da tabela, com os mesmos quadradinhos das células (cor ajustada e letra), o traço do afastado e o contorno do choque.</td><td class="quebra">Pendência do pool do piloto.</td></tr>
           <tr><td>Faixa da equipe</td><td class="quebra">Nome e quantidade de militares.</td><td class="quebra">Acrescenta "2 afastados hoje" quando há. <b>Comportamento novo (conta de hoje).</b></td><td class="quebra">Ideia da PLANEJAMENTO. Proposta.</td></tr>
           <tr><td>Filtro dos afastados</td><td class="quebra">Não há.</td><td class="quebra">"Esconder quem está afastado o mês todo", para ver só quem dá para escalar. <b>Filtro novo.</b></td><td class="quebra">Ideia da PLANEJAMENTO. Regra em pergunta abaixo.</td></tr>
           <tr><td>Painel do dia</td><td class="quebra">"Afastado: Férias", numa linha.</td><td class="quebra">Faixa âmbar com o período ("Férias, de 10 a 19/12/2026"). Ao adicionar serviço a quem está afastado, um aviso, sem bloquear. <b>Aviso novo.</b></td><td class="quebra">Ideia da PLANEJAMENTO. Proposta.</td></tr>
-          <tr><td>Menu</td><td class="quebra">Trilho de 84 px, com o ícone e o nome pequeno embaixo.</td><td class="quebra">Largo (232 px), com o brasão e o nome da unidade no alto, os rótulos ao lado e o item ativo em destaque. Um botão "Recolher menu" volta ao trilho de hoje. Abrir o painel do dia recolhe o menu sozinho (só em tela mais estreita que 1440 px). <b>Muda o comportamento.</b></td><td class="quebra">Seu pedido (o modelo do mockup). O recolher sozinho é proposta.</td></tr>
+          <tr><td>Menu</td><td class="quebra">Trilho de 84 px, com o ícone e o nome pequeno embaixo.</td><td class="quebra">Largo (232 px), com o brasão e o nome da unidade no alto, os rótulos ao lado e o item ativo em destaque. Um botão "Recolher menu" volta ao trilho de hoje, e "Esconder menu" tira o menu da tela, deixando um botão flutuante "Menu" no canto de baixo, à esquerda. Abrir o painel do dia recolhe o menu sozinho (só em tela mais estreita que 1440 px). <b>Muda o comportamento.</b></td><td class="quebra">Seu pedido (o modelo do mockup e o esconder). O recolher sozinho você aprovou.</td></tr>
           <tr><td>Equipes do cadastro</td><td class="quebra">Os botões vêm das equipes que existem no mês.</td><td class="quebra">Com a 6.64, vêm do cadastro. Até seis equipes, botões lado a lado; com mais, um botão "Equipes" com lista de marcação.</td><td class="quebra">Encaixe com a 6.64. Proposta.</td></tr>
           <tr><td>Cabeçalho</td><td class="quebra">Caminho de siglas e o nome da pessoa.</td><td class="quebra">O da 6.61 (versão 3 da tela inicial): fio vinho, unidade em degraus e a pessoa com as iniciais. Sem a marca, que dentro do módulo fica no topo do menu.</td><td class="quebra">Encaixe com a 6.61. Proposta.</td></tr>
           <tr><td>Celular</td><td class="quebra">O painel cobre a tela toda.</td><td class="quebra">Folha que sobe de baixo, até dois terços, com a célula escolhida à vista no alto e o botão de adicionar fixo no pé. <b>Muda o comportamento.</b></td><td class="quebra">Pendência do toque (o horário por baixo da janela). Proposta.</td></tr>
+          <tr><td>Tela cheia no celular</td><td class="quebra">Não há.</td><td class="quebra">"Expandir grade" e "Recolher grade". Na tela cheia ficam o mês, as equipes que valem e a tabela, com a coluna do militar mais estreita. Célula abre o dia; nome abre a ficha. <b>Comportamento novo.</b></td><td class="quebra">Seu pedido.</td></tr>
           <tr><td>Recusa da troca</td><td class="quebra">Texto genérico, sem dizer quem.</td><td class="quebra">Nomeia o militar e o motivo, e marca a linha dele no diálogo.</td><td class="quebra">Pendência.</td></tr>
           <tr><td>Itens do menu</td><td class="quebra">—</td><td class="quebra">A lista de hoje. Ficam de fora "Estrutura" (virou um módulo próprio, na tela inicial), "Histórico" (está dentro da ficha do militar) e "Ajuda" (ainda não existe).</td><td class="quebra">Conferido no código.</td></tr>
         </tbody>
@@ -113,13 +117,20 @@
 </section>
 
 <section class="fecho" id="decidir">
+  <h2>O que você decidiu (26/11/2026)</h2>
+  <ul>
+    <li>O filtro esconde quem está afastado o mês todo.</li>
+    <li>O menu recolhe sozinho ao abrir o painel do dia (em tela mais estreita que 1440 px). E dá para esconder o menu de vez, com um botão flutuante para trazê-lo de volta.</li>
+    <li>No celular, o painel do dia é uma folha que sobe de baixo, com o horário à vista.</li>
+    <li>O expediente fica na cor cadastrada em Configurações, como hoje: a cor do serviço é cadastro seu, não desenho.</li>
+    <li>A borda de 3 px em tinta vale para toda tabela com rolagem.</li>
+    <li>No celular, "Expandir grade" e "Recolher grade" deixam a tabela na tela inteira; célula abre o dia, nome abre a ficha.</li>
+  </ul>
   <h2>Para você decidir</h2>
   <ul>
-    <li><b>Esconder quem está afastado o mês todo.</b> Foi a regra que escolhi para o filtro (quem não dá para escalar em dia nenhum). Serve, ou você quer outra, como esconder quem está afastado no dia escolhido?</li>
-    <li><b>O menu recolher sozinho ao abrir o painel</b> (só em tela mais estreita que 1440 px). Aceita, ou prefere que o menu só mude quando você mandar?</li>
-    <li><b>O horário no toque.</b> Entendi que, no celular, o horário do serviço ficava escondido por baixo da janela do painel. A folha de baixo resolve, com o horário no alto. Era isso mesmo, ou era outra coisa?</li>
-    <li><b>O expediente calado.</b> Aceita o expediente em tom claro e menor, para o que foge do normal se destacar?</li>
-    <li><b>A borda de 3 px em tinta para toda tabela com rolagem.</b> Aceita como padrão do sistema?</li>
+    <li><b>Onde fica o botão flutuante.</b> Pus no canto de baixo, à esquerda, onde o menu estava. Serve, ou prefere no alto, ao lado da unidade?</li>
+    <li><b>Lembrar o menu escondido.</b> Proposta: o sistema lembra a escolha de cada pessoa (largo, recolhido ou escondido) ao trocar de tela e no próximo acesso. Aceita?</li>
+    <li><b>Tela cheia também no computador.</b> O mesmo "Expandir grade" serviria na tela do computador, tirando o cabeçalho, o título e os filtros, e deixando a tabela e o painel do dia. Quer, ou o "Esconder menu" já basta?</li>
   </ul>
   <p>Com a sua aprovação, a PLANEJAMENTO reescreve o plano da 6.70 com tudo isso. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
 </section>
@@ -130,7 +141,8 @@
 (function () {
   'use strict';
   var pc = window.Grade.montar(document.querySelector('[data-gg="pc"]'), { n: 'pc' });
-  var cel = window.Grade.montar(document.querySelector('[data-gg="cel"]'), { cel: true, n: 'c1' });
+  window.Grade.montar(document.querySelector('[data-gg="cel"]'), { cel: true, n: 'c1' });
+  window.Grade.montar(document.querySelector('[data-gg="cel-cheia"]'), { cel: true, n: 'c5', cheia: true });
   window.Grade.montar(document.querySelector('[data-gg="cel-folha"]'), { cel: true, n: 'c2', sel: { p: 'b2', d: 3 } });
   window.Grade.montar(document.querySelector('[data-gg="cel-servicos"]'), { cel: true, n: 'c4', sel: { p: 'a4', d: 13 } });
   window.Grade.montar(document.querySelector('[data-gg="cel-menu"]'), { cel: true, n: 'c3', menuAberto: true });

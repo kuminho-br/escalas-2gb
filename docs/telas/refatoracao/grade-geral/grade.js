@@ -1,5 +1,5 @@
 // Área "Grade geral" do Manual (versão 1): monta a Grade e o menu com dados de exemplo (nomes e matrículas inventados).
-// window.Grade.montar(raiz, op) desenha uma tela: op = { cel: false, menu: 'largo'|'recolhido', painel: false, sel: {p, d}, menuAberto: false }.
+// window.Grade.montar(raiz, op) desenha uma tela: op = { cel: false, menu: 'largo'|'recolhido'|'oculto', sel: {p, d}, menuAberto: false, cheia: false }.
 (function () {
   'use strict';
   var DIAS = 31, DOW1 = 2, HOJE = 3;             // 1/12/2026 é terça-feira; o "hoje" do exemplo é 3/12
@@ -74,7 +74,7 @@
       '<li>A letra é o turno.</li></ul>';
   }
 
-  function menu(op) {
+  function menu(op, st) {
     var item = function (n, ico, atual) { return '<li' + (atual ? ' class="atual"' : '') + '><a href="#" data-m="' + n + '"' + (atual ? ' aria-current="page"' : '') + '>' + mi(ico) + '<span>' + n + '</span></a></li>'; };
     return '<nav class="gg-menu" aria-label="Navegação principal">' +
       '<a class="gg-casa" href="#" aria-label="Ir para o início, 1ª Seção de Bombeiros"><img src="../img/brasao-2gb.png" alt=""><span><b>1ª SB</b><small>1ª Seção de Bombeiros</small></span></a>' +
@@ -82,7 +82,8 @@
       '<ul>' + item('Voluntariado', 'voluntariado') + item('Cotas', 'cotas') + '</ul>' +
       '<ul>' + item('Militares', 'militares') + item('Turnos', 'turnos') + item('Escalas', 'escalas') + item('Feriados', 'feriados') + '</ul>' +
       '<ul class="pe">' + item('Configurações da escala', 'config') +
-        (op.cel ? '' : '<li><button type="button" class="gg-recolher" data-recolher aria-expanded="true">' + ic('esq') + '<span>Recolher menu</span></button></li>') + '</ul>' +
+        (op.cel ? '' : '<li><button type="button" class="gg-recolher" data-recolher>' + ic('esq') + '<span>' + (st.menu === 'recolhido' ? 'Abrir menu' : 'Recolher menu') + '</span></button></li>' +
+          '<li><button type="button" class="gg-recolher" data-ocultar-menu>' + ic('esconder') + '<span>Esconder menu</span></button></li>') + '</ul>' +
       '</nav>';
   }
 
@@ -107,6 +108,13 @@
       '<div class="campo"><span class="rot">Equipe</span><div class="grupo-filtro" role="group" aria-label="Equipe" data-eqs>' + cham(null, 'Todas') + EQUIPES.map(function (e) { return cham(e.k, e.n); }).join('') + '</div></div>' +
       '<label class="marcar direita"><input type="checkbox" data-esconder' + (st.esconder ? ' checked' : '') + '><span>Esconder quem está afastado o mês todo</span></label>' +
       '</div>';
+  }
+
+  // na tela cheia do celular: o mês, as equipes que valem e o botão de recolher, numa linha só
+  function cheiaBarra(st) {
+    var eqs = st.eqs.length ? EQUIPES.filter(function (e) { return st.eqs.indexOf(e.k) >= 0; }).map(function (e) { return e.n; }).join(', ') : 'Todas';
+    return '<div class="gg-cheia-barra"><span class="gg-mes mini"><button type="button" aria-label="Mês anterior">' + ic('esq') + '</button><span>dez. 2026</span><button type="button" aria-label="Próximo mês">' + ic('dir') + '</button></span>' +
+      '<span class="eqs">' + eqs + (st.busca.trim() ? ', "' + st.busca.trim() + '"' : '') + '</span><button type="button" class="botao secundario" data-cheia aria-pressed="true">' + ic('recolher') + 'Recolher grade</button></div>';
   }
 
   function celula(st, p, d) {
@@ -183,7 +191,8 @@
       if (x[0] === 'exp') { h += '<div class="gg-servico"><div class="topo"><span class="tag" style="background:#8A94A1">Expediente</span><span>07h às 13h</span><span class="acoes"><button type="button" class="botao secundario">Tirar do expediente</button></span></div><p>Calculado pela jornada do ADM.</p></div>'; return; }
       h += '<div class="gg-servico"><div class="topo"><span class="tag" style="background:' + SERV[x[0]].c + '">' + SERV[x[0]].n + ' ' + x[1] + '</span><span>' + (HORA[x[1]] || '07h às 19h') + '</span><span class="acoes"><button type="button" class="botao secundario">Trocar</button><button type="button" class="botao secundario">Remover</button></span></div><p>Ordinário · ABT, Motorista</p></div>';
     });
-    h += '<div><button type="button" class="botao secundario" data-adicionar aria-expanded="' + !!st.adicionando + '">Adicionar serviço neste dia</button></div>';
+    // no celular o botão fica fixo no pé da folha
+    if (!op.cel) h += '<div><button type="button" class="botao secundario" data-adicionar aria-expanded="' + !!st.adicionando + '">Adicionar serviço neste dia</button></div>';
     if (st.adicionando) {
       if (af) h += '<p class="gg-aviso-af">' + ic('alerta') + '<span>Ele está de ' + af.t.toLowerCase() + ' neste dia. Dá para escalar mesmo assim: nada é bloqueado.</span></p>';
       h += '<div class="gg-servico"><div class="topo"><span class="tag" style="background:' + SERV.pronto.c + '">Pronto A</span><span>07h às 19h</span><span class="acoes"><button type="button" class="botao principal">Escalar</button></span></div><p>Ordinário · ABT, Motorista</p></div>';
@@ -193,22 +202,23 @@
 
   function montar(raiz, op) {
     op.n = op.n || Math.floor(Math.random() * 1e6);
-    var st = { busca: '', eqs: [], rec: [], esconder: false, sel: op.sel || null, adicionando: false, menu: op.menu || 'largo', menuAberto: !!op.menuAberto, antes: null };
+    var st = { busca: '', eqs: [], rec: [], esconder: false, sel: op.sel || null, adicionando: false, menu: op.menu || 'largo', menuAberto: !!op.menuAberto, antes: null, cheia: !!op.cheia, antesOculto: 'largo' };
     var tip = null;
     function desenhar(manter) {
       var rolaAntes = raiz.querySelector('.gg-rola'), sx = rolaAntes ? rolaAntes.scrollLeft : 0, sy = rolaAntes ? rolaAntes.scrollTop : 0;
       var temPainel = !!st.sel;
-      raiz.className = 'gg' + (op.cel ? ' cel' : '') + (st.menu === 'recolhido' && !op.cel ? ' recolhido' : '') + (temPainel && !op.cel ? ' painel' : '') + (temPainel && op.cel ? ' com-folha' : '') + (op.cel && st.menuAberto ? ' menu-aberto' : '');
-      var corpo = '<div class="gg-main">' + topo(op) + '<div class="gg-pag"><h3>Grade geral</h3>' + barra(st, op) + legenda() +
+      raiz.className = 'gg' + (op.cel ? ' cel' : '') + (st.menu === 'recolhido' && !op.cel ? ' recolhido' : '') + (st.menu === 'oculto' && !op.cel ? ' oculto' : '') + (op.cel && st.cheia ? ' cheia' : '') + (temPainel && !op.cel ? ' painel' : '') + (temPainel && op.cel ? ' com-folha' : '') + (op.cel && st.menuAberto ? ' menu-aberto' : '');
+      var corpo = '<div class="gg-main">' + topo(op) + '<div class="gg-pag">' + (op.cel ? cheiaBarra(st) : '') + '<div class="gg-tit"><h3>Grade geral</h3>' + (op.cel ? '<button type="button" class="botao secundario" data-cheia aria-pressed="false">' + ic('expandir') + 'Expandir grade</button>' : '') + '</div>' + barra(st, op) + legenda() +
         '<div class="gg-quadro"><div class="gg-tab"><div class="gg-rola" data-rola tabindex="0" role="region" aria-label="Grade geral, role para os lados e para baixo">' + tabela(st, op) + '</div></div>' +
         (temPainel && !op.cel ? painel(st, op) : '') + '</div></div></div>';
       var extra = '';
       if (op.cel && temPainel) extra = '<div class="gg-veu"></div><div class="gg-folha" role="dialog" aria-label="Dia do militar"><div class="puxador" aria-hidden="true"></div><div class="miolo">' + painel(st, op) + '</div><div class="rodape"><button type="button" class="botao secundario" data-adicionar>Adicionar serviço neste dia</button></div></div>';
       if (op.cel && st.menuAberto) extra = '<div class="gg-veu" data-fechar-menu></div>';
-      raiz.innerHTML = (op.cel ? (st.menuAberto ? menu(op) : '') + corpo : menu(op) + corpo) + extra;
+      if (!op.cel && st.menu === 'oculto') extra += '<button type="button" class="gg-flutua" data-mostrar-menu aria-label="Mostrar o menu">' + ic('menu') + '<span>Menu</span></button>';
+      raiz.innerHTML = (op.cel ? (st.menuAberto ? menu(op, st) : '') + corpo : menu(op, st) + corpo) + extra;
       var rola = raiz.querySelector('.gg-rola');
       if (rola) { rola.scrollLeft = manter === false ? 0 : sx; rola.scrollTop = manter === false ? 0 : sy; marcarRolagem(rola); }
-      var alt = op.cel ? null : 560; if (alt) { raiz.style.setProperty('--alt', (temPainel ? 520 : 560) + 'px'); raiz.style.setProperty('--alt-pd', '600px'); }
+      var alt = op.cel ? null : 560; if (alt) { raiz.style.setProperty('--alt', (st.menu === 'oculto' ? 490 : temPainel ? 520 : 560) + 'px'); raiz.style.setProperty('--alt-pd', '600px'); }
       if (op.cel && temPainel) { var s = raiz.querySelector('[data-p="' + st.sel.p + '"][data-d="' + st.sel.d + '"]'); var r2 = raiz.querySelector('.gg-rola'); if (s && r2) { var tr = s.closest('tr'); r2.scrollTop = Math.max(0, tr.offsetTop - 48); r2.scrollLeft = Math.max(0, s.closest('td').offsetLeft - 148 - 44); } }
     }
     function marcarRolagem(r) { r.classList.toggle('rolou-e', r.scrollLeft > 2); r.classList.toggle('rolou-d', r.scrollLeft + r.clientWidth < r.scrollWidth - 2); }
@@ -232,6 +242,9 @@
       var fi = t.closest('[data-ficha]');
       if (fi) { var q = achar(fi.getAttribute('data-ficha')); var o = document.createElement('div'); o.className = 'gg-toast'; o.setAttribute('role', 'status'); o.textContent = 'Aqui abre a ficha de ' + q.pst + ' ' + q.gue + ', por cima da Grade.'; raiz.appendChild(o); setTimeout(function () { o.remove(); }, 2200); return; }
       var rc = t.closest('[data-rec]'); if (rc) { var k = rc.getAttribute('data-rec'), i = st.rec.indexOf(k); if (i >= 0) st.rec.splice(i, 1); else st.rec.push(k); desenhar(); return; }
+      if (t.closest('[data-ocultar-menu]')) { st.antesOculto = st.antes || st.menu; st.antes = null; st.menu = 'oculto'; desenhar(); return; }
+      if (t.closest('[data-mostrar-menu]')) { st.menu = st.antesOculto || 'largo'; desenhar(); var m = raiz.querySelector('.gg-menu a'); if (m) m.focus(); return; }
+      if (t.closest('[data-cheia]')) { st.cheia = !st.cheia; desenhar(false); var b = raiz.querySelector('[data-cheia]'); if (b && !st.sel) b.focus(); return; }
       if (t.closest('[data-recolher]')) { st.menu = st.menu === 'largo' ? 'recolhido' : 'largo'; st.antes = null; desenhar(); return; }
       if (t.closest('[data-abrir-menu]')) { st.menuAberto = true; desenhar(); return; }
       if (t.closest('[data-fechar-menu]')) { st.menuAberto = false; desenhar(); return; }
@@ -248,7 +261,7 @@
     });
     raiz.addEventListener('change', function (e) { if (e.target.matches('[data-esconder]')) { st.esconder = e.target.checked; desenhar(); } });
     desenhar();
-    return { definir: function (o) { if (o.menu) { st.menu = o.menu; st.antes = null; } if (o.sel !== undefined) st.sel = o.sel; if (o.menuAberto !== undefined) st.menuAberto = o.menuAberto; desenhar(); }, estado: st };
+    return { definir: function (o) { if (o.menu) { if (o.menu === 'oculto' && st.menu !== 'oculto') st.antesOculto = st.menu; st.menu = o.menu; st.antes = null; } if (o.sel !== undefined) st.sel = o.sel; if (o.menuAberto !== undefined) st.menuAberto = o.menuAberto; desenhar(); }, estado: st };
   }
 
   // a tela escala para caber na página: o desenho é no tamanho real e o palco o reduz
