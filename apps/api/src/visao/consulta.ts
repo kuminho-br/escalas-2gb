@@ -25,10 +25,18 @@ export function palavrasDaBusca(texto: string): string[] {
   return semAcento(texto.trim()).split(/\s+/).filter(Boolean).slice(0, MAXIMO_DE_PALAVRAS).map(comoLetras);
 }
 
-/** A árvore da corporação, para a pessoa escolher a unidade da busca: as vigentes, na ordem da árvore. */
+/**
+ * A árvore da corporação, para a pessoa escolher a unidade da busca e para os degraus do cabeçalho: as vigentes, na ordem da árvore, cada uma com o nome
+ * da unidade e o nome do tipo dela (do cadastro: "Seção", "Grupamento").
+ */
 export async function unidadesDaConsulta(c: Consulta, hoje: string): Promise<UnidadeDaConsulta[]> {
-  const { rows } = await c.query<LinhaDaUnidade>(`${COM_CAMINHO} where u.ate is null or u.ate >= $1::date`, [hoje]);
-  return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel, maeId: u.maeId }));
+  const { rows } = await c.query<LinhaDaUnidade & { nome: string; tipo_nome: string }>(
+    `select x.*, un.nome, t.nome as tipo_nome from (${COM_CAMINHO} where u.ate is null or u.ate >= $1::date) x
+       join unidade un on un.id = x.id join tipo_unidade t on t.codigo = x.tipo`,
+    [hoje],
+  );
+  const nomes = new Map(rows.map((r) => [r.id, { nome: r.nome, tipoNome: r.tipo_nome }]));
+  return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel, maeId: u.maeId, ...nomes.get(u.id)! }));
 }
 
 type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null; unidade_id: string | null; da_unidade?: boolean | null };

@@ -39,9 +39,9 @@ describe('a guarda das listas de unidades (6.45)', () => {
   });
 
   it('as consultas de unidades só alimentam a árvore: quem as usa não tem <select> de unidade', () => {
-    // os cinco lugares de lista plana (e o seletor da Estrutura) usam o EscolherUnidade; o Topo, o painel da árvore
+    // os cinco lugares de lista plana (e o seletor da Estrutura) usam o EscolherUnidade; o Topo, os degraus (6.61)
     const usam = arquivos(RAIZ).filter((a) => /consultaUnidadesDeLotacao|unidadesParaPapel|consultaUnidadesDaBusca|raizesDaEstrutura/.test(readFileSync(a, 'utf8'))).map((a) => relative(RAIZ, a).split(sep).join('/'));
-    const semArvore = usam.filter((rel) => !/EscolherUnidade|PainelDaArvore/.test(readFileSync(join(RAIZ, rel), 'utf8')) && rel !== 'routes/_app/estrutura.tsx' && !(rel in SO_LE_O_NOME));
+    const semArvore = usam.filter((rel) => !/EscolherUnidade|PainelDaArvore|DegrausDaUnidade/.test(readFileSync(join(RAIZ, rel), 'utf8')) && rel !== 'routes/_app/estrutura.tsx' && !(rel in SO_LE_O_NOME));
     expect(semArvore).toEqual([]);
   });
 

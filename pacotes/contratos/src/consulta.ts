@@ -47,7 +47,16 @@ export type FichaDeConsulta = LinhaDaConsulta & {
 };
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */
-export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number; maeId: string | null };
+export type UnidadeDaConsulta = {
+  id: string;
+  sigla: string;
+  nivel: number;
+  maeId: string | null;
+  /** O nome da unidade ("Caruaru"), que distingue siglas parecidas. A API sempre manda; as respostas antigas não têm. */
+  nome?: string;
+  /** O nome do tipo da unidade, do cadastro ("Seção", "Grupamento"): os degraus do cabeçalho o usam para nomear o nível. A API sempre manda; as respostas antigas não têm. */
+  tipoNome?: string;
+};
 
 /** A busca com filtros devolve no máximo isto; com mais, `haMais` e a tela pede para afinar a busca (6.51). */
 export const LIMITE_DA_BUSCA_COM_FILTROS = 500;
