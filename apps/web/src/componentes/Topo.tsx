@@ -9,6 +9,7 @@ import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { classeDaCaixaDaArvore, focarNaArvore, PainelDaArvore } from '@/componentes/EscolherUnidade';
 import { useSair } from '@/componentes/useSair';
 import { montarArvore } from '@/lib/arvore-de-unidades';
+import { iniciaisDe, nomeDoPapel, papelNaUnidade } from '@/lib/papeis';
 import { guardarUnidade, guardarUnidadeDeConsulta } from '@/lib/unidade-de-trabalho';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import {
 export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement>; semTrilho?: boolean }) {
   const router = useRouter();
   const nome = `${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`;
+  const nivel = papelNaUnidade(eu);
   const { sair, erroSair } = useSair();
   // as unidades de trabalho e, num grupo à parte, as só de consulta (o militar comum tem a lotação nas duas listas: ali ela é de consulta)
   const consulta = eu.unidadesSoConsulta;
@@ -54,13 +56,20 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 md:px-8">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 pt-0.75 md:gap-4 md:px-6">
+      {/* o fio vinho amarra o topo à identidade do sistema */}
+      <span data-fio-vinho aria-hidden className="absolute inset-x-0 top-0 h-0.75 bg-vinho" />
       {semTrilho ? (
         // sem o trilho (tela inicial e Minha ficha) o brasão com o nome do sistema leva de volta ao início
-        <Link to="/" aria-label="Ir para o início" className="-ml-1 flex shrink-0 items-center gap-2.5 rounded">
-          <img src="/brasao-cbmpe.png" alt="Brasão do Corpo de Bombeiros Militar de Pernambuco" width={36} height={36} className="size-8 rounded-full md:size-9" />
-          <strong className="font-cond text-lg font-semibold whitespace-nowrap max-sm:hidden">Escalas 2º GB</strong>
-        </Link>
+        <>
+          <Link to="/" aria-label="Ir para o início" className="-ml-1 flex shrink-0 items-center gap-2.5 rounded-controle">
+            <img src="/brasao-2gb.png" alt="Brasão do 2º Grupamento de Bombeiros" width={34} height={34} className="size-8 object-contain md:size-8.5" />
+            <strong className="font-cond text-lg font-semibold whitespace-nowrap max-sm:hidden">
+              Sistema de Gestão <span className="whitespace-nowrap">- 2º GB</span>
+            </strong>
+          </Link>
+          <span aria-hidden className="h-6 w-px shrink-0 bg-linha max-md:hidden" />
+        </>
       ) : (
         <button ref={botaoDoMenu} type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
           <Menu className="size-5" aria-hidden />
@@ -112,9 +121,13 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
         </p>
       )}
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-2 py-1.5 font-cond text-corpo font-medium hover:bg-accent">
-          {nome}
-          <ChevronDown className="size-4 text-apagado" aria-hidden />
+        <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-controle py-1 pr-2 pl-1 hover:bg-accent">
+          <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-vinho font-cond text-corpo font-semibold text-white">{iniciaisDe(eu.militar.nomeGuerra)}</span>
+          <span className="grid gap-0.5 text-left max-md:sr-only">
+            <b className="font-cond text-corpo leading-none font-semibold whitespace-nowrap">{nome}</b>
+            {nivel && <small className="text-apoio leading-none whitespace-nowrap text-apagado">{nomeDoPapel(nivel)}</small>}
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-apagado max-md:hidden" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
           <DropdownMenuLabel className="font-normal text-apagado">{eu.usuario.email}</DropdownMenuLabel>

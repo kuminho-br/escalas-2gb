@@ -73,7 +73,7 @@ export function Trilho({ modulo, eu, aberto, aoFechar }: { modulo: Modulo; eu: E
               height={44}
               className="size-8 rounded-full ring-2 ring-white/80 md:size-11"
             />
-            <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Escalas 2º GB</span>
+            <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Sistema de Gestão - 2º GB</span>
             <span aria-hidden className="hidden font-cond text-[11.5px] leading-none font-semibold text-white md:block">2º GB</span>
           </Link>
           <button type="button" onClick={() => aoFechar(true)} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">
