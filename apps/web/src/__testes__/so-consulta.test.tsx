@@ -276,7 +276,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     await screen.findByRole('table');
     expect(screen.queryByText(/^Só consulta:/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Adicionar cota' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar cota de JES (interna)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar cota de JES' })).toBeInTheDocument();
   });
 });
 

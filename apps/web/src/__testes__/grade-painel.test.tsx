@@ -209,7 +209,8 @@ describe('grade geral: adicionar serviço neste dia', () => {
     const { p } = await abrirAdicionar(COM_ABAS);
     const lista = within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h');
     expect(textos(lista)).toEqual(['ABT · Motorista', 'ABT · Combatente', 'Resgate · Chefe', 'Sem guarnição']);
-    expect(within(lista).getByRole('option', { name: 'ABT · Motorista' })).toHaveProperty('selected', true);
+    // 6.73: ao abrir, a vaga marcada é "Sem guarnição", em todo turno que a tem
+    expect(within(lista).getByRole('option', { name: 'Sem guarnição' })).toHaveProperty('selected', true);
     // numa escala de uma guarnição só, a lista mostra só a função
     await userEvent.click(within(p).getByRole('tab', { name: 'Operações (1)' }));
     expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);
