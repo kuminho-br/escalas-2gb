@@ -125,7 +125,10 @@ export async function perfisDeTeste(c: Consulta): Promise<PerfilDeTeste[]> {
   const { rows } = await c.query<PerfilDeTeste>(
     `select u.id as "usuarioId", u.nome, coalesce(p.papel, 'militar') as nivel
        from ${SCHEMA_ESPELHO}.usuario u left join ${SCHEMA_ESPELHO}.papel_usuario p on p.usuario_id = u.id
+      where u.id = any($1::uuid[])
       order by array_position(array['administrador', 'gestor', 'gestor_lateral', 'escalante', 'militar']::text[], coalesce(p.papel, 'militar')), u.nome`,
+    // só os cinco perfis (os ids são fixos): um usuário a mais no espelho não vira perfil
+    [PERFIS_DE_TESTE.map((p) => p.id)],
   );
   return rows;
 }

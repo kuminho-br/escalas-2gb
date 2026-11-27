@@ -167,3 +167,54 @@ describe('o cartão, a escolha do perfil e a faixa', () => {
     expect(faixa.className).not.toMatch(/bg-(pendencia|alerta|vinho|afastado)/);
   });
 });
+
+describe('a aba nunca fica presa num Laboratório que o servidor já encerrou', () => {
+  const base = { '/api/eu': { status: 200, corpo: EU_EXEMPLO } };
+
+  it('recarregar a aba depois de sair do Laboratório em outra: /api/lab/eu responde 409, a aba volta ao real e diz que o Laboratório foi encerrado', async () => {
+    simularApi({ ...base, '/api/lab/eu': { status: 409, corpo: { erro: 'Escolha um perfil de teste.' } } });
+    entrarNoModo();
+    const router = abrir('/');
+    expect(await screen.findByText('O Laboratório foi encerrado.')).toBeInTheDocument();
+    expect(emLaboratorio()).toBe(false);
+    expect(screen.queryByRole('region', { name: 'Laboratório' })).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('o espelho em manutenção (503) também devolve a aba ao real, com o aviso, em qualquer tela', async () => {
+    simularApi({ ...base, '/api/lab/eu': { status: 503, corpo: { erro: 'O Laboratório está em manutenção.' } }, '/api/eu/ficha': { status: 200, corpo: {} } });
+    entrarNoModo();
+    const router = abrir('/minha-ficha');
+    expect(await screen.findByText('O Laboratório foi encerrado.')).toBeInTheDocument();
+    expect(emLaboratorio()).toBe(false);
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('a sessão da conta acabou dentro do Laboratório (401): o modo desliga e a tela de entrar é a do real', async () => {
+    simularApi({ '/api/eu': { status: 401, corpo: { erro: 'Não autenticado' } }, '/api/lab/eu': { status: 401, corpo: { erro: 'Entre no sistema para continuar.' } } });
+    entrarNoModo();
+    const router = abrir('/');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
+    expect(emLaboratorio()).toBe(false);
+  });
+
+  it('com a senha provisória, o Laboratório recusa (403) e a aba volta ao real, que leva à tela de criar a senha', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, trocarSenha: true } }, '/api/lab/eu': { status: 403, corpo: { erro: 'Crie a sua senha para continuar.' } } });
+    entrarNoModo();
+    const router = abrir('/');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/criar-senha'));
+    expect(emLaboratorio()).toBe(false);
+  });
+
+  it('um pedido que volta 401 no meio do uso (sessão terminou) desliga o modo; o código por e-mail (/api/acesso) é sempre do real', async () => {
+    const ir = vi.spyOn(await import('@/api/cliente').then((m) => m.navegador), 'ir').mockImplementation(() => {});
+    const f = simularApi({ '/api/lab/qualquer': { status: 401, corpo: { erro: 'Entre no sistema para continuar.' } }, '/api/acesso/codigo': { status: 200, corpo: {} } });
+    entrarNoModo();
+    await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
+    expect(emLaboratorio()).toBe(false);
+    expect(ir).toHaveBeenCalled();
+    entrarNoModo();
+    await pedir('POST', '/api/acesso/codigo', { email: 'a@exemplo.test' });
+    expect(chamadas(f).filter((c) => c.caminho === '/api/acesso/codigo').every((c) => !c.cabecalhos['x-laboratorio'])).toBe(true);
+  });
+});

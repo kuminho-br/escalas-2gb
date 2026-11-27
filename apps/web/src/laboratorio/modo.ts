@@ -32,7 +32,7 @@ export function aoMudarModo(f: () => void): () => void {
 }
 
 /** As rotas do Laboratório no REAL (escolher o perfil, ver o perfil em uso, sair, recomeçar) e o login nunca ganham o prefixo, nem em modo Laboratório. */
-const DO_REAL = ['/api/laboratorio', '/api/auth'];
+const DO_REAL = ['/api/laboratorio', '/api/auth', '/api/acesso'];
 
 /** O endereço do pedido: em modo Laboratório, `/api/x` vira `/api/lab/x`; fora do modo (e nas rotas do real), igual. */
 export function caminhoDoModo(caminho: string): string {
@@ -44,4 +44,13 @@ export function caminhoDoModo(caminho: string): string {
 /** O cabeçalho que marca o pedido como do Laboratório: só nos pedidos que foram para `/api/lab/`. */
 export function cabecalhosDoModo(caminhoFinal: string): Record<string, string> {
   return caminhoFinal.startsWith('/api/lab/') ? { [CABECALHO]: '1' } : {};
+}
+
+// o Laboratório acabou por trás (a aba voltou ao real sem a pessoa pedir): a tela inicial diz isso uma vez
+let encerrado = false;
+export const marcarEncerrado = () => { encerrado = true; };
+export function consumirEncerrado(): boolean {
+  const foi = encerrado;
+  encerrado = false;
+  return foi;
 }

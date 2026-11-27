@@ -117,19 +117,49 @@ describe('as recusas dos dois lados', () => {
     expect((await api.banco.query('select 1 from public.militar where matricula = $1', ['990982-2'])).rows).toHaveLength(0);
   });
 
-  it('a conta que perdeu o acesso (desativada) ou foi apagada: o pedido seguinte ao /api/lab é 401', async () => {
-    const pessoa = await entrarComo(api, { matricula: '990991-1', nome: 'SAIDA' });
+  /** Uma conta fictícia com sessão aberta e perfil escolhido, e o pedido ao Laboratório feito com o cookie dela. */
+  async function contaNoLaboratorio(matricula: string, nome: string) {
+    const pessoa = await entrarComo(api, { matricula, nome });
     expect((await pessoa.pedir('PUT', '/api/laboratorio/perfil', { perfilId: perfil.gestor })).status).toBe(200);
-    const doLab = (m: string, c: string) => pessoa.pedir(m, `/api/lab${c}`, undefined);
-    // o cabeçalho vai pelo pedir da pessoa? não: monta o pedido à mão com o cookie dela
     const cookie = (await api.app.request(`${URL_BASE}/api/auth/sign-in/email`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: URL_BASE }, body: JSON.stringify({ email: 'saida@exemplo.test', password: 'senha-de-teste-123' }),
+      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: URL_BASE }, body: JSON.stringify({ email: `${nome.toLowerCase()}@exemplo.test`, password: 'senha-de-teste-123' }),
     })).headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
     const pedido = () => api.app.request(`${URL_BASE}/api/lab/postos`, { headers: { Cookie: cookie, Origin: URL_BASE, ...LAB } });
+    return { pessoa, pedido };
+  }
+
+  it('a conta desativada perde o Laboratório na hora: o pedido seguinte ao /api/lab é 401', async () => {
+    const { pessoa, pedido } = await contaNoLaboratorio('990991-1', 'SAIDA');
     expect((await pedido()).status).toBe(200);
     await api.banco.query('update usuario set ativo = false where id = $1', [pessoa.usuarioId]);
     expect((await pedido()).status).toBe(401);
-    void doLab;
+  });
+
+  it('a conta apagada leva a sessão no Laboratório junto, e o pedido seguinte é 401', async () => {
+    const { pessoa, pedido } = await contaNoLaboratorio('990992-2', 'APAGADA');
+    expect((await pedido()).status).toBe(200);
+    await api.banco.query('delete from sessao where usuario_id = $1', [pessoa.usuarioId]);
+    await api.banco.query('delete from conta where usuario_id = $1', [pessoa.usuarioId]);
+    await api.banco.query('delete from usuario where id = $1', [pessoa.usuarioId]);
+    expect((await api.banco.query('select 1 from laboratorio_sessao where usuario_id = $1', [pessoa.usuarioId])).rows).toHaveLength(0);
+    expect((await pedido()).status).toBe(401);
+  });
+
+  it('com a senha provisória pendente a conta não abre o Laboratório (403, como no real)', async () => {
+    const { pessoa, pedido } = await contaNoLaboratorio('990993-3', 'PROVISORIA');
+    expect((await pedido()).status).toBe(200);
+    await api.banco.query("update usuario set senha_provisoria_ate = now() + interval '1 day' where id = $1", [pessoa.usuarioId]);
+    expect((await pedido()).status).toBe(403);
+  });
+
+  it('o isolamento entre unidades vale dentro do Laboratório: o auxiliar de teste da 1ª SB não mexe na 2ª SB do espelho', async () => {
+    await entrar('semPapel', 'escalante');
+    const outraSecao = (await api.banco.query<{ id: string }>("select id from laboratorio.unidade where sigla = '2ª SB'")).rows[0]!.id;
+    expect((await lab('semPapel', 'GET', `/unidades/${outraSecao}/militares?mes=${atual}`)).status).toBe(403);
+    expect((await lab('semPapel', 'POST', `/unidades/${outraSecao}/escalas`, { nome: 'Alheia' })).status).toBe(403);
+    expect((await api.banco.query("select 1 from laboratorio.escala where nome = 'Alheia'")).rows).toHaveLength(0);
+    // na própria seção ele lê
+    expect((await lab('semPapel', 'GET', `/unidades/${labSecao}/militares?mes=${atual}`)).status).toBe(200);
   });
 
   it('login, contas e senhas não existem no Laboratório (404)', async () => {

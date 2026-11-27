@@ -1,5 +1,5 @@
 import { descartarPendencias } from '@/componentes/AlteracoesPendentes';
-import { cabecalhosDoModo, caminhoDoModo } from '@/laboratorio/modo';
+import { cabecalhosDoModo, caminhoDoModo, sairDoModo } from '@/laboratorio/modo';
 
 // Chamadas à API: devolvem o JSON ou lançam ErroApi com a mensagem para mostrar na tela.
 export class ErroApi extends Error {
@@ -38,6 +38,8 @@ export const saida = { marcar: (v: boolean) => { saindo = v; } };
 function sessaoTerminou(caminho: string) {
   if (caminho === '/api/eu' || window.location.pathname === '/entrar' || saindo) return;
   descartarPendencias();
+  // a sessão da conta acabou: a tela de entrar e o código por e-mail são do real
+  sairDoModo();
   navegador.ir(`/entrar?sessao=terminou&voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`);
 }
 

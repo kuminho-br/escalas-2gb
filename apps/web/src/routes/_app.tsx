@@ -8,6 +8,7 @@ import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
 import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
 import { Faixa } from '@/laboratorio/Faixa';
+import { consumirEncerrado } from '@/laboratorio/modo';
 import { useModoLaboratorio } from '@/laboratorio/useModoLaboratorio';
 import { guardarEstadoDoMenu, lerEstadoDoMenu, type EstadoDoMenu } from '@/lib/estado-do-menu';
 import { useTelaEstreita } from '@/lib/useTelaEstreita';
@@ -20,6 +21,8 @@ export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context, location }) => {
     const dados = await context.queryClient.ensureQueryData(consultaEu);
     if (!dados) throw redirect({ to: '/entrar' });
+    // o Laboratório foi encerrado por trás (outra aba saiu, ou o espelho está em manutenção): a aba voltou ao real, e a tela inicial diz isso
+    if (consumirEncerrado()) throw redirect({ to: '/', search: { aviso: 'laboratorio-encerrado' } });
     // entrou com a senha provisória: nada abre antes de criar a senha
     if (dados.trocarSenha) throw redirect({ to: '/criar-senha' });
     // a unidade em que as telas trabalham: a de consulta escolhida nesta aba, a última escolhida neste navegador (se ainda vale) ou a do papel mais baixo; sem nenhuma, a orientação
@@ -108,7 +111,7 @@ function Casca() {
           ref={botaoFlutuante}
           type="button"
           onClick={() => mudarEstado(antesDeEsconder.current)}
-          className="fixed top-2 left-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
+          className="fixed top-[calc(var(--faixa)+0.5rem)] left-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
         >
           <Menu className="size-5" strokeWidth={1.75} aria-hidden />
           Menu

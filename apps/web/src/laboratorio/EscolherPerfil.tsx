@@ -3,6 +3,7 @@ import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { consultaPerfisDeTeste, escolherPerfilDeTeste } from '@/api/laboratorio';
 import { mensagemDe } from '@/api/cliente';
+import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { trocarDeMundo } from './trocar-de-mundo';
@@ -19,6 +20,8 @@ export function EscolherPerfil({ aberto, aoFechar, atual }: { aberto: boolean; a
   const [escolhendo, setEscolhendo] = useState(false);
 
   async function escolher(perfilId: string) {
+    // com alteração pendente, pergunta antes (o que está digitado se perde ao trocar de mundo)
+    if (!podeDescartar()) return;
     setErro(null);
     setEscolhendo(true);
     try {

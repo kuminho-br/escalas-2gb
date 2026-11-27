@@ -1,5 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { UnidadeDeTrabalho } from 'contratos';
+import { esquecerUnidadeDaAba } from '@/lib/unidade-de-trabalho';
+import { emLaboratorio, marcarEncerrado, sairDoModo } from '@/laboratorio/modo';
 import { buscar, ErroApi, SEM_CONEXAO } from './cliente';
 
 export type Papel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante';
@@ -38,6 +40,14 @@ export async function buscarEu(): Promise<EuDaApi | null> {
   } catch {
     // a tela de falha diferencia "sem conexão" de "erro do sistema"
     throw new ErroApi(SEM_CONEXAO, 0);
+  }
+  // em modo Laboratório, o /api/lab/eu recusado (sessão acabou, outra aba saiu do Laboratório, senha provisória, espelho em manutenção) devolve a aba ao real e pergunta de novo:
+  // quem decide o que acontece é o real (entrar, criar a senha, ou seguir). A aba nunca fica presa num modo que o servidor já encerrou.
+  if (emLaboratorio() && [401, 403, 409, 503].includes(r.status)) {
+    sairDoModo();
+    esquecerUnidadeDaAba();
+    if (r.status === 409 || r.status === 503) marcarEncerrado();
+    return buscarEu();
   }
   if (r.status === 401) return null;
   if (!r.ok) {
