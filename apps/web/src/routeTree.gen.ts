@@ -42,6 +42,7 @@ import { Route as AppEscalasIndexRouteImport } from './routes/_app/escalas/index
 import { Route as AppEscalasIdRouteImport } from './routes/_app/escalas/$id'
 import { Route as AppGuarnicoesIndexRouteImport } from './routes/_app/guarnicoes/index'
 import { Route as AppGuarnicoesIdRouteImport } from './routes/_app/guarnicoes/$id'
+import { Route as AppLaboratorioRetornosRouteImport } from './routes/_app/laboratorio.retornos'
 import { Route as AppMilitaresIndexRouteImport } from './routes/_app/militares/index'
 import { Route as AppMilitaresIdRouteImport } from './routes/_app/militares/$id'
 import { Route as AppPeculioAniversariosRouteImport } from './routes/_app/peculio_.aniversarios'
@@ -218,6 +219,11 @@ const AppGuarnicoesIdRoute = AppGuarnicoesIdRouteImport.update({
   path: '/guarnicoes/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLaboratorioRetornosRoute = AppLaboratorioRetornosRouteImport.update({
+  id: '/laboratorio/retornos',
+  path: '/laboratorio/retornos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMilitaresIndexRoute = AppMilitaresIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/escalas-da-corporacao/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
+  '/laboratorio/retornos': typeof AppLaboratorioRetornosRoute
   '/militares/$id': typeof AppMilitaresIdRoute
   '/peculio/aniversarios': typeof AppPeculioAniversariosRoute
   '/peculio/pesquisar': typeof AppPeculioPesquisarRoute
@@ -336,6 +343,7 @@ export interface FileRoutesByTo {
   '/escalas-da-corporacao/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
+  '/laboratorio/retornos': typeof AppLaboratorioRetornosRoute
   '/militares/$id': typeof AppMilitaresIdRoute
   '/peculio/aniversarios': typeof AppPeculioAniversariosRoute
   '/peculio/pesquisar': typeof AppPeculioPesquisarRoute
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/_app/escalas-da-corporacao_/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/_app/escalas/$id': typeof AppEscalasIdRoute
   '/_app/guarnicoes/$id': typeof AppGuarnicoesIdRoute
+  '/_app/laboratorio/retornos': typeof AppLaboratorioRetornosRoute
   '/_app/militares/$id': typeof AppMilitaresIdRoute
   '/_app/peculio_/aniversarios': typeof AppPeculioAniversariosRoute
   '/_app/peculio_/pesquisar': typeof AppPeculioPesquisarRoute
@@ -426,6 +435,7 @@ export interface FileRouteTypes {
     | '/escalas-da-corporacao/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
+    | '/laboratorio/retornos'
     | '/militares/$id'
     | '/peculio/aniversarios'
     | '/peculio/pesquisar'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/escalas-da-corporacao/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
+    | '/laboratorio/retornos'
     | '/militares/$id'
     | '/peculio/aniversarios'
     | '/peculio/pesquisar'
@@ -510,6 +521,7 @@ export interface FileRouteTypes {
     | '/_app/escalas-da-corporacao_/$id'
     | '/_app/escalas/$id'
     | '/_app/guarnicoes/$id'
+    | '/_app/laboratorio/retornos'
     | '/_app/militares/$id'
     | '/_app/peculio_/aniversarios'
     | '/_app/peculio_/pesquisar'
@@ -765,6 +777,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGuarnicoesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/laboratorio/retornos': {
+      id: '/_app/laboratorio/retornos'
+      path: '/laboratorio/retornos'
+      fullPath: '/laboratorio/retornos'
+      preLoaderRoute: typeof AppLaboratorioRetornosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/militares/': {
       id: '/_app/militares/'
       path: '/'
@@ -898,6 +917,7 @@ interface AppRouteChildren {
   AppConsultaIdRoute: typeof AppConsultaIdRoute
   AppEscalasDaCorporacaoIdRoute: typeof AppEscalasDaCorporacaoIdRoute
   AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
+  AppLaboratorioRetornosRoute: typeof AppLaboratorioRetornosRoute
   AppPeculioAniversariosRoute: typeof AppPeculioAniversariosRoute
   AppPeculioPesquisarRoute: typeof AppPeculioPesquisarRoute
   AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
@@ -931,6 +951,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConsultaIdRoute: AppConsultaIdRoute,
   AppEscalasDaCorporacaoIdRoute: AppEscalasDaCorporacaoIdRoute,
   AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
+  AppLaboratorioRetornosRoute: AppLaboratorioRetornosRoute,
   AppPeculioAniversariosRoute: AppPeculioAniversariosRoute,
   AppPeculioPesquisarRoute: AppPeculioPesquisarRoute,
   AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { MessageSquareText } from 'lucide-react';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 import type { Eu } from '@/api/eu';
@@ -9,6 +10,8 @@ import { QuadroDeAvisos } from '@/componentes/inicio/QuadroDeAvisos';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
 import { SeuProximoServico } from '@/componentes/inicio/SeuProximoServico';
 import { CartaoLaboratorio } from '@/laboratorio/CartaoLaboratorio';
+import { FerramentasEmTeste } from '@/laboratorio/FerramentasEmTeste';
+import { ehAdministrador } from '@/api/eu';
 import { useModoLaboratorio } from '@/laboratorio/useModoLaboratorio';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
@@ -189,8 +192,20 @@ function Inicio() {
               <CartaoLaboratorio className={`${classeDoAtalho} border-linha bg-superficie text-tinta transition-colors hover:border-encaixe hover:bg-passa motion-reduce:transition-none`} />
             </li>
           )}
+          {/* o administrador lê o que as pessoas acharam das ferramentas em teste (6.60): é do real, fora do Laboratório */}
+          {!emLaboratorio && ehAdministrador(eu) && (
+            <li className="flex min-w-0">
+              <Link to="/laboratorio/retornos" className={`${classeDoAtalho} border-linha bg-superficie text-tinta transition-colors hover:border-encaixe hover:bg-passa motion-reduce:transition-none [&>svg]:text-laboratorio`}>
+                <MessageSquareText aria-hidden className="row-span-2 size-[22px] justify-self-center" />
+                <b className="font-cond text-nome leading-5 font-semibold">Retornos do Laboratório</b>
+                <small className="text-apoio leading-[18px] text-apagado md:truncate">O que acharam das ferramentas em teste.</small>
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
+      {/* dentro do Laboratório: as ferramentas em teste, com o que testar e o botão do retorno (6.60) */}
+      {emLaboratorio && <FerramentasEmTeste />}
       {/* o detalhe do primeiro cartão (6.55) */}
       {primeiro && <div data-chegada={chegadaDosCartoes} className="cartao-da-chegada pb-8 md:pb-10"><SeuProximoServico servico={primeiro} /></div>}
       {/* a janela de publicar, editar e retirar um aviso (6.56): uma só, fora do painel, que muda de lugar com a largura da tela */}
