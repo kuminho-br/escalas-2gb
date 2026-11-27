@@ -25,3 +25,17 @@ export function dicaDoAfastamento(a: Pick<AfastamentoNaGrade, 'tipo' | 'inicioRe
   if (ai === af) return `${a.tipo}: ${di}/${mi} a ${df}/${mf}`;
   return `${a.tipo}: ${di}/${mi}/${ai} a ${df}/${mf}/${af}`;
 }
+
+/** O período por extenso, no painel do dia: "10 a 19/12/2026"; atravessando o mês, "28/11 a 6/12/2026"; em anos diferentes, os dois anos ("15/11/2026 a 15/1/2027"). */
+export function periodoDoAfastamento(inicio: string, fim: string): string {
+  const [ai, mi, di] = inicio.split('-').map(Number) as [number, number, number];
+  const [af, mf, df] = fim.split('-').map(Number) as [number, number, number];
+  if (ai === af && mi === mf) return `${di} a ${df}/${mf}/${af}`;
+  if (ai === af) return `${di}/${mi} a ${df}/${mf}/${af}`;
+  return `${di}/${mi}/${ai} a ${df}/${mf}/${af}`;
+}
+
+/** O tipo no meio de uma frase: "férias", "licença"; a sigla ("LTS") fica como está. */
+export function tipoNaFrase(tipo: string): string {
+  return tipo.length > 1 && tipo === tipo.toUpperCase() ? tipo : tipo.toLowerCase();
+}

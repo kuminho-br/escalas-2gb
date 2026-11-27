@@ -10,6 +10,7 @@ import { useSoConsulta } from '@/componentes/FaixaSoConsulta';
 import { Button } from '@/componentes/ui/button';
 import { estiloDaCor } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
+import { periodoDoAfastamento } from '@/lib/afastamento-na-grade';
 import { dataPorExtenso } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
 import { useConfirmar } from '@/componentes/resposta/useConfirmar';
@@ -43,7 +44,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
   const adicionar = travar(async (o: OpcaoDeServico, turnoId: string) => {
     setErro(null);
     try {
-      await escalar(queryClient, o.escalaId, { militarId, data, turnoId, guarnicaoId: o.guarnicaoId, funcaoId: o.funcaoId });
+      await escalar(queryClient, o.escalaId, { militarId, data, turnoId, guarnicaoId: o.guarnicaoId, funcaoId: o.funcaoId, ...(p?.afastamento ? { mesmoAfastado: true } : {}) });
       setAdicionando(false);
     } catch (e) {
       setErro(foiCancelado(e) ? null : mensagemDe(e));
@@ -95,7 +96,11 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
           <>
             <section className="grid gap-1.5 p-4 text-sm">
               <p className="font-medium">{dataPorExtenso(data)}</p>
-              {p.afastamento && <p className="text-pendencia">Afastado: {p.afastamento}</p>}
+              {p.afastamento && (
+                <p className="rounded-md bg-pendencia-fundo px-2.5 py-1.5 font-medium text-pendencia">
+                  Afastado: {p.afastamento.tipo}, de {periodoDoAfastamento(p.afastamento.inicio, p.afastamento.fim)}
+                </p>
+              )}
               <p className="text-apagado">
                 {p.disponibilidade.length ? `Marcou ${listaComE(p.disponibilidade.map((d) => textoFaixa(d.inicio, d.fim)))} no voluntariado.` : 'Não marcou voluntariado neste dia.'}
               </p>
@@ -142,7 +147,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                       Adicionar serviço neste dia
                     </Button>
                   </div>
-                  {adicionando && <AdicionarServico opcoes={p.opcoes} militar={nome ?? ''} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
+                  {adicionando && <AdicionarServico opcoes={p.opcoes} militar={nome ?? ''} afastadoDe={p.afastamento?.tipo ?? null} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
                 </>
               )}
             </section>

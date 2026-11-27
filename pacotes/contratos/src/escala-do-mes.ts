@@ -24,6 +24,8 @@ export const NovaAlocacao = z.object({
   guarnicaoId: Id.nullable(),
   funcaoId: Id.nullable(),
   resolverChoque: ResolverChoque.optional(),
+  /** O painel do dia da Grade (6.70) escala quem está afastado, depois de mostrar o aviso: o afastamento deixa de recusar; todas as outras regras continuam. */
+  mesmoAfastado: z.boolean().optional(),
   justificativa: Justificativa,
 });
 export type NovaAlocacao = z.infer<typeof NovaAlocacao>;

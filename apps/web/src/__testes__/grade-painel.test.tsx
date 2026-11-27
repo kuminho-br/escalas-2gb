@@ -85,11 +85,11 @@ describe('grade geral: o painel do dia', () => {
   });
 
   it('sem nada marcado, afastado e com choque: as frases do dia', async () => {
-    api({ ...PAINEL, disponibilidade: [], afastamento: 'Férias', choques: ['Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)'], opcoes: [] });
+    api({ ...PAINEL, disponibilidade: [], afastamento: { tipo: 'Férias', inicio: '2026-12-08', fim: '2026-12-12' }, choques: ['Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)'], opcoes: [] });
     abrir(ABERTA);
     const p = await painel();
     expect(within(p).getByText('Não marcou voluntariado neste dia.')).toBeInTheDocument();
-    expect(within(p).getByText('Afastado: Férias')).toBeInTheDocument();
+    expect(within(p).getByText(/^Afastado:/)).toHaveTextContent('Afastado: Férias, de 8 a 12/12/2026');
     expect(within(p).getByText('Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)')).toHaveClass('text-alerta');
     await userEvent.click(within(p).getByRole('button', { name: 'Adicionar serviço neste dia' }));
     expect(await within(p).findByText('Nenhum serviço disponível para ele neste dia.')).toBeInTheDocument();

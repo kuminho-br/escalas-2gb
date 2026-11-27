@@ -87,8 +87,8 @@ export type OpcaoDeServico = {
 export type PainelDoDia = {
   militar: { militarId: string; posto: string; nomeGuerra: string; matricula: string; equipe: string | null; jornada: 'pronto' | 'adm'; cnh: string[]; voluntarioJes: boolean };
   data: string;
-  /** "Férias", "LTS"…: o tipo do afastamento que cobre o dia */
-  afastamento: string | null;
+  /** O afastamento que cobre o dia: o tipo ("Férias", "LTS"…) e o período inteiro ('aaaa-mm-dd'); null se não há. */
+  afastamento: { tipo: string; inicio: string; fim: string } | null;
   /** HH:MM; o que ele marcou no voluntariado neste dia */
   disponibilidade: { inicio: string; fim: string }[];
   servicos: ServicoNoDia[];

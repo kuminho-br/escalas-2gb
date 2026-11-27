@@ -10,6 +10,8 @@ export class ErroApi extends Error {
     readonly padrao = false,
     /** a API diz que a recusa tem decisão do escalante (6.39): "expediente" = pôr o serviço por cima do expediente, depois de confirmar */
     readonly resolvivel?: 'expediente',
+    /** a recusa da troca diz quem impede (6.70): a tela marca a linha desse militar */
+    readonly militarId?: string,
   ) {
     super(mensagem);
   }
@@ -39,10 +41,10 @@ function sessaoTerminou(caminho: string) {
 }
 
 async function resposta<T>(r: Response): Promise<T> {
-  const dados = (await r.json().catch(() => null)) as { erro?: string; campos?: Record<string, string>; resolvivel?: 'expediente' } | null;
+  const dados = (await r.json().catch(() => null)) as { erro?: string; campos?: Record<string, string>; resolvivel?: 'expediente'; militarId?: string } | null;
   // a hospedagem recusa envio grande demais com texto puro, antes de a API ser chamada
   if (r.status === 413 && !dados?.erro) throw new ErroApi('O envio é grande demais. Confira os dados e tente de novo.', 413);
-  if (!r.ok) throw new ErroApi(dados?.erro ?? `Erro inesperado (${r.status}). Tente de novo.`, r.status, dados?.campos, !dados?.erro, dados?.resolvivel);
+  if (!r.ok) throw new ErroApi(dados?.erro ?? `Erro inesperado (${r.status}). Tente de novo.`, r.status, dados?.campos, !dados?.erro, dados?.resolvivel, dados?.militarId);
   return dados as T;
 }
 
