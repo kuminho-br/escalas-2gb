@@ -4,6 +4,9 @@ import { criarAuth, type Auth } from '../src/auth.ts';
 import type { Banco } from '../src/banco/banco.ts';
 import { hojeRecife } from '../src/datas.ts';
 import { criarAdmin } from '../src/usuarios/criar-admin.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
+import { migrar } from '../src/banco/migrar.ts';
+import { cargaDoEspelho } from '../src/laboratorio/espelho.ts';
 import { bancoDeTeste, inserir } from './banco-teste.ts';
 
 export const URL_BASE = 'http://localhost:8787';
@@ -37,6 +40,14 @@ export async function criarMilitar(api: ApiDeTeste, d: { matricula: string; emai
   return id;
 }
 
+/** Banco novo com o real e o espelho (o papel dele e a carga de teste, com o mês de hoje). */
+export async function bancoComEspelho(): Promise<Banco> {
+  const banco = await bancoPglite();
+  await migrar(banco);
+  await cargaDoEspelho(banco, `${hojeRecife().slice(0, 7)}-01`);
+  return banco;
+}
+
 const idDe = async (banco: Banco, sigla: string) =>
   (await banco.query<{ id: string }>('select id from unidade where sigla = $1', [sigla])).rows[0]!.id;
 
@@ -44,8 +55,12 @@ const idDe = async (banco: Banco, sigla: string) =>
  * API com banco em memória e três usuários fictícios (D7): administrador na raiz,
  * escalante na 1ª SB e um militar comum (sem papel).
  */
-export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) => Pick<Hono, 'request'>): Promise<ApiDeTeste> {
-  const banco = await bancoDeTeste();
+export async function montarApi(
+  fabricar?: (dep: { banco: Banco; auth: Auth }) => Pick<Hono, 'request'>,
+  opcoes: { espelho?: boolean } = {},
+): Promise<ApiDeTeste> {
+  // com `espelho`: o banco com o schema do Laboratório e a carga de teste dele (6.59); sem ele, só o real (o dobro do tempo por banco)
+  const banco = opcoes.espelho ? await bancoComEspelho() : await bancoDeTeste();
   const auth = criarAuth({ banco, segredo: SEGREDO_DE_TESTE, urlBase: URL_BASE });
   // os testes buscam mais de 30 vezes por minuto: o limite da consulta fica de fora (`consulta-limite.test.ts` prova o limite, com o padrão)
   const app = fabricar ? fabricar({ banco, auth }) : criarApp({ banco, auth, limiteDeBuscas: Infinity, segredo: SEGREDO_DE_TESTE });

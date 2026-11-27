@@ -28,6 +28,7 @@ import { rotasAvisos } from './avisos/rotas.ts';
 import { rotasVisualizacao } from './escala/visualizacao-rotas.ts';
 import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasVisao } from './visao/rotas.ts';
+import { rotasDoLaboratorio } from './laboratorio/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
 import { MSG_CRIE_A_SENHA } from './usuarios/mensagens.ts';
@@ -103,6 +104,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasVoluntariado(comAuth));
     app.route('/api', rotasVisao({ ...comAuth, limiteDeBuscas: dep.limiteDeBuscas }));
     app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
+    app.route('/api', rotasDoLaboratorio(comAuth));
   }
   return app;
 }

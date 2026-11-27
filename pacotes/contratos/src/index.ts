@@ -23,3 +23,4 @@ export * from './lote.ts';
 export * from './externos.ts';
 export * from './exportacao.ts';
 export * from './avisos.ts';
+export * from './laboratorio.ts';
