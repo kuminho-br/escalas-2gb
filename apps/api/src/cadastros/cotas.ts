@@ -138,6 +138,11 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       const igual = await cotaIgual(dep.banco, acesso.unidadeId, atual.mes, d.servicoId, id);
       if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} em ${mesPorExtenso(atual.mes)}.` }, 409);
     }
+    // 6.72: baixar a quantidade abaixo da soma das metas dos dias deixaria as metas impossíveis de cumprir
+    if (d.quantidade !== undefined) {
+      const metas = (await dep.banco.query<{ soma: number }>('select coalesce(sum(minimo), 0)::int as soma from cota_dia where cota_id = $1', [id])).rows[0]!.soma;
+      if (metas > d.quantidade) return c.json({ erro: MSG_SOMA_DAS_METAS, campos: { quantidade: MSG_SOMA_DAS_METAS } }, 400);
+    }
     try {
       const cota = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query(

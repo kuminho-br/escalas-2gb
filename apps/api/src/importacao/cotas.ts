@@ -18,7 +18,7 @@ const COLUNAS = {
   prioridade: { rotulo: 'PRIORIDADE', obrigatoria: false, ajuda: `1 é preenchida primeiro (até ${MAX_PRIORIDADE}). Vazio segue a ordem das linhas do mês.` },
 } satisfies Record<string, ColunaModelo>;
 
-type Linha = { mes: string; servicoId: string; servico: string; quantidade: number; prioridade: number };
+type Linha = { linha: number; mes: string; servicoId: string; servico: string; quantidade: number; prioridade: number };
 type Plano = { novas: Linha[]; alteradas: { id: string; quantidade: number; prioridade: number }[] };
 
 const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
@@ -160,7 +160,7 @@ export const importadorCotas: Importador<Plano> = {
       // prioridade vazia: a posição da linha entre as aceitas do mês
       const posicao = (ordemNoMes.get(mes) ?? 0) + 1;
       ordemNoMes.set(mes, posicao);
-      lidas.push({ mes, servicoId: servico.id, servico: servico.nome, quantidade, prioridade: pBruta ? Number(pBruta) : posicao });
+      lidas.push({ linha: l.linha, mes, servicoId: servico.id, servico: servico.nome, quantidade, prioridade: pBruta ? Number(pBruta) : posicao });
     }
 
     // contra o que já está no sistema (só os meses da planilha)
@@ -172,9 +172,19 @@ export const importadorCotas: Importador<Plano> = {
       );
       for (const r of rows) doSistema.set(`${r.mes}|${r.servico_id}`, { id: r.id, quantidade: r.quantidade, prioridade: r.prioridade });
     }
+    // 6.72: a quantidade nova não pode ficar abaixo da soma das metas dos dias que a cota já tem
+    const metasDasCotas = new Map<string, number>();
+    if (doSistema.size) {
+      const { rows } = await tx.query<{ cota_id: string; soma: number }>('select cota_id, sum(minimo)::int as soma from cota_dia where cota_id = any($1::uuid[]) group by cota_id', [[...doSistema.values()].map((v) => v.id)]);
+      for (const r of rows) metasDasCotas.set(r.cota_id, r.soma);
+    }
     let iguais = 0;
     for (const x of lidas) {
       const atual = doSistema.get(`${x.mes}|${x.servicoId}`);
+      if (atual && x.quantidade < (metasDasCotas.get(atual.id) ?? 0)) {
+        problemas.push({ aba: ABA, linha: x.linha, mensagem: `A quantidade ${x.quantidade} de ${x.servico} em ${mesPorExtenso(x.mes)} fica abaixo da soma das metas dos dias (${metasDasCotas.get(atual.id)})`, solucao: 'Aumente a quantidade na planilha, ou ajuste os dias na tela Cotas e importe de novo.' });
+        continue;
+      }
       const quem = `${x.servico} em ${mesPorExtenso(x.mes)}`;
       if (!atual) {
         plano.novas.push(x);

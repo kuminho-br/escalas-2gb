@@ -35,7 +35,9 @@ function Cotas() {
   const [mes, setMes] = useState(mesAtual());
   const cotas = useQuery(consultaCotas(eu.unidade.id, mes));
   const [dialogo, setDialogo] = useState<{ cota?: Cota } | null>(null);
-  const [dosDias, setDosDias] = useState<Cota | null>(null);
+  const [idDosDias, setIdDosDias] = useState<string | null>(null);
+  // a janela dos dias lê a cota da lista de agora (não uma cópia de quando abriu): reabrir depois de salvar mostra os dias novos
+  const dosDias = cotas.data?.find((x) => x.id === idDosDias) ?? null;
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const anterior = somarMeses(mes, -1);
@@ -119,7 +121,7 @@ function Cotas() {
                 </tr>
               </thead>
               <tbody>
-                {cotas.data.map((c) => <LinhaCota key={c.id} c={c} aoEditar={soConsulta ? undefined : () => setDialogo({ cota: c })} aoRemover={soConsulta ? undefined : () => void remover(c)} aoVerDias={soConsulta ? undefined : () => setDosDias(c)} />)}
+                {cotas.data.map((c) => <LinhaCota key={c.id} c={c} aoEditar={soConsulta ? undefined : () => setDialogo({ cota: c })} aoRemover={soConsulta ? undefined : () => void remover(c)} aoVerDias={soConsulta ? undefined : () => setIdDosDias(c.id)} />)}
               </tbody>
             </table>
           </div>
@@ -136,7 +138,7 @@ function Cotas() {
           aoFechar={() => setDialogo(null)}
         />
       )}
-      {dosDias && <DiasDialogo key={dosDias.id} cota={dosDias} aoFechar={() => setDosDias(null)} />}
+      {dosDias && <DiasDialogo key={dosDias.id} cota={dosDias} aoFechar={() => setIdDosDias(null)} />}
     </Moldura>
   );
 }

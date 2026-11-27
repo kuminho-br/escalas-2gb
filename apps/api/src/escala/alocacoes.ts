@@ -69,7 +69,7 @@ const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { ini
   tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);
 
 /** Escala o militar na vaga e devolve o mês da alocação. */
-export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean } = {}): Promise<string> {
+export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean; /** a troca e o "Desfazer" tiram e põem de volta: o total do serviço não muda, então a cota não é conferida (6.72) */ cotaJaContada?: boolean } = {}): Promise<string> {
   const turno = (
     await tx.query<{ servico_id: string; inicio: string; fim: string; servico: string; tipo: string; unidade_id: string }>(
       `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, s.tipo, e.unidade_id
@@ -104,7 +104,9 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
     return mes;
   }
   // 6.72: a cota esgotada bloqueia escalar mais um militar em PJES ou diária (a alocação movida acima já está contada); remover nunca é bloqueado
-  if (turno.tipo !== 'ordinario') {
+  if (turno.tipo !== 'ordinario' && !opcoes.cotaJaContada) {
+    // trava o serviço no mês: dois escalantes ao mesmo tempo (dias ou faixas diferentes) não leem a mesma contagem e passam da cota
+    await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`cota|${turno.unidade_id}|${turno.servico_id}|${mes}`]);
     const recusa = await recusaDaCota(tx, { unidadeId: turno.unidade_id, servicoId: turno.servico_id, nomeDoServico: turno.servico, data: d.data });
     if (recusa) throw new Recusa(recusa);
   }
@@ -172,7 +174,7 @@ export async function devolverRemocao(tx: Consulta, remocaoId: string): Promise<
     return { escalaId: null, mes: r.data.slice(0, 7) };
   }
   try {
-    await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id });
+    await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id }, { cotaJaContada: true });
   } catch (e) {
     throw e instanceof Recusa ? new Recusa(NAO_DA_PARA_DESFAZER) : e;
   }

@@ -204,6 +204,31 @@ describe('"Adicionar serviço" e a cota (6.72)', () => {
   });
 });
 
+describe('revisão do Opus (6.72)', () => {
+  it('baixar a quantidade da cota abaixo da soma das metas dos dias é 400 com a frase; acima dela passa', async () => {
+    const cota = await criarCota('Bioma', 10);
+    await trocarDias(cota.id, [{ data: dia(3), minimo: 4 }, { data: dia(4), minimo: 4 }]);
+    const baixa = await api.pedir('escalante', 'PATCH', `/api/cotas/${cota.id}`, { quantidade: 5 });
+    expect(baixa.status).toBe(400);
+    expect((await baixa.json()).erro).toBe('A soma das metas dos dias passa da cota do mês.');
+    expect((await api.pedir('escalante', 'PATCH', `/api/cotas/${cota.id}`, { quantidade: 8 })).status).toBe(200);
+    await api.pedir('escalante', 'DELETE', `/api/cotas/${cota.id}`);
+  });
+
+  it('a troca de militar não é bloqueada quando a cota foi reduzida abaixo do que já estava escalado', async () => {
+    const cota = await criarCota('Bioma', 3);
+    const [a, b, c] = [await criar('TROCA1'), await criar('TROCA2'), await criar('TROCA3')];
+    expect((await escalarNo(a, 'Bioma', dia(5))).status).toBe(201);
+    expect((await escalarNo(b, 'Bioma', dia(6))).status).toBe(201);
+    expect((await api.pedir('escalante', 'PATCH', `/api/cotas/${cota.id}`, { quantidade: 1 })).status).toBe(200);
+    const alocacao = (await api.banco.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date', [a, dia(5)])).rows[0]!.id;
+    const troca = await api.pedir('escalante', 'POST', `/api/alocacoes/${alocacao}/trocar`, { militarId: c, turnoId: servico.Bioma!.turno, justificativa: 'teste' });
+    expect(troca.status).toBeLessThan(300);
+    expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [c, dia(5)])).rows).toHaveLength(1);
+    await api.pedir('escalante', 'DELETE', `/api/cotas/${cota.id}`);
+  });
+});
+
 describe('o aviso do dia abaixo da meta na Escala do mês (6.72)', () => {
   it('o dia com meta e menos escalados traz o aviso; o dia que cumpriu não; e fechar a escala continua possível', async () => {
     const cota = await criarCota('JES', 20);

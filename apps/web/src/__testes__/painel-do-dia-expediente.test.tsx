@@ -107,7 +107,7 @@ describe('o defeito do JES que virava Saldo (6.71)', () => {
     expect(chamadas).toEqual([(lista as HTMLSelectElement).value]);
   });
 
-  it('no painel: depois de remover o expediente, escolher JES e escalar manda o turno do JES', async () => {
+  it('no painel (já sem o expediente, com as opções): escolher JES e escalar manda o turno do JES', async () => {
     const POST = 'POST /api/escalas/e-ord/alocacoes';
     const f = api({ ...PAINEL, servicos: [], opcoes: OPCOES }, { [POST]: { status: 201, corpo: {} } });
     abrir(ABERTA);
