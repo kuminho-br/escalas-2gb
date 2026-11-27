@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrar } from '../src/banco/migrar.ts';
 import type { Banco } from '../src/banco/banco.ts';
-import { bancoDeTeste, inserir } from './banco-teste.ts';
+import { bancoDeTeste, inserir, migrarReal as migrar } from './banco-teste.ts';
 
 // Entrega 6.28, Task 1: a tabela dos dias vermelhos, ligada à escala, com auditoria. Dados fictícios (D7).
 let banco: Banco;

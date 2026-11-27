@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { bancoPglite } from '../src/banco/pglite.ts';
-import { migrar, PASTA_MIGRACOES } from '../src/banco/migrar.ts';
-import { inserir } from './banco-teste.ts';
+import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
+import { inserir, migrarReal as migrar } from './banco-teste.ts';
 
 // Dados fictícios (D7). A migração 0046 leva cada prévia lançada (escala_previa, 0045) para escala_estado como prévia, com quem lançou e quando, e apaga a tabela antiga.
 describe('migração 0046', () => {

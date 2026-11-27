@@ -29,11 +29,11 @@ alter table rastreio add column if not exists situacao_id uuid references situac
 do $$
 begin
   -- o quadro do militar vai para todos os períodos dele
-  if exists (select 1 from information_schema.columns where table_name = 'militar' and column_name = 'quadro_id') then
+  if exists (select 1 from information_schema.columns where table_schema = current_schema() and table_name = 'militar' and column_name = 'quadro_id') then
     update rastreio r set quadro_id = m.quadro_id from militar m where m.id = r.militar_id and r.quadro_id is null and m.quadro_id is not null;
   end if;
   -- quem estava inativo vai para "Desativado"; os outros, para "Ativa"
-  if exists (select 1 from information_schema.columns where table_name = 'militar' and column_name = 'ativo') then
+  if exists (select 1 from information_schema.columns where table_schema = current_schema() and table_name = 'militar' and column_name = 'ativo') then
     update rastreio r set situacao_id = (select id from situacao_militar where lower(nome) = case when m.ativo then 'ativa' else 'desativado' end)
       from militar m where m.id = r.militar_id and r.situacao_id is null;
   end if;

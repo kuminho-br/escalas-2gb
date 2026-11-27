@@ -7,10 +7,12 @@
     "typecheck": "tsc --noEmit",
     "db:migrar": "tsx scripts/migrar.ts",
     "carga-exemplo": "tsx scripts/carga-exemplo.ts",
+    "separar-teste": "tsx scripts/separar-teste.ts",
     "dev": "tsx watch src/servidor.ts",
     "criar-admin": "tsx scripts/criar-admin.ts",
     "db:migrar:teste": "tsx --env-file=.env.teste scripts/migrar.ts",
-    "criar-admin:teste": "tsx --env-file=.env.teste scripts/criar-admin.ts"
+    "criar-admin:teste": "tsx --env-file=.env.teste scripts/criar-admin.ts",
+    "separar-teste:teste": "tsx --env-file=.env.teste scripts/separar-teste.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

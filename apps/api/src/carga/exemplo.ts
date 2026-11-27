@@ -1,8 +1,9 @@
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import type { Banco, Consulta } from '../banco/banco.ts';
+import { SCHEMA_ESPELHO } from '../laboratorio/constantes.ts';
 
 /**
- * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB com matrícula 990xxx-x,
+ * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB (matrículas 990001-1 a 990053-3, só da carga: 990xxx-x também é matrícula de militar real),
  * nas proporções da sandbox, e os serviços/turnos usados nos esboços.
  * Nunca roda no ambiente de teste, onde estão os dados reais.
  */
@@ -27,6 +28,15 @@ const GRUPOS: Grupo[] = [
 ];
 const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
 
+/** A matrícula do n-ésimo militar da carga (1 a 53): 990001-1 ... 990053-3. */
+const matriculaDaCarga = (n: number) => `990${String(n).padStart(3, '0')}-${n % 10}`;
+
+/**
+ * Os militares que a carga cria, na ordem: matrícula e nome de guerra. É a lista que o `separar-teste` usa para dizer quem pode ser marcado como teste
+ * no banco real (matrícula e nome iguais, juntos): vem daqui, do próprio código da carga, sem repetir à mão.
+ */
+export const MILITARES_DA_CARGA: { matricula: string; nomeGuerra: string }[] = NOMES.map((nomeGuerra, i) => ({ matricula: matriculaDaCarga(i + 1), nomeGuerra }));
+
 const SERVICOS: { nome: string; tipo: string; operacao: string | null; cor: string; turnos: [string, string, string][] }[] = [
   { nome: 'Pronto', tipo: 'ordinario', operacao: null, cor: '#2F8F5B', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
   { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: [['A', '08:00', '16:00']] },
@@ -50,9 +60,11 @@ async function id(tx: Consulta, sql: string, params: unknown[]): Promise<string>
  * Banco local (PGlite) pode; banco remoto só com AMBIENTE=desenvolvimento declarado,
  * para que esquecer a variável nunca misture militares fictícios com os reais.
  */
-export function motivoParaRecusarExemplo(env: { DATABASE_URL?: string; AMBIENTE?: string }): string | null {
-  if (env.AMBIENTE === 'teste') return 'Carga de exemplo recusada no ambiente de teste';
-  if (env.DATABASE_URL && env.AMBIENTE !== 'desenvolvimento') {
+export function motivoParaRecusarExemplo(env: { DATABASE_URL?: string; AMBIENTE?: string }, schema = 'public'): string | null {
+  // o espelho (6.58) só tem dados de teste: no ambiente de teste a carga fictícia roda nele e nunca no real
+  const noEspelho = schema === SCHEMA_ESPELHO;
+  if (env.AMBIENTE === 'teste' && !noEspelho) return 'Carga de exemplo recusada no ambiente de teste';
+  if (env.DATABASE_URL && env.AMBIENTE !== 'desenvolvimento' && !(noEspelho && env.AMBIENTE === 'teste')) {
     return 'Carga de exemplo recusada: banco remoto sem AMBIENTE=desenvolvimento';
   }
   return null;
@@ -60,53 +72,59 @@ export function motivoParaRecusarExemplo(env: { DATABASE_URL?: string; AMBIENTE?
 
 export async function cargaExemplo(banco: Banco, ambiente: string | undefined, mes: string): Promise<{ militares: number }> {
   if (ambiente === 'teste') throw new Error('Carga de exemplo recusada no ambiente de teste');
+  return banco.transacao((tx) => cargaExemploEm(tx, mes));
+}
 
-  return banco.transacao(async (tx) => {
-    // já carregada se as matrículas da carga (990001 a 990053) existem
-    const ja = await tx.query<{ n: number }>("select count(*)::int as n from militar where matricula between '990001-0' and '990053-9'");
-    if (ja.rows[0]!.n > 0) return { militares: ja.rows[0]!.n };
+/** O corpo da carga, sobre a transação dada (a do real, ou a do espelho com o `search_path` dele: `cargaDoEspelho`, que pede `deTeste` para marcar os militares). */
+export async function cargaExemploEm(tx: Consulta, mes: string, opcoes: { deTeste?: boolean } = {}): Promise<{ militares: number }> {
+  const deTeste = opcoes.deTeste ?? false;
+  // já carregada se a carga existe: militar com a matrícula e o nome de um da carga, juntos (a matrícula sozinha não diz nada)
+  const ja = await tx.query<{ n: number }>(
+    'select count(*)::int as n from militar m join unnest($1::text[], $2::text[]) as c(matricula, nome) on c.matricula = m.matricula and c.nome = m.nome_guerra',
+    [MILITARES_DA_CARGA.map((m) => m.matricula), MILITARES_DA_CARGA.map((m) => m.nomeGuerra)],
+  );
+  if (ja.rows[0]!.n > 0) return { militares: ja.rows[0]!.n };
 
-    const secao = await id(tx, "select id from unidade where sigla = '1ª SB'", []);
-    const postos = new Map(
-      (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad')).rows.map((p) => [p.sigla, p.id]),
+  const secao = await id(tx, "select id from unidade where sigla = '1ª SB'", []);
+  const postos = new Map(
+    (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad')).rows.map((p) => [p.sigla, p.id]),
+  );
+  const equipes = new Map<string, string>();
+  for (const [i, nome] of EQUIPES.entries()) {
+    equipes.set(nome, await id(tx, 'insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, $2, $3) returning id', [secao, nome, i + 1]));
+  }
+
+  let n = 0;
+  for (const g of GRUPOS) {
+    for (const [posto, qtd] of g.postos) {
+      for (let k = 0; k < qtd; k++) {
+        n++;
+        const cnh = MOTORISTAS[n] ?? [];
+        const militar = await id(
+          tx,
+          `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, de_teste)
+           values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+          [matriculaDaCarga(n), postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n), deTeste],
+        );
+        // o quadro vale por período: o do posto, quando ele só existe em um
+        const quadro = ((await quadroParaOPosto(tx, postos.get(posto)!, undefined, null)) as { quadroId: string | null }).quadroId;
+        await tx.query(
+          'insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id) values ($1, $2, $3, $4, $5, $6)',
+          [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes, quadro],
+        );
+      }
+    }
+  }
+
+  for (const s of SERVICOS) {
+    const servico = await id(
+      tx,
+      'insert into servico (unidade_id, nome, tipo, operacao, cor) values ($1, $2, $3, $4, $5) returning id',
+      [secao, s.nome, s.tipo, s.operacao, s.cor],
     );
-    const equipes = new Map<string, string>();
-    for (const [i, nome] of EQUIPES.entries()) {
-      equipes.set(nome, await id(tx, 'insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, $2, $3) returning id', [secao, nome, i + 1]));
+    for (const [letra, inicio, fim] of s.turnos) {
+      await tx.query('insert into turno (servico_id, letra, inicio, fim) values ($1, $2, $3, $4)', [servico, letra, inicio, fim]);
     }
-
-    let n = 0;
-    for (const g of GRUPOS) {
-      for (const [posto, qtd] of g.postos) {
-        for (let k = 0; k < qtd; k++) {
-          n++;
-          const cnh = MOTORISTAS[n] ?? [];
-          const militar = await id(
-            tx,
-            `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-             values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-            [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
-          );
-          // o quadro vale por período: o do posto, quando ele só existe em um
-          const quadro = ((await quadroParaOPosto(tx, postos.get(posto)!, undefined, null)) as { quadroId: string | null }).quadroId;
-          await tx.query(
-            'insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id) values ($1, $2, $3, $4, $5, $6)',
-            [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes, quadro],
-          );
-        }
-      }
-    }
-
-    for (const s of SERVICOS) {
-      const servico = await id(
-        tx,
-        'insert into servico (unidade_id, nome, tipo, operacao, cor) values ($1, $2, $3, $4, $5) returning id',
-        [secao, s.nome, s.tipo, s.operacao, s.cor],
-      );
-      for (const [letra, inicio, fim] of s.turnos) {
-        await tx.query('insert into turno (servico_id, letra, inicio, fim) values ($1, $2, $3, $4)', [servico, letra, inicio, fim]);
-      }
-    }
-    return { militares: n };
-  });
+  }
+  return { militares: n };
 }
