@@ -285,6 +285,20 @@ describe('o envio que falha', () => {
     expect((await api.banco.query('select 1 from codigo_de_acesso where militar_id = $1', [id])).rows).toHaveLength(0);
   });
 
+  it('o log do envio que falha diz o status do Brevo, sem a chave, o código nem o endereço', async () => {
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { email } = await militarCom('ativo');
+    envio = async () => {
+      throw new Error('Brevo: resposta 401.');
+    };
+    await pedirCodigo(api, email, novaOrigem());
+    await esperar(async () => (await pedidosDe(email))[0]?.situacao === 'falhou');
+    const saida = JSON.stringify(erros.mock.calls);
+    expect(saida).toContain('Brevo: resposta 401.');
+    expect(saida).not.toMatch(/\d{6}/);
+    expect(saida).not.toContain(email);
+  });
+
   it('a resposta não espera o envio: com o envio lento, ela volta antes dele terminar', async () => {
     const { email } = await militarCom('ativo');
     let terminou = false;

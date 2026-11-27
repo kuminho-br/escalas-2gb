@@ -34,6 +34,16 @@ export function enviarNoTerminal(): EnviarEmail {
   };
 }
 
+/**
+ * O envio do servidor local: sem `ENVIO_DE_TESTE`, fora do ar (null); com `terminal`, escreve a mensagem no terminal. Com `DATABASE_URL` (um banco de verdade) o terminal é recusado:
+ * o código de um militar real sairia na tela.
+ */
+export function escolherEnvio(env: Record<string, string | undefined>): EnviarEmail | null {
+  if (env.ENVIO_DE_TESTE !== 'terminal') return null;
+  if (env.DATABASE_URL) throw new Error('ENVIO_DE_TESTE=terminal só vale no banco local: com DATABASE_URL, o código de um militar real sairia no terminal. Tire uma das duas variáveis.');
+  return enviarNoTerminal();
+}
+
 /** Roda a tarefa depois de a resposta sair: com `waitUntil` na Vercel; no servidor local e nos testes, a promessa corre sozinha, com o erro tratado. */
 export function aposResponder(tarefa: Promise<void>): void {
   const tratada = tarefa.catch((e: unknown) => console.error('Tarefa depois da resposta falhou:', e instanceof Error ? e.message : 'erro'));

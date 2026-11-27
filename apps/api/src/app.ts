@@ -68,7 +68,14 @@ export function criarApp(dep: Dependencias): Hono {
       }
       await next();
       // quem trocou a senha não fica com um código por e-mail esquecido, ainda valendo
-      if (sessao && c.res.status === 200) await dep.banco.query('delete from codigo_de_acesso where militar_id = (select militar_id from usuario where id = $1)', [sessao.user.id]);
+      // a senha já foi trocada: se apagar o código falhar, a pessoa não recebe um 500
+      if (sessao && c.res.status === 200) {
+        try {
+          await dep.banco.query('delete from codigo_de_acesso where militar_id = (select militar_id from usuario where id = $1)', [sessao.user.id]);
+        } catch {
+          console.error('Não deu para apagar o código de acesso pendente depois de trocar a senha.');
+        }
+      }
     });
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
     if (dep.segredo) app.route('/api', rotasAcessoPorEmail({ banco: dep.banco, segredo: dep.segredo, enviarEmail: dep.enviarEmail ?? null, agora: dep.agora }));

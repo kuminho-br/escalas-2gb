@@ -115,7 +115,9 @@ export function rotasAcessoPorEmail(dep: DependenciasDoAcessoPorEmail): Hono {
         (async () => {
           try {
             await enviar({ para: destino.email, ...mensagemDoCodigo(destino.codigo) });
-          } catch {
+          } catch (e) {
+            // o log diz o que o envio respondeu (a mensagem do erro não leva a chave, o código nem o endereço): sem ele, uma chave errada ficaria invisível
+            console.error(e instanceof Error ? e.message : 'O envio do código falhou.');
             await banco.transacao(async (tx) => {
               await tx.query("update pedido_de_codigo set situacao = 'falhou' where id = $1", [pedidoId]);
               await tx.query('delete from codigo_de_acesso where militar_id = $1 and pedido_id = $2', [destino.militarId, pedidoId]);

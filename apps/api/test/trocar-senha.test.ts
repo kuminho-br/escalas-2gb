@@ -117,4 +117,12 @@ describe('trocar a senha estando logado', () => {
     expect((await trocar(cookie, 'senha-errada-qualquer', NOVA)).status).toBeGreaterThanOrEqual(400);
     expect((await api.banco.query('select 1 from codigo_de_acesso where militar_id = $1', [id])).rows).toHaveLength(1);
   });
+
+  it('se apagar o código pendente falhar, a senha já trocada não vira erro 500 (achado da revisão)', async () => {
+    const { email } = await conta();
+    const cookie = cookieDe(await entrar(email, SENHA));
+    await api.banco.exec('drop table codigo_de_acesso');
+    expect((await trocar(cookie, SENHA, NOVA)).status).toBe(200);
+    expect((await entrar(email, NOVA)).status).toBe(200);
+  });
 });

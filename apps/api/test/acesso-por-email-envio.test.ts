@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { enviarPeloBrevo, aposResponder } from '../src/acesso-por-email/enviar-email.ts';
+import { aposResponder, enviarPeloBrevo, escolherEnvio } from '../src/acesso-por-email/enviar-email.ts';
 import { mensagemDoCodigo, resumir, sortearCodigo } from '../src/acesso-por-email/codigo.ts';
 import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import { bancoDeTeste } from './banco-teste.ts';
@@ -135,5 +135,20 @@ describe('aposResponder', () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(correu).toBe(true);
     expect(erros).not.toHaveBeenCalledWith(expect.stringContaining('chave'));
+  });
+});
+
+describe('escolherEnvio (servidor local)', () => {
+  it('sem ENVIO_DE_TESTE, o envio fica fora do ar (null)', () => {
+    expect(escolherEnvio({})).toBeNull();
+    expect(escolherEnvio({ DATABASE_URL: 'postgres://x' })).toBeNull();
+  });
+
+  it('com ENVIO_DE_TESTE=terminal e o banco local, escreve no terminal', () => {
+    expect(typeof escolherEnvio({ ENVIO_DE_TESTE: 'terminal' })).toBe('function');
+  });
+
+  it('recusa ENVIO_DE_TESTE=terminal com DATABASE_URL: o código de um militar real sairia no terminal', () => {
+    expect(() => escolherEnvio({ ENVIO_DE_TESTE: 'terminal', DATABASE_URL: 'postgres://x' })).toThrow(/ENVIO_DE_TESTE/);
   });
 });
