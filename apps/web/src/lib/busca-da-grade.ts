@@ -1,7 +1,7 @@
 import { Data, Mes } from 'contratos';
 
 /** Os parâmetros do endereço da Grade geral. */
-export type BuscaDaGrade = { mes?: string; equipes?: string[]; busca?: string; militar?: string; dia?: string; ficha?: string };
+export type BuscaDaGrade = { mes?: string; equipes?: string[]; busca?: string; militar?: string; dia?: string; ficha?: string; esconderAfastados?: boolean; cheia?: boolean };
 
 /** `equipes` é uma lista de textos não vazios; um endereço antigo com só `equipe` (texto) vale como uma lista de uma. */
 function equipesDaBusca(s: Record<string, unknown>): string[] | undefined {
@@ -19,6 +19,10 @@ export function buscaDaGrade(s: Record<string, unknown>): BuscaDaGrade {
     dia: typeof s.dia === 'string' && Data.safeParse(s.dia).success ? s.dia : undefined,
     /** o militar cuja ficha está aberta por cima da Grade (a janela da ficha da escala) */
     ficha: typeof s.ficha === 'string' && s.ficha ? s.ficha : undefined,
+    /** o filtro "Esconder quem está afastado o mês todo" (6.70) */
+    esconderAfastados: s.esconderAfastados === true || s.esconderAfastados === 'true' ? true : undefined,
+    /** a tela cheia (6.70): só a tabela, a barra fina, a legenda e o painel do dia; a casca tira o menu e o cabeçalho */
+    cheia: s.cheia === true || s.cheia === 'true' ? true : undefined,
   };
 }
 

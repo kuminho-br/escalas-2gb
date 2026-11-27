@@ -12,6 +12,12 @@ export type BlocoDaGrade = {
   expediente: boolean;
 };
 
+/**
+ * Um período de afastamento da linha, com o tipo ("Férias", do cadastro). `inicio` e `fim` valem para a marca na tabela (recortados ao mês e aos dias que a linha vale; 'aaaa-mm-dd');
+ * `inicioReal` e `fimReal` são o período inteiro, para a dica e o painel (podem ser de outro mês).
+ */
+export type AfastamentoNaGrade = { tipo: string; inicio: string; fim: string; inicioReal: string; fimReal: string };
+
 export type LinhaDaGrade = {
   militarId: string;
   posto: string;
@@ -22,6 +28,8 @@ export type LinhaDaGrade = {
   dias: Record<string, BlocoDaGrade[]>;
   /** os dias do mês com choque de horário */
   choques: string[];
+  /** os períodos de afastamento da linha, em ordem de início; vazio sem afastamento */
+  afastamentos: AfastamentoNaGrade[];
   /** quantas alocações do mês em serviços PJES e Diária */
   pjes: number;
   diarias: number;
@@ -79,8 +87,8 @@ export type OpcaoDeServico = {
 export type PainelDoDia = {
   militar: { militarId: string; posto: string; nomeGuerra: string; matricula: string; equipe: string | null; jornada: 'pronto' | 'adm'; cnh: string[]; voluntarioJes: boolean };
   data: string;
-  /** "Férias", "LTS"…: o tipo do afastamento que cobre o dia */
-  afastamento: string | null;
+  /** O afastamento que cobre o dia: o tipo ("Férias", "LTS"…) e o período inteiro ('aaaa-mm-dd'); null se não há. */
+  afastamento: { tipo: string; inicio: string; fim: string } | null;
   /** HH:MM; o que ele marcou no voluntariado neste dia */
   disponibilidade: { inicio: string; fim: string }[];
   servicos: ServicoNoDia[];

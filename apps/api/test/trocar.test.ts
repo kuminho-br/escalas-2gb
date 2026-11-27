@@ -2,7 +2,8 @@ import type { OpcoesDeTroca } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
-import { fraseDaRecusaDaTroca } from '../src/escala/trocar.ts';
+import { fraseDaRecusaDaTroca, trocar as trocarNoBanco } from '../src/escala/trocar.ts';
+import { Recusa } from '../src/escala/alocacoes.ts';
 
 // Cenário fictício (D7), dezembro de 2026. Escala Ordinário: Pronto (A 08–20, B 20–08), Bioma (diária, A 08–16) e JES (PJES, A 08–20), com a
 // guarnição ABT (Motorista CNH D, 1 vaga; Combatente, 1 a 2 vagas) vinculada às faixas 08–20 e 20–08. Cada cenário usa o seu dia.
@@ -143,6 +144,31 @@ describe('substituir por um militar livre', () => {
   });
 });
 
+describe('dois escalantes ao mesmo tempo (revisão final da 6.70)', () => {
+  it('a violação de unicidade que aborta a transação continua uma recusa (409), e não vira erro do servidor', async () => {
+    const d = dia(21);
+    const id = await alocar('F1', 'Pronto', 'a', d, { funcao: combatente });
+    // o banco recusa o insert do substituto como o Postgres faz numa corrida (23505) e, daí em diante, a transação está abortada: toda consulta falha
+    let abortada = false;
+    const tx = {
+      query: async (sql: string, params?: unknown[]) => {
+        if (abortada) throw new Error('current transaction is aborted, commands ignored until end of transaction block');
+        if (/^\s*insert into alocacao \(/.test(sql)) {
+          abortada = true;
+          throw Object.assign(new Error('duplicate key'), { code: '23505' });
+        }
+        return api.banco.query(sql, params as never);
+      },
+    };
+    const resultado = await trocarNoBanco(tx as never, id, { militarId: militar.LIVRE!, turnoId: servico.Pronto!.a }, api.usuarios.escalante).catch((e: unknown) => e);
+    expect(resultado).toBeInstanceOf(Recusa);
+    expect((resultado as Recusa).message).toBe('Este militar já está escalado neste turno.');
+    expect((resultado as Recusa).militarId).toBe(militar.LIVRE);
+    // a recusa desfaz tudo na transação do chamador: aqui, só desfazemos o que o teste fez de verdade
+    await api.banco.query('delete from alocacao where id = $1', [id]).catch(() => undefined);
+  });
+});
+
 describe('trocar de lugar com quem já está escalado', () => {
   it('dois ordinários trocam de lugar (permuta) e não há marca de remoção', async () => {
     const d = dia(7);
@@ -234,9 +260,48 @@ describe('trocar de lugar com quem já está escalado', () => {
     // o F2 iria para o Bioma (08h–16h) e continuaria com o Pronto A (08h–20h)
     const r = await trocar(meu, { comAlocacaoId: noite });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD F2 não pode ir para a vaga de SD F1: Choque de horário. Escolha outro serviço para trocar.');
+    // o texto nomeia quem é e o motivo (6.70): o F2 já tem o Pronto A, das 08h às 20h (o horário é o do que ele já tem); o corpo diz qual militar (a Grade marca a linha dele)
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para trocar: F2 já tem Pronto das 08h às 20h neste dia.');
+    expect(corpo.militarId).toBe(militar.F2);
     expect(await de('F1', d)).toEqual([expect.objectContaining({ id: meu })]);
     expect(await de('F2', d)).toHaveLength(2);
+  });
+
+  it('a permuta recusada por choque tem o texto da permuta, com o serviço da vaga e o que o militar já faz, e o militarId dele (6.70)', async () => {
+    const d = dia(20);
+    const noiteDoD1 = await alocar('D1', 'Pronto', 'b', d, { funcao: combatente });
+    await alocar('D1', 'Bioma', 'a', d);
+    const diaDoD2 = await alocar('D2', 'Pronto', 'a', d, { funcao: combatente });
+    // as duas são ordinárias: é uma permuta. O D1 ficaria com o Pronto das 08h às 20h e já está no Bioma, que cobre parte do mesmo horário
+    const r = await trocar(noiteDoD1, { comAlocacaoId: diaDoD2 });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para permutar: D1 ficaria com o Pronto (08h às 20h) e já está no Bioma deste dia.');
+    expect(corpo.militarId).toBe(militar.D1);
+    expect(await de('D2', d)).toEqual([expect.objectContaining({ id: diaDoD2 })]);
+  });
+
+  it('o substituto que já tem serviço no horário: "Não dá para trocar: {NOME} já tem {serviço} das {hh} às {hh} neste dia.", com o militarId dele (6.70)', async () => {
+    const d = dia(21);
+    const id = await alocar('C1', 'Pronto', 'a', d, { funcao: combatente });
+    await alocar('E1', 'Bioma', 'a', d);
+    const r = await trocar(id, { militarId: militar.E1, turnoId: servico.Pronto!.a });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Não dá para trocar: E1 já tem Bioma das 08h às 16h neste dia.');
+    expect(corpo.militarId).toBe(militar.E1);
+    expect(await de('C1', d)).toEqual([expect.objectContaining({ id })]);
+  });
+
+  it('as outras recusas (CNH, fora do quadro) seguem com o texto de antes, e agora também dizem qual militar (6.70)', async () => {
+    const d = dia(22);
+    const id = await alocar('C2', 'Pronto', 'a', d, { funcao: motorista });
+    const r = await trocar(id, { militarId: militar.SEMCNH, turnoId: servico.Pronto!.a });
+    expect(r.status).toBe(409);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Sem a CNH exigida');
+    expect(corpo.militarId).toBe(militar.SEMCNH);
   });
 
   it('com a outra alocação de outro dia é 409; a mesma alocação, também; a que não existe é 404', async () => {

@@ -13,7 +13,7 @@ const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
 const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
 const linha = (nomeGuerra: string, matricula: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
-  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula, jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
+  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula, jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
 const CABO = linha('CABO', '990001-1', { dias: { [DIA]: [BLOCO] }, choques: [DIA] });
 const GRADE: GradeDoMes = {

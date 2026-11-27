@@ -9,6 +9,7 @@ import { DegrausDaUnidade } from '@/componentes/DegrausDaUnidade';
 import { useSair } from '@/componentes/useSair';
 import { montarArvore } from '@/lib/arvore-de-unidades';
 import { iniciaisDe, nomeDoPapel, papelNaUnidade } from '@/lib/papeis';
+import { cn } from '@/lib/utils';
 import { guardarUnidade, guardarUnidadeDeConsulta } from '@/lib/unidade-de-trabalho';
 import {
   DropdownMenu,
@@ -20,7 +21,7 @@ import {
 } from '@/componentes/ui/dropdown-menu';
 
 /** `botaoDoMenu` é a referência do botão que abre o menu do celular: o foco volta a ele quando o menu fecha pelo teclado. */
-export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement>; semTrilho?: boolean }) {
+export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false, menuEscondido = false }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement>; semTrilho?: boolean; /** o menu está escondido: o botão "Menu" flutua no alto, à esquerda, e o cabeçalho abre espaço para ele */ menuEscondido?: boolean }) {
   const router = useRouter();
   const nome = `${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`;
   const nivel = papelNaUnidade(eu);
@@ -55,7 +56,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 pt-0.75 md:gap-4 md:px-6">
+    <header className={cn('sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 pt-0.75 md:gap-4 md:px-6', menuEscondido && 'md:pl-31')}>
       {/* o fio vinho amarra o topo à identidade do sistema */}
       <span data-fio-vinho aria-hidden className="absolute inset-x-0 top-0 h-0.75 bg-vinho" />
       {semTrilho ? (

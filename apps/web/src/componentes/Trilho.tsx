@@ -1,43 +1,52 @@
 import { Link, type LinkProps } from '@tanstack/react-router';
-import { Fragment, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { ChevronsLeft, ChevronsRight, PanelLeftClose, X } from 'lucide-react';
 import type { Eu } from '@/api/eu';
 import type { Item, Modulo } from '@/lib/modulos';
+import type { EstadoDoMenu } from '@/lib/estado-do-menu';
 import { cn } from '@/lib/utils';
 
-// celular: ícone e nome lado a lado; computador: o trilho de 84 px, com o ícone e o nome pequeno embaixo (esboço telas-v12)
-const classeItem =
-  'flex h-9 items-center gap-3 rounded-md px-3 text-[15px] focus-visible:outline-white md:h-auto md:w-[72px] md:flex-col md:justify-center md:gap-0.5 md:rounded-[10px] md:px-0.5 md:py-1 md:text-center md:font-cond md:text-[11.5px] md:leading-[1.15] md:font-medium';
+// celular e menu largo: ícone e nome lado a lado; recolhido (computador): o trilho de 84 px, com o ícone e o nome pequeno embaixo (esboço telas-v12)
+const classeItem = 'flex h-10 items-center gap-2.5 rounded-md px-2.5 text-corpo focus-visible:outline-white';
+const classeItemRecolhido = 'md:h-auto md:min-h-13 md:w-[72px] md:flex-col md:justify-center md:gap-0.5 md:rounded-[10px] md:px-0.5 md:py-1.5 md:text-center md:font-cond md:text-[11.5px] md:leading-[1.15] md:font-medium';
 
-function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
+function ItemTrilho({ item, aoNavegar, recolhido }: { item: Item; aoNavegar: () => void; recolhido: boolean }) {
   const Icone = item.icone;
+  const classe = cn(classeItem, recolhido && classeItemRecolhido);
   if (item.para) {
     return (
       <Link
         to={item.para}
         onClick={aoNavegar}
-        className={cn(classeItem, 'text-white/85 hover:bg-white/10 hover:text-white')}
-        activeProps={{ className: 'bg-white/15 font-medium text-white' }}
+        className={classe}
+        // a cor vem de um só lado (ativo ou não): as duas juntas brigariam, e o texto branco sumiria no fundo branco do item ativo
+        activeProps={{ className: 'bg-white font-semibold text-vinho' }}
+        inactiveProps={{ className: 'text-white/90 hover:bg-white/12 hover:text-white' }}
         activeOptions={item.exato ? { exact: true } : undefined}
       >
-        <Icone className="size-5" strokeWidth={1.75} aria-hidden />
+        <Icone className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
         {item.nome}
       </Link>
     );
   }
   return (
-    <span aria-disabled="true" title="Disponível nas próximas versões" className={cn(classeItem, 'cursor-default text-white/40')}>
-      <Icone className="size-5" strokeWidth={1.75} aria-hidden />
+    <span aria-disabled="true" title="Disponível nas próximas versões" className={cn(classe, 'cursor-default text-white/40')}>
+      <Icone className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
       {item.nome}
     </span>
   );
 }
 
-/** `aoFechar(true)` devolve o foco ao botão que abriu o menu (Esc e "Fechar menu"); sem argumento (fundo escuro, ir a uma tela) não mexe no foco. */
-export function Trilho({ modulo, eu, aberto, aoFechar }: { modulo: Modulo; eu: Eu; aberto: boolean; aoFechar: (devolverFoco?: boolean) => void }) {
+/**
+ * O menu lateral (6.70). No celular abre de lado, sempre com os nomes ao lado dos ícones. No computador tem três estados (`estado`): largo (240 px), recolhido (o
+ * trilho de 84 px) e escondido (sai da tela; o botão "Menu" da casca o traz de volta). `aoFechar(true)` devolve o foco ao botão que abriu o menu do celular (Esc e
+ * "Fechar menu"); sem argumento (fundo escuro, ir a uma tela) não mexe no foco.
+ */
+export function Trilho({ modulo, eu, aberto, aoFechar, estado, aoMudarEstado }: { modulo: Modulo; eu: Eu; aberto: boolean; aoFechar: (devolverFoco?: boolean) => void; estado: EstadoDoMenu; aoMudarEstado: (e: EstadoDoMenu) => void }) {
   const nav = useRef<HTMLElement>(null);
   const fechar = useRef(aoFechar);
   fechar.current = aoFechar;
+  const recolhido = estado === 'recolhido';
   // no celular, ao abrir o menu o foco vai para o primeiro item, e Esc fecha
   useEffect(() => {
     if (!aberto) return;
@@ -52,52 +61,67 @@ export function Trilho({ modulo, eu, aberto, aoFechar }: { modulo: Modulo; eu: E
   const blocos = modulo.itens.map((b) => b.filter((i) => !i.ve || i.ve(eu))).filter((b) => b.length > 0);
   // numa unidade só de consulta o pé (Configurações e Estrutura) não aparece: tudo ali altera ou ainda não existe
   const pe = eu.soConsulta ? [] : (modulo.pe ?? []);
+  const botao = cn(
+    'flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-apoio text-white/85 hover:bg-white/12 hover:text-white focus-visible:outline-white',
+    recolhido && 'md:h-11.5 md:flex-none md:flex-col md:gap-0.5 md:px-0 md:font-cond md:text-[11.5px] md:leading-none md:font-medium',
+  );
   return (
     <>
-      {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}
+      {aberto && <div className="fixed inset-0 z-45 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}
       <nav
         ref={nav}
         aria-label="Navegação principal"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:h-dvh md:w-[84px] md:translate-x-0 md:items-center md:overflow-y-auto md:px-0 md:py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[84%] flex-col gap-3 bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:z-40 md:h-dvh md:max-w-none md:translate-x-0 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          estado === 'largo' && 'md:w-60',
+          recolhido && 'md:w-[84px] md:items-center md:px-1.5 md:py-3',
+          estado === 'escondido' && 'md:hidden',
           aberto ? 'translate-x-0' : '-translate-x-full max-md:invisible',
         )}
       >
-        <div className="mb-4 flex items-center justify-between px-3 md:mb-2.5 md:justify-center md:px-0">
-          {/* brasão do CBMPE (a hierarquia máxima) com a unidade do sistema embaixo, no mesmo estilo dos itens */}
-          <Link to="/" onClick={() => aoFechar()} aria-label="Ir para o início" className="flex items-center gap-2.5 rounded md:flex-col md:gap-1 focus-visible:outline-white">
-            <img
-              src="/brasao-cbmpe.png"
-              alt="Brasão do Corpo de Bombeiros Militar de Pernambuco"
-              width={44}
-              height={44}
-              className="size-8 rounded-full ring-2 ring-white/80 md:size-11"
-            />
-            <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Sistema de Gestão - 2º GB</span>
-            <span aria-hidden className="hidden font-cond text-[11.5px] leading-none font-semibold text-white md:block">2º GB</span>
+        <div className="flex items-center justify-between">
+          {/* a marca do sistema: o brasão do 2º GB, a unidade em que a pessoa trabalha e o nome do sistema */}
+          <Link
+            to="/"
+            onClick={() => aoFechar()}
+            aria-label="Ir para o início"
+            className={cn('grid min-w-0 grid-cols-[40px_minmax(0,1fr)] items-center gap-2.5 rounded-md py-1 pr-1.5 pl-1.5 focus-visible:outline-white', recolhido && 'md:grid-cols-1 md:justify-items-center md:gap-0.5 md:px-0')}
+          >
+            <img src="/brasao-2gb.png" alt="Brasão do 2º Grupamento de Bombeiros" width={40} height={40} className={cn('size-10 object-contain', recolhido && 'md:size-11')} />
+            <span className={cn('grid min-w-0', recolhido && 'md:justify-items-center')}>
+              <b className={cn('truncate font-cond text-nome leading-5 font-semibold', recolhido && 'md:text-[13px] md:leading-3.5')}>{eu.unidade.sigla}</b>
+              <small className={cn('text-xs leading-4 text-white/85', recolhido && 'md:hidden')}>Sistema de Gestão - 2º GB</small>
+            </span>
           </Link>
           <button type="button" onClick={() => aoFechar(true)} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">
             <X className="size-5" aria-hidden />
           </button>
         </div>
-        <div className="flex w-full flex-1 flex-col md:items-center">
+        {/* "Recolher" e "Esconder" logo abaixo da unidade, onde o olho já está; no celular o menu só abre e fecha */}
+        <div className={cn('flex gap-1 border-b border-white/25 pb-2.5 max-md:hidden', recolhido && 'md:flex-col md:items-center md:gap-1.5')}>
+          <button type="button" onClick={() => aoMudarEstado(recolhido ? 'largo' : 'recolhido')} className={botao}>
+            {recolhido ? <ChevronsRight className="size-4.5" aria-hidden /> : <ChevronsLeft className="size-4.5" aria-hidden />}
+            <span>{recolhido ? 'Abrir' : 'Recolher'}</span>
+          </button>
+          <button type="button" onClick={() => aoMudarEstado('escondido')} className={botao}>
+            <PanelLeftClose className="size-4.5" aria-hidden />
+            <span>Esconder</span>
+          </button>
+        </div>
+        <div className={cn('flex w-full flex-1 flex-col gap-3', recolhido && 'md:items-center')}>
           {blocos.map((bloco, i) => (
-            <Fragment key={i}>
-              {i > 0 && <hr aria-hidden className="mx-auto my-2.5 hidden h-px w-12 border-0 bg-white/30 md:block" />}
-              <ul className={cn('grid gap-0.5 md:justify-items-center', i > 0 && 'mt-3 border-t border-white/15 pt-3 md:mt-0 md:border-0 md:pt-0')}>
-                {bloco.map((item) => (
-                  <li key={item.nome}>
-                    <ItemTrilho item={item} aoNavegar={() => aoFechar()} />
-                  </li>
-                ))}
-              </ul>
-            </Fragment>
+            <ul key={i} className={cn('grid gap-0.5', i > 0 && 'border-t border-white/25 pt-2.5', recolhido && 'md:justify-items-center')}>
+              {bloco.map((item) => (
+                <li key={item.nome}>
+                  <ItemTrilho item={item} aoNavegar={() => aoFechar()} recolhido={recolhido} />
+                </li>
+              ))}
+            </ul>
           ))}
-          <hr aria-hidden className="mx-auto mt-auto mb-2.5 hidden h-px w-12 border-0 bg-white/30 md:block" />
-          <ul className="grid gap-0.5 border-t border-white/15 pt-3 max-md:mt-auto md:justify-items-center md:border-0 md:pt-0">
+          <ul className={cn('mt-auto grid gap-0.5 border-t border-white/25 pt-2.5', recolhido && 'md:justify-items-center')}>
             {pe.map((item) => (
               <li key={item.nome}>
-                <ItemTrilho item={item} aoNavegar={() => aoFechar()} />
+                <ItemTrilho item={item} aoNavegar={() => aoFechar()} recolhido={recolhido} />
               </li>
             ))}
           </ul>

@@ -51,3 +51,10 @@ export function dataEHoraBr(instante: string): string {
 export function diaEMesBr(instante: string): string {
   return dataEHoraBr(instante).slice(0, 5);
 }
+
+const MESES_CURTOS = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
+/** O mês de um 'aaaa-mm' em poucas letras: '2026-12' -> 'dez. 2026'. */
+export function mesCurto(mes: string): string {
+  const [ano, m] = mes.split('-');
+  return `${MESES_CURTOS[Number(m) - 1] ?? m} ${ano}`;
+}

@@ -54,13 +54,14 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
   if (!m) return null;
   const jornada = m.jornada ?? 'pronto';
 
+  // o afastamento que cobre o dia, com o período inteiro (o painel escreve "Afastado: Férias, de 10 a 19/12/2026")
   const afastamento =
     (
-      await c.query<{ nome: string }>(
-        'select ta.nome from afastamento a join tipo_afastamento ta on ta.id = a.tipo_afastamento_id where a.militar_id = $1 and a.inicio <= $2::date and a.fim >= $2::date limit 1',
+      await c.query<{ tipo: string; inicio: string; fim: string }>(
+        "select ta.nome as tipo, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim from afastamento a join tipo_afastamento ta on ta.id = a.tipo_afastamento_id where a.militar_id = $1 and a.inicio <= $2::date and a.fim >= $2::date limit 1",
         [militarId, data],
       )
-    ).rows[0]?.nome ?? null;
+    ).rows[0] ?? null;
 
   const marcadas = (
     await c.query<{ inicio_min: number; fim_min: number }>('select inicio_min, fim_min from disponibilidade where militar_id = $1 and data = $2::date', [militarId, data])
@@ -100,7 +101,8 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
 
   const choques = await frasesDeChoque(c, unidadeId, militarId, jornada, data, await horariosDaUnidade(c, unidadeId));
 
-  const opcoes = afastamento ? [] : await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m));
+  // o afastado também tem opções: dá para escalar mesmo assim (o painel mostra o aviso e manda `mesmoAfastado`); nada é bloqueado
+  const opcoes = await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m), !!afastamento);
 
   return {
     militar: { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada, cnh: m.motorista ? m.cnh : [], voluntarioJes: m.voluntario_jes },
@@ -148,7 +150,7 @@ async function frasesDeChoque(
 }
 
 /** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que vale para a escala, e "Sem guarnição"). */
-async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[]): Promise<OpcaoDeServico[]> {
+async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[], ignorarAfastamento = false): Promise<OpcaoDeServico[]> {
   const escalas = (await c.query<{ id: string; nome: string }>("select id, nome from escala where unidade_id = $1 and ativa and distribuicao = 'pre_escala' order by nome", [unidadeId])).rows;
   const resultado: OpcaoDeServico[] = [];
   for (const e of escalas) {
@@ -161,7 +163,7 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
     ).rows;
     const vinculo = (await vinculosDaEscala(c, e.id)).find((v) => v.vigencia <= mes);
     for (const f of faixas) {
-      const { avaliados } = await avaliarFaixa(c, { escalaId: e.id, data, inicio: f.inicio, fim: f.fim, guarnicaoId: null, funcaoId: null }, militarId);
+      const { avaliados } = await avaliarFaixa(c, { escalaId: e.id, data, inicio: f.inicio, fim: f.fim, guarnicaoId: null, funcaoId: null, ignorarAfastamento }, militarId);
       const a = avaliados[0];
       if (!a || a.militarMotivo) continue;
       const possiveis = a.porTurno

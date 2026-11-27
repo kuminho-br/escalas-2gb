@@ -172,10 +172,16 @@ describe('Adicionar serviço neste dia', () => {
     expect(p.opcoes.filter((o) => o.ordinario).flatMap((o) => o.servicos.map((s) => s.nome)).every((n) => ['Pronto', 'JES', 'Saldo'].includes(n))).toBe(true);
   });
 
-  it('afastado no dia mostra o afastamento e nenhuma opção', async () => {
+  it('afastado no dia mostra o afastamento com o período inteiro (6.70) e continua com as opções: dá para escalar mesmo assim', async () => {
     const p = await ler('AFAST');
-    expect(p.afastamento).toBe('Férias');
-    expect(p.opcoes).toEqual([]);
+    expect(p.afastamento).toEqual({ tipo: 'Férias', inicio: '2026-12-08', fim: '2026-12-12' });
+    expect(p.opcoes.length).toBeGreaterThan(0);
+    // as mesmas opções de quem não está afastado e tem a mesma situação de horário
+    expect(p.opcoes.some((o) => o.servicos.some((s) => s.nome === 'Pronto'))).toBe(true);
+  });
+
+  it('sem afastamento, o painel traz afastamento null', async () => {
+    expect((await ler('CNHB')).afastamento).toBeNull();
   });
 
   it('as opções são só as que ele pode: sem a função de CNH D para quem só tem B, e com "Sem guarnição"', async () => {
