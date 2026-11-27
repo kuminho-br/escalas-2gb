@@ -6,6 +6,7 @@ import { consultaUnidadesDaBusca } from '@/api/consulta';
 import type { Eu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { DegrausDaUnidade } from '@/componentes/DegrausDaUnidade';
+import { TodasAsUnidades } from '@/componentes/TodasAsUnidades';
 import { useSair } from '@/componentes/useSair';
 import { montarArvore } from '@/lib/arvore-de-unidades';
 import { iniciaisDe, nomeDoPapel, papelNaUnidade } from '@/lib/papeis';
@@ -34,6 +35,9 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false, menuEsco
   // os degraus (6.61): as unidades da pessoa, de trabalho e só de consulta, numa árvore só; a árvore da corporação dá lugar às unidades de cima (passagens)
   const todas = useQuery({ ...consultaUnidadesDaBusca, enabled: temSeletor }).data;
   const arvore = useMemo(() => montarArvore([...trabalho, ...consulta], todas), [trabalho, consulta, todas]);
+  // a árvore inteira ("Ver todas as unidades"): as de trabalho e, à parte, as só de consulta
+  const arvoreDeTrabalho = useMemo(() => montarArvore(trabalho, todas), [trabalho, todas]);
+  const arvoreDeConsulta = useMemo(() => montarArvore(consulta, todas), [consulta, todas]);
   const acessoDe = (id: string) => (consulta.some((u) => u.id === id) ? ('consulta' as const) : trabalho.some((u) => u.id === id) ? ('trabalho' as const) : undefined);
 
   /** Guarda a unidade e leva à lista da tela. Devolve false se a pessoa desistiu (alteração pendente): nada muda. */
@@ -76,7 +80,14 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false, menuEsco
         </button>
       )}
       {temSeletor ? (
-        <DegrausDaUnidade arvore={arvore} unidade={eu.unidade} soConsulta={eu.soConsulta} acessoDe={acessoDe} aoEscolher={escolher} />
+        <DegrausDaUnidade
+          arvore={arvore}
+          unidade={eu.unidade}
+          soConsulta={eu.soConsulta}
+          acessoDe={acessoDe}
+          aoEscolher={escolher}
+          todasAsUnidades={<TodasAsUnidades valor={eu.unidade.id} trabalho={arvoreDeTrabalho} consulta={arvoreDeConsulta} aoEscolher={escolher} />}
+        />
       ) : (
         // com uma unidade só (o auxiliar de uma seção, o militar comum) o caminho é só para leitura; no celular só a seção atual cabe
         <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-corpo text-apagado">

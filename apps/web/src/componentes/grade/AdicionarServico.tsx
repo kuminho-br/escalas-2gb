@@ -34,12 +34,13 @@ function textoDaVaga(o: OpcaoDeServico, maisDeUmaGuarnicao: boolean): string {
 }
 
 /**
- * Um turno: a vaga numa lista, o serviço (quando a vaga aceita mais de um) e o botão "Escalar". A primeira vaga e o primeiro serviço vêm
- * marcados; ao trocar a vaga, o serviço volta ao primeiro da vaga nova. A etiqueta "não marcou" segue o serviço marcado.
+ * Um turno: a vaga numa lista, o serviço (quando a vaga aceita mais de um) e o botão "Escalar". Ao abrir, a vaga marcada é "Sem guarnição"
+ * (quando o turno a tem; senão a primeira) e o serviço marcado é o primeiro; ao trocar a vaga, o serviço volta ao primeiro da vaga nova. A etiqueta "não marcou" segue o serviço marcado.
  */
 function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void }) {
   const militar = useContext(Militar);
-  const [vaga, setVaga] = useState(0);
+  // 6.73: a vaga marcada ao abrir é "Sem guarnição", em todo turno que a tem (ela é a última da lista); sem ela, a primeira
+  const [vaga, setVaga] = useState(() => Math.max(0, turno.vagas.findIndex((v) => v.guarnicaoId === null)));
   const [turnoEscolhido, setTurnoEscolhido] = useState<string | null>(null);
   const opcao = turno.vagas[vaga] ?? turno.vagas[0]!;
   const turnoId = opcao.servicos.some((s) => s.turnoId === turnoEscolhido) ? turnoEscolhido! : opcao.servicos[0]!.turnoId;
