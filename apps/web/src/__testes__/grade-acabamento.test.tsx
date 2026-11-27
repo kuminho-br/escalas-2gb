@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TabelaDaGrade, maximosDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { guardarUnidadeDeConsulta } from '@/lib/unidade-de-trabalho';
-import { abrir, chamadasA, EU_EXEMPLO, responderConfirmacao, simularApi } from './apoio';
+import { abrir, chamadasA, EU_EXEMPLO, simularApi } from './apoio';
 
-// 6.65, Task 3: a ficha pela Grade (pool 35), o filtro de equipes (17 e 18) e "Tirar do expediente" (K1). Dezembro de 2026; matrículas fictícias 990xxx-x.
+// 6.65, Task 3: a ficha pela Grade (pool 35), o filtro de equipes (17 e 18) e, desde a 6.71, o expediente lançado que sai por "Remover". Dezembro de 2026; matrículas fictícias 990xxx-x.
 const MES = '2026-12';
 const DIA = `${MES}-10`;
 const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 1).padStart(2, '0')}`, diaDaSemana: (2 + i) % 7, feriado: null }));
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
-const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
+const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00' };
 const linha = (nomeGuerra: string, matricula: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
   militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula, jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
@@ -212,7 +212,7 @@ describe('o painel do dia: o expediente lançado e o ADM (pool 18 e K1)', () => 
     expect(await within(painel).findByText(/jornada ADM/)).toBeInTheDocument();
   });
 
-  it('K1: o expediente lançado ganha "Tirar do expediente" (e não "Remover"), pede confirmação e tira sem pôr nada no lugar', async () => {
+  it('6.71: o expediente lançado sai por "Remover", como os outros serviços: sem confirmação e com os mesmos avisos', async () => {
     const f = simularApi({
       ...ROTAS,
       [`GET /api/unidades/u-1sb/grade/${MES}/militares/m-CABO/dias/${DIA}`]: { status: 200, corpo: DO_ADM },
@@ -221,24 +221,11 @@ describe('o painel do dia: o expediente lançado e o ADM (pool 18 e K1)', () => 
     abrir(ABERTA);
     const painel = await screen.findByRole('complementary', { name: 'Dia de SD CABO' });
     const item = await within(painel).findByRole('listitem', { name: /Expediente A/ });
-    expect(within(item).queryByRole('button', { name: 'Remover' })).toBeNull();
-    // os avisos de remover de uma escala não valem para o expediente
-    expect(within(item).queryByText(/pré-escala for gerada de novo/)).toBeNull();
-    await userEvent.click(within(item).getByRole('button', { name: 'Tirar do expediente' }));
-    expect(chamadasA(f, 'DELETE /api/alocacoes/a-exp')).toBe(0); // antes de confirmar, nada
-    const pergunta = await screen.findByRole('dialog');
-    expect(pergunta).toHaveTextContent('Tirar do expediente?');
-    await responderConfirmacao('Tirar');
+    expect(within(item).queryByRole('button', { name: 'Tirar do expediente' })).toBeNull();
+    expect(within(item).getByText(/pré-escala for gerada de novo/)).toBeInTheDocument();
+    await userEvent.click(within(item).getByRole('button', { name: 'Remover' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-exp')).toBe(1));
-  });
-
-  it('K1: cancelar a confirmação não tira', async () => {
-    const f = simularApi({ ...ROTAS, [`GET /api/unidades/u-1sb/grade/${MES}/militares/m-CABO/dias/${DIA}`]: { status: 200, corpo: DO_ADM } });
-    abrir(ABERTA);
-    const painel = await screen.findByRole('complementary', { name: 'Dia de SD CABO' });
-    await userEvent.click(await within(painel).findByRole('button', { name: 'Tirar do expediente' }));
-    await responderConfirmacao('Cancelar');
-    expect(chamadasA(f, 'DELETE /api/alocacoes/a-exp')).toBe(0);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('um serviço de escala continua com "Remover", sem confirmação nova', async () => {

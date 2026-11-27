@@ -10,7 +10,7 @@ const MES = '2026-12';
 const DIA = `${MES}-10`;
 const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 1).padStart(2, '0')}`, diaDaSemana: (2 + i) % 7, feriado: null }));
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
-const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
+const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00' };
 const linha = (nome: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({ militarId: `m-${nome}`, posto: 'SD', nomeGuerra: nome, matricula: '997001-1', jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra });
 const GRADE: GradeDoMes = { mes: MES, dias: DIAS, grupos: [{ chave: 'eq-alfa', nome: 'Alfa', linhas: [linha('CABO', { dias: { [DIA]: [BLOCO] } })] }, { chave: 'eq-bravo', nome: 'Bravo', linhas: [linha('DELTA')] }] };
 const PAINEL: PainelDoDia = { militar: { militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '997001-1', equipe: 'Alfa', jornada: 'pronto', cnh: [], voluntarioJes: false }, data: DIA, afastamento: null, disponibilidade: [], servicos: [], choques: [], opcoes: [] };

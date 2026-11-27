@@ -15,10 +15,10 @@ const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
 const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: dia(i + 1), diaDaSemana: (2 + i) % 7, feriado: i + 1 === 8 ? 'Feriado de teste' : null }));
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
 const JES = { id: 's-jes', nome: 'JES', cor: '#6E56A8', tipo: 'pjes' as const };
-const bloco = (servico: typeof PRONTO | typeof JES, letra: string, inicio = '08:00', fim = '20:00'): BlocoDaGrade => ({
-  alocacaoId: `a-${servico.nome}-${letra}-${inicio}`, servico, letra, inicio, fim, expediente: false,
+const bloco = (servico: typeof PRONTO | typeof JES | typeof EXPEDIENTE, letra: string, inicio = '08:00', fim = '20:00'): BlocoDaGrade => ({
+  alocacaoId: `a-${servico.nome}-${letra}-${inicio}`, servico, letra, inicio, fim,
 });
-const EXPEDIENTE: BlocoDaGrade = { alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true };
+const EXPEDIENTE = { id: 's-exp', nome: 'Expediente', cor: '#8A94A1', tipo: 'ordinario' as const };
 const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
   militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
@@ -37,7 +37,7 @@ const GRADE: GradeDoMes = {
       ],
     },
     { chave: 'eq-bravo', nome: 'Bravo', linhas: [linha('BRAVO', { dias: { [dia(8)]: [bloco(JES, 'A')] }, pjes: 2, diarias: 1 })] },
-    { chave: 'adm', nome: 'Adm', linhas: [linha('ADM', { jornada: 'adm', dias: { [dia(2)]: [EXPEDIENTE] } })] },
+    { chave: 'adm', nome: 'Adm', linhas: [linha('ADM', { jornada: 'adm', dias: { [dia(2)]: [bloco(EXPEDIENTE, 'A', '08:00', '16:00')] } })] },
   ],
 };
 const ROTA = `GET /api/unidades/u-1sb/grade/${MES}`;
@@ -297,27 +297,27 @@ describe('grade geral: a tabela', () => {
     expect(c).not.toHaveClass('after:ring-vinho');
   });
 
-  it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
+  it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente lançado é um quadrado como os outros, com a letra do turno', async () => {
     api();
     abrir(`/?mes=${MES}`);
     const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     expect(c).toHaveAttribute('data-choque');
     expect(c).toHaveClass('after:ring-alerta');
-    const exp = celula('ADM', 2, 'expediente');
+    const exp = celula('ADM', 2, 'Expediente A');
     expect(exp).toBeInTheDocument();
-    expect(within(exp).queryByText(/^[A-C]$/)).toBeNull();
+    expect(within(exp).getByText('A')).toBeInTheDocument();
     expect(celula('CABO', 3, 'sem serviço')).not.toHaveAttribute('data-choque');
   });
 });
 
 describe('grade geral: a legenda', () => {
-  it('traz só os serviços que aparecem, o expediente e o choque, e vem ACIMA da tabela', async () => {
+  it('traz só os serviços que aparecem (o Expediente lançado é um deles) e o choque, e vem ACIMA da tabela', async () => {
     api();
     abrir(`/?mes=${MES}`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
     expect(legenda.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // cada serviço leva o quadradinho com a letra do turno (6.70), e no fim a dica de rolar para os lados
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'APronto', 'Expediente do ADM', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AExpediente', 'AJES', 'APronto', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 
   it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
