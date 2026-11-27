@@ -84,7 +84,7 @@ export interface EstruturaDoSchema {
 export async function estruturaDoSchema(c: Consulta, schema: string): Promise<EstruturaDoSchema> {
   const lista = async (sql: string) => {
     const { rows } = await c.query<{ v: string }>(sql, [schema]);
-    return rows.map((r) => r.v.replaceAll(`${schema}.`, '')).sort();
+    return rows.map((r) => r.v.replace(new RegExp(`(?<!\\w)${schema}\\.`, 'g'), '')).sort();
   };
   return {
     tabelas: await lista('select tablename as v from pg_tables where schemaname = $1'),

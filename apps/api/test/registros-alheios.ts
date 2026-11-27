@@ -68,7 +68,7 @@ export function rotasDaVarredura(hono: Hono, ids: Record<string, string>, outra:
     // o Laboratório (/api/lab) tem a varredura dele, em laboratorio-isolamento.test.ts: aqui valem as rotas do real
     if (r.method === 'ALL' || !r.path.startsWith('/api/') || r.path.startsWith('/api/lab/')) continue;
     if (!(r.path.includes(':u') || r.path.includes(':id'))) continue;
-    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade', '/api/visualizacao'].some((p) => r.path.startsWith(p))) continue;
+    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade', '/api/visualizacao', '/api/laboratorio'].some((p) => r.path.startsWith(p))) continue;
     const recurso = /^\/api\/([a-z]+)\/:id/.exec(r.path)?.[1];
     if (r.path.includes(':id') && !(recurso && ids[recurso])) throw new Error(`recurso sem registro de teste: ${r.path}`);
     const caminho = r.path.replace(':u', outra).replace(':id', recurso ? ids[recurso]! : 'x').replace(':mes', mes).replace(':cadastro', 'feriados');
