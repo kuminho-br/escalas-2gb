@@ -69,21 +69,22 @@
     return '<ul class="gg-leg" aria-label="Legenda">' +
       '<li>' + q(SERV.pronto.c, 'A') + 'Pronto</li><li>' + q(SERV.jes.c, 'A') + 'JES</li><li>' + q(SERV.saldo.c, 'B') + 'Saldo</li>' +
       '<li><span class="gg-q exp"></span>Expediente do ADM</li>' +
-      '<li><span class="gg-tr"></span>Afastado</li>' +
+      '<li><span class="gg-tr"><span class="gg-af comeca termina"></span></span>Afastado</li>' +
       '<li><span class="gg-ch"></span>Choque de horário</li>' +
-      '<li>A letra é o turno.</li></ul>';
+      '<li>A letra é o turno.</li>' +
+      '<li class="gg-dica-rolar">' + ic('mouse') + 'Para rolar para os lados, segure <kbd>Shift</kbd> e gire a roda do mouse.</li></ul>';
   }
 
   function menu(op, st) {
     var item = function (n, ico, atual) { return '<li' + (atual ? ' class="atual"' : '') + '><a href="#" data-m="' + n + '"' + (atual ? ' aria-current="page"' : '') + '>' + mi(ico) + '<span>' + n + '</span></a></li>'; };
     return '<nav class="gg-menu" aria-label="Navegação principal">' +
       '<a class="gg-casa" href="#" aria-label="Ir para o início, 1ª Seção de Bombeiros"><img src="../img/brasao-2gb.png" alt=""><span><b>1ª SB</b><small>1ª Seção de Bombeiros</small></span></a>' +
+      (op.cel ? '' : '<div class="gg-ctl"><button type="button" class="gg-recolher" data-recolher>' + ic('esq') + '<span>' + (st.menu === 'recolhido' ? 'Abrir' : 'Recolher') + '</span></button>' +
+        '<button type="button" class="gg-recolher" data-ocultar-menu>' + ic('esconder') + '<span>Esconder</span></button></div>') +
       '<ul>' + item('Grade geral', 'grade', true) + item('Escala do mês', 'escala') + item('Efetivo por dia', 'efetivo') + item('Oficiais', 'oficiais') + '</ul>' +
       '<ul>' + item('Voluntariado', 'voluntariado') + item('Cotas', 'cotas') + '</ul>' +
       '<ul>' + item('Militares', 'militares') + item('Turnos', 'turnos') + item('Escalas', 'escalas') + item('Feriados', 'feriados') + '</ul>' +
-      '<ul class="pe">' + item('Configurações da escala', 'config') +
-        (op.cel ? '' : '<li><button type="button" class="gg-recolher" data-recolher>' + ic('esq') + '<span>' + (st.menu === 'recolhido' ? 'Abrir menu' : 'Recolher menu') + '</span></button></li>' +
-          '<li><button type="button" class="gg-recolher" data-ocultar-menu>' + ic('esconder') + '<span>Esconder menu</span></button></li>') + '</ul>' +
+      '<ul class="pe">' + item('Configurações da escala', 'config') + '</ul>' +
       '</nav>';
   }
 
@@ -111,8 +112,8 @@
   }
 
   // na tela cheia do celular: o mês, as equipes que valem e o botão de recolher, numa linha só
-  function cheiaBarra(st) {
-    var eqs = st.eqs.length ? EQUIPES.filter(function (e) { return st.eqs.indexOf(e.k) >= 0; }).map(function (e) { return e.n; }).join(', ') : 'Todas';
+  function cheiaBarra(st, op) {
+    var eqs = st.eqs.length ? EQUIPES.filter(function (e) { return st.eqs.indexOf(e.k) >= 0; }).map(function (e) { return e.n; }).join(', ') : (op.cel ? 'Todas' : 'Todas as equipes');
     return '<div class="gg-cheia-barra"><span class="gg-mes mini"><button type="button" aria-label="Mês anterior">' + ic('esq') + '</button><span>dez. 2026</span><button type="button" aria-label="Próximo mês">' + ic('dir') + '</button></span>' +
       '<span class="eqs">' + eqs + (st.busca.trim() ? ', "' + st.busca.trim() + '"' : '') + '</span><button type="button" class="botao secundario" data-cheia aria-pressed="true">' + ic('recolher') + 'Recolher grade</button></div>';
   }
@@ -167,7 +168,7 @@
       algum = true;
       var recolhida = !busca && st.rec.indexOf(e.k) >= 0;
       var nAf = ps.filter(function (p) { return afDe(p, HOJE); }).length;
-      var resumo = nAf ? '<span class="tr" aria-hidden="true"></span>' + nAf + (nAf > 1 ? ' afastados hoje' : ' afastado hoje') : '';
+      var resumo = nAf ? '<span class="gg-tr pequeno" aria-hidden="true"><span class="gg-af comeca termina"></span></span>' + nAf + (nAf > 1 ? ' afastados hoje' : ' afastado hoje') : '';
       h += '<tr class="faixa"><th scope="rowgroup" class="nome"><span class="gg-eq"><button type="button" data-rec="' + e.k + '" aria-expanded="' + !recolhida + '" aria-label="' + (recolhida ? 'Mostrar' : 'Recolher') + ' ' + e.n + '">' + ic(recolhida ? 'dir' : 'baixo') + '<strong>' + e.n + '</strong></button><small>' + ps.length + (ps.length > 1 ? ' militares' : ' militar') + '</small></span></th>' +
         '<td colspan="' + DIAS + '"><span class="gg-resumo">' + resumo + '</span></td><td class="fim pjes"></td><td class="fim diar"></td></tr>';
       if (!recolhida) ps.forEach(function (p) { h += linha(st, p); });
@@ -207,18 +208,18 @@
     function desenhar(manter) {
       var rolaAntes = raiz.querySelector('.gg-rola'), sx = rolaAntes ? rolaAntes.scrollLeft : 0, sy = rolaAntes ? rolaAntes.scrollTop : 0;
       var temPainel = !!st.sel;
-      raiz.className = 'gg' + (op.cel ? ' cel' : '') + (st.menu === 'recolhido' && !op.cel ? ' recolhido' : '') + (st.menu === 'oculto' && !op.cel ? ' oculto' : '') + (op.cel && st.cheia ? ' cheia' : '') + (temPainel && !op.cel ? ' painel' : '') + (temPainel && op.cel ? ' com-folha' : '') + (op.cel && st.menuAberto ? ' menu-aberto' : '');
-      var corpo = '<div class="gg-main">' + topo(op) + '<div class="gg-pag">' + (op.cel ? cheiaBarra(st) : '') + '<div class="gg-tit"><h3>Grade geral</h3>' + (op.cel ? '<button type="button" class="botao secundario" data-cheia aria-pressed="false">' + ic('expandir') + 'Expandir grade</button>' : '') + '</div>' + barra(st, op) + legenda() +
+      raiz.className = 'gg' + (op.cel ? ' cel' : '') + (st.menu === 'recolhido' && !op.cel ? ' recolhido' : '') + (st.menu === 'oculto' && !op.cel ? ' oculto' : '') + (st.cheia ? ' cheia' : '') + (temPainel && !op.cel ? ' painel' : '') + (temPainel && op.cel ? ' com-folha' : '') + (op.cel && st.menuAberto ? ' menu-aberto' : '');
+      var corpo = '<div class="gg-main">' + topo(op) + '<div class="gg-pag">' + cheiaBarra(st, op) + '<div class="gg-tit"><h3>Grade geral</h3><button type="button" class="botao secundario" data-cheia aria-pressed="false">' + ic('expandir') + 'Expandir grade</button></div>' + barra(st, op) + legenda() +
         '<div class="gg-quadro"><div class="gg-tab"><div class="gg-rola" data-rola tabindex="0" role="region" aria-label="Grade geral, role para os lados e para baixo">' + tabela(st, op) + '</div></div>' +
         (temPainel && !op.cel ? painel(st, op) : '') + '</div></div></div>';
       var extra = '';
       if (op.cel && temPainel) extra = '<div class="gg-veu"></div><div class="gg-folha" role="dialog" aria-label="Dia do militar"><div class="puxador" aria-hidden="true"></div><div class="miolo">' + painel(st, op) + '</div><div class="rodape"><button type="button" class="botao secundario" data-adicionar>Adicionar serviço neste dia</button></div></div>';
       if (op.cel && st.menuAberto) extra = '<div class="gg-veu" data-fechar-menu></div>';
-      if (!op.cel && st.menu === 'oculto') extra += '<button type="button" class="gg-flutua" data-mostrar-menu aria-label="Mostrar o menu">' + ic('menu') + '<span>Menu</span></button>';
+      if (!op.cel && st.menu === 'oculto' && !st.cheia) extra += '<button type="button" class="gg-flutua" data-mostrar-menu aria-label="Mostrar o menu">' + ic('menu') + '<span>Menu</span></button>';
       raiz.innerHTML = (op.cel ? (st.menuAberto ? menu(op, st) : '') + corpo : menu(op, st) + corpo) + extra;
       var rola = raiz.querySelector('.gg-rola');
       if (rola) { rola.scrollLeft = manter === false ? 0 : sx; rola.scrollTop = manter === false ? 0 : sy; marcarRolagem(rola); }
-      var alt = op.cel ? null : 560; if (alt) { raiz.style.setProperty('--alt', (st.menu === 'oculto' ? 490 : temPainel ? 520 : 560) + 'px'); raiz.style.setProperty('--alt-pd', '600px'); }
+      var alt = op.cel ? null : 560; if (alt) { raiz.style.setProperty('--alt', (st.cheia ? 700 : temPainel ? 520 : 560) + 'px'); raiz.style.setProperty('--alt-pd', (st.cheia ? 700 : 600) + 'px'); }
       if (op.cel && temPainel) { var s = raiz.querySelector('[data-p="' + st.sel.p + '"][data-d="' + st.sel.d + '"]'); var r2 = raiz.querySelector('.gg-rola'); if (s && r2) { var tr = s.closest('tr'); r2.scrollTop = Math.max(0, tr.offsetTop - 48); r2.scrollLeft = Math.max(0, s.closest('td').offsetLeft - 148 - 44); } }
     }
     function marcarRolagem(r) { r.classList.toggle('rolou-e', r.scrollLeft > 2); r.classList.toggle('rolou-d', r.scrollLeft + r.clientWidth < r.scrollWidth - 2); }
@@ -261,7 +262,23 @@
     });
     raiz.addEventListener('change', function (e) { if (e.target.matches('[data-esconder]')) { st.esconder = e.target.checked; desenhar(); } });
     desenhar();
-    return { definir: function (o) { if (o.menu) { if (o.menu === 'oculto' && st.menu !== 'oculto') st.antesOculto = st.menu; st.menu = o.menu; st.antes = null; } if (o.sel !== undefined) st.sel = o.sel; if (o.menuAberto !== undefined) st.menuAberto = o.menuAberto; desenhar(); }, estado: st };
+    return { definir: function (o) { if (o.menu) { if (o.menu === 'oculto' && st.menu !== 'oculto') st.antesOculto = st.menu; st.menu = o.menu; st.antes = null; } if (o.sel !== undefined) st.sel = o.sel; if (o.menuAberto !== undefined) st.menuAberto = o.menuAberto; if (o.cheia !== undefined) st.cheia = o.cheia; desenhar(); }, estado: st };
+  }
+
+  // as amostras do traço do afastado: um trecho da Grade (dias 8 a 14) com dois afastados, um choque e a borda grossa
+  function amostra(el, v) {
+    var st = { sel: null, busca: "" };
+    var h = '<table class="gg-t" aria-label="Amostra do traço do afastado"><thead><tr><th scope="col" class="nome">Militar</th>';
+    for (var d = 8; d <= 14; d++) h += '<th scope="col" class="dia' + (dow(d) === 0 || dow(d) === 6 ? ' fds' : '') + '"><b>' + d + '</b>' + SIG[dow(d)] + '</th>';
+    h += '</tr></thead><tbody>';
+    ['a1', 'a3', 'a4', 'b2'].forEach(function (id) {
+      var p = achar(id);
+      h += '<tr><th scope="row" class="nome"><span class="gg-nb"><span class="l1"><small>' + p.pst + '</small><strong>' + p.gue + '</strong></span><span class="mat">' + p.mat + '</span></span></th>';
+      for (var d = 8; d <= 14; d++) h += celula(st, p, d);
+      h += '</tr>';
+    });
+    el.setAttribute('data-af', v);
+    el.innerHTML = '<div class="gg-rola">' + h + '</tbody></table></div>';
   }
 
   // a tela escala para caber na página: o desenho é no tamanho real e o palco o reduz
@@ -274,5 +291,5 @@
     ajustar(); window.addEventListener('resize', ajustar);
     return ajustar;
   }
-  window.Grade = { montar: montar, palco: palco, achar: achar };
+  window.Grade = { montar: montar, palco: palco, achar: achar, amostra: amostra };
 })();

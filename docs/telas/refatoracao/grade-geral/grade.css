@@ -287,3 +287,62 @@
 
 .gg.cel .gg-mes.mini{width:auto;justify-content:center}
 .gg.cel .gg-mes.mini button{width:36px}
+
+/* versão 3 (26/11): os botões do menu no alto; o botão flutuante no alto; a tela cheia também no computador; a dica do Shift */
+.gg-ctl{display:flex;gap:4px;padding-bottom:10px;border-bottom:1px solid color-mix(in srgb,var(--claro) 24%,transparent)}
+.gg-ctl .gg-recolher{flex:1;justify-content:center;height:32px;padding:0 8px;gap:6px;font-size:var(--t13)}
+.gg.recolhido .gg-ctl{flex-direction:column;gap:2px}
+.gg.recolhido [data-ocultar-menu] .i{transform:none}
+.gg-flutua{top:8px;bottom:auto;left:12px;height:40px}
+.gg.oculto .gg-topo{padding-left:124px}
+.gg.cheia .gg-cheia-barra{display:flex;align-items:center;gap:10px;min-width:0}
+.gg.cheia:not(.cel) .gg-menu,.gg.cheia:not(.cel) .gg-topo,.gg.cheia:not(.cel) .gg-tit,.gg.cheia:not(.cel) .gg-barra{display:none}
+.gg.cheia:not(.cel) .gg-pag{padding-top:12px}
+.gg:not(.cel) .gg-mes.mini{height:var(--h)}
+.gg:not(.cel) .gg-cheia-barra .botao{min-height:var(--h)}
+.gg-leg .gg-dica-rolar{margin-left:auto;gap:8px}
+.gg-leg kbd{padding:1px 6px;border:1px solid var(--encaixe);border-bottom-width:2px;border-radius:4px;background:var(--superficie);color:var(--tinta);font:600 12px/16px var(--texto)}
+.gg.cel .gg-dica-rolar{display:none}
+
+/* a amostra do traço na legenda e na faixa da equipe é o próprio traço: segue a opção escolhida */
+.gg-tr{position:relative;display:inline-block;flex:none;width:26px;height:16px}
+.gg-tr.pequeno{width:20px;height:14px}
+.gg-leg .gg-tr::before{content:none}
+.gg-tr .gg-af.comeca{left:0}
+.gg-tr .gg-af.termina{right:0}
+.gg-af-rot{padding:0 2px;border-radius:3px;background:color-mix(in srgb,var(--superficie) 85%,transparent)}
+
+/* as opções do traço do afastado: o atributo data-af da tela (ou da amostra) escolhe uma.
+   cinza: a versão 2. vermelho e dupla: as sugestões do usuário. ambar, listras e faixa: o âmbar que o sistema já usa para "atenção, sem bloquear" */
+[data-af="vermelho"] .gg-af{height:4px;margin-top:-2px;background:rgba(179,38,30,.3)}
+[data-af="dupla"] .gg-af{height:6px;margin-top:-3px;background:none;border-top:1.5px solid rgba(179,38,30,.45);border-bottom:1.5px solid rgba(179,38,30,.45);border-radius:0}
+[data-af="vermelho"] .gg-af-rot,[data-af="dupla"] .gg-af-rot{color:#A1302A}
+[data-af="ambar"] .gg-af{height:3px;background:linear-gradient(90deg,#A06C0A 0 62%,transparent 62%) 0 0/calc(var(--w-dia,46px) / 4) 100% repeat-x;border-radius:0}
+[data-af="listras"] .gg-af{top:5px;bottom:5px;height:auto;margin:0;border-radius:0;background:linear-gradient(135deg,rgba(160,108,10,.26) 25%,transparent 25%,transparent 50%,rgba(160,108,10,.26) 50%,rgba(160,108,10,.26) 75%,transparent 75%) 0 0/calc(var(--w-dia,46px) / 4) calc(var(--w-dia,46px) / 4)}
+[data-af="faixa"] .gg-af{top:9px;bottom:9px;height:auto;margin:0;border-radius:0;background:linear-gradient(#A06C0A,#A06C0A) left center/100% 2px no-repeat,#FBEBC6}
+[data-af="ambar"] .gg-af.comeca,[data-af="listras"] .gg-af.comeca{background-position:-5px 0}
+[data-af="listras"] .gg-af.comeca,[data-af="faixa"] .gg-af.comeca{border-radius:4px 0 0 4px}
+[data-af="listras"] .gg-af.termina,[data-af="faixa"] .gg-af.termina{border-radius:0 4px 4px 0}
+[data-af="listras"] .gg-af.comeca.termina,[data-af="faixa"] .gg-af.comeca.termina{border-radius:4px}
+[data-af="ambar"] .gg-af-rot,[data-af="listras"] .gg-af-rot,[data-af="faixa"] .gg-af-rot{color:var(--pendencia)}
+[data-af="listras"] .gg-af-rot,[data-af="faixa"] .gg-af-rot{top:1px}
+[data-af="listras"] .gg-tr .gg-af,[data-af="faixa"] .gg-tr .gg-af{top:3px;bottom:3px}
+
+/* a prancha das opções */
+.gg-opcoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,500px),1fr));gap:20px}
+.gg-opcoes figure{min-width:0}
+.gg-opcoes figcaption{display:grid;gap:4px;margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.gg-opcoes figcaption b{color:var(--tinta);font-size:var(--t15)}
+.gg-opcoes .recomendada{color:var(--pendencia);font-weight:600}
+.gg-amostra{--w-nome:150px;--w-dia:46px;--alt:none;overflow:hidden;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);color:var(--tinta);color-scheme:light;font:400 var(--t15)/22px var(--texto)}
+.gg-amostra .gg-rola{overflow:auto;max-height:none}
+.gg-amostra .gg-t{width:calc(var(--w-nome) + 7 * var(--w-dia))}
+.gg-amostra .gg-nb{cursor:default}
+.gg-amostra .gg-nb:hover{background:transparent}
+.gg.recolhido .gg-ctl{gap:6px}
+.gg.recolhido .gg-ctl .gg-recolher{flex:none;height:46px}
+.gg-opcoes figcaption{color:var(--pg-apagado)}
+.gg-opcoes figcaption b{color:var(--pg-tinta)}
+.gg-opcoes .recomendada{color:var(--pg-tinta)}
+.gg-opcoes .recomendada::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#C08A1E;vertical-align:1px}
+.gg-menu{overflow-y:auto;scrollbar-width:none}
