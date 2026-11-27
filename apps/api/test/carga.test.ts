@@ -65,7 +65,7 @@ describe('carga de exemplo', () => {
     expect(await cargaExemplo(banco, undefined, '2026-11-01')).toEqual({ militares: 53 });
     await banco.query("delete from militar where matricula = '990999-9'");
     expect(await n('select count(*)::int as n from militar')).toBe(53);
-    expect(await n("select count(*)::int as n from militar where matricula !~ '^990\\d{3}-\\d$'")).toBe(0);
+    expect(await n("select count(*)::int as n from militar where matricula !~ '^100\\d{3}-\\d$'")).toBe(0);
     expect(await n("select count(*)::int as n from rastreio where jornada = 'adm'")).toBe(17);
     expect(await n("select count(*)::int as n from rastreio where jornada = 'pronto'")).toBe(36);
     const { rows } = await banco.query<{ nome: string; ordem_ciclo: number; n: number }>(

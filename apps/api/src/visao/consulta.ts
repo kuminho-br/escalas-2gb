@@ -53,7 +53,7 @@ const COLUNAS = 'm.id, p.sigla as posto, m.nome_guerra, m.nome_completo, m.matri
 
 /**
  * Busca militares da corporação pelo nome de guerra, o nome completo ou a matrícula (todas as palavras do texto precisam aparecer), sem
- * diferenciar maiúsculas nem acentos; a matrícula acha com ou sem o hífen (990001-1 ou 9900011). Com `unidadeId`, só quem está lotado hoje nela ou numa de baixo.
+ * diferenciar maiúsculas nem acentos; a matrícula acha com ou sem o hífen (100001-1 ou 1000011). Com `unidadeId`, só quem está lotado hoje nela ou numa de baixo.
  */
 export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId: string | null; hoje: string; unidadeDeTrabalho?: string | null }): Promise<ResultadoDaConsulta> {
   const { rows } = await c.query<LinhaBanco>(

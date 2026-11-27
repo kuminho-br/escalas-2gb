@@ -10,7 +10,7 @@ const VAZIO = { vazio: true } as const;
 const valor = <T>(v: T): Leitura<T> => ({ valor: v });
 const motivo = (m: string): Leitura<never> => ({ motivo: m });
 
-/** '9902022' -> '990202-2'; formato certo passa direto; o resto é null. */
+/** '1002022' -> '100202-2'; formato certo passa direto; o resto é null. */
 export function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean } {
   const s = bruto.trim();
   if (/^\d{6}-\d$/.test(s)) return { valor: s, corrigida: false };

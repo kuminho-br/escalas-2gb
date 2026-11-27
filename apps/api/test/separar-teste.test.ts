@@ -41,8 +41,8 @@ async function montar(b: Banco, marcar = true) {
   const alocRealNaPermuta = await inserir(b, 'alocacao', { militar_id: reais[1], escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-06', origem: 'permuta' });
 
   // os de teste: alocações na mesma escala, afastamento, voluntariado, uma conta com nível e senha, e uma permuta com um militar real
-  const t1 = await um("select id from militar where matricula = '990001-1'");
-  const t2 = await um("select id from militar where matricula = '990002-2'");
+  const t1 = await um("select id from militar where matricula = '100001-1'");
+  const t2 = await um("select id from militar where matricula = '100002-2'");
   const aloc1 = await inserir(b, 'alocacao', { militar_id: t1, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-05', origem: 'manual' });
   await inserir(b, 'alocacao', { militar_id: t2, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-05', origem: 'manual' });
   await inserir(b, 'afastamento', { militar_id: t2, tipo_afastamento_id: tipo, inicio: '2026-12-10', fim: '2026-12-12' });
@@ -55,7 +55,7 @@ async function montar(b: Banco, marcar = true) {
     await tx.query('insert into permuta_item (permuta_id, alocacao_id, militar_original_id) values ($1, $2, $3), ($1, $4, $5)', [permuta, aloc1, t1, alocRealNaPermuta, reais[1]]);
   });
   // uma permuta já feita: a alocação X, que era do real, está com o de teste; a Y, que era do de teste, está com o real. Cada item aponta para o outro lado
-  const t3 = await um("select id from militar where matricula = '990003-3'");
+  const t3 = await um("select id from militar where matricula = '100003-3'");
   const alocX = await inserir(b, 'alocacao', { militar_id: t3, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-08', origem: 'permuta' });
   const alocY = await inserir(b, 'alocacao', { militar_id: reais[0], escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-09', origem: 'permuta' });
   await b.transacao(async (tx) => {
@@ -162,12 +162,12 @@ describe('tirar o que é de teste', () => {
   it('a auditoria não é apagada nem faz a transação falhar: as linhas dela que citam os removidos ficam', async () => {
     await montar(banco);
     const antes = await n('select count(*)::int as n from auditoria');
-    const doMilitarDeTeste = await n("select count(*)::int as n from auditoria where tabela = 'militar' and coalesce(depois, antes) ->> 'matricula' like '990%'");
+    const doMilitarDeTeste = await n("select count(*)::int as n from auditoria where tabela = 'militar' and coalesce(depois, antes) ->> 'matricula' like '100%'");
     expect(doMilitarDeTeste).toBeGreaterThanOrEqual(53);
     await removerRegistrosDeTeste(banco);
     // nenhuma linha antiga sumiu (as exclusões ainda acrescentam as suas)
     expect(await n('select count(*)::int as n from auditoria')).toBeGreaterThanOrEqual(antes);
-    expect(await n("select count(*)::int as n from auditoria where tabela = 'militar' and acao = 'insert' and depois ->> 'matricula' like '990%'")).toBe(53);
+    expect(await n("select count(*)::int as n from auditoria where tabela = 'militar' and acao = 'insert' and depois ->> 'matricula' like '100%'")).toBe(53);
   });
 
   it('rodar de novo não faz mal e não acha mais nada', async () => {
@@ -531,7 +531,7 @@ describe('com o espelho no mesmo banco', () => {
       await cargaExemplo(completo, undefined, MES);
       await marcarSeguros(completo, 53);
       await cargaDoEspelho(completo, MES);
-      const militar = (await completo.query<{ id: string }>("select id from militar where matricula = '990001-1'")).rows[0]!.id;
+      const militar = (await completo.query<{ id: string }>("select id from militar where matricula = '100001-1'")).rows[0]!.id;
       const junto = await oQueVaiJunto(completo, militar);
       expect(junto.periodosDoRastreio).toBe(1);
 

@@ -36,7 +36,7 @@ describe('a carga de teste do espelho', () => {
     };
     expect(await cargaDoEspelho(banco, MES)).toEqual({ militares: 53, perfis: 5 });
 
-    expect(await n("select count(*)::int as n from laboratorio.militar where matricula like '990%'")).toBe(58);
+    expect(await n("select count(*)::int as n from laboratorio.militar where matricula like '100%'")).toBe(58);
     expect(await n('select count(*)::int as n from laboratorio.usuario')).toBe(5);
     expect(await n('select count(*)::int as n from laboratorio.servico')).toBeGreaterThan(5);
     expect(await n('select count(*)::int as n from laboratorio.equipe')).toBe(4);
@@ -49,7 +49,7 @@ describe('a carga de teste do espelho', () => {
       servicos: await n('select count(*)::int as n from public.servico'),
       auditoria: await n('select count(*)::int as n from public.auditoria'),
     }).toEqual(realAntes);
-    expect(await n("select count(*)::int as n from public.militar where matricula like '990%'")).toBe(0);
+    expect(await n("select count(*)::int as n from public.militar where matricula like '100%'")).toBe(0);
   });
 
   it('a carga do espelho marca como teste os 53 militares e os 5 perfis; a carga de exemplo comum não marca ninguém', async () => {
@@ -107,7 +107,7 @@ describe('a carga de teste do espelho', () => {
     for (const p of perfis) {
       expect(await n('select count(*)::int as n from laboratorio.rastreio r join laboratorio.usuario u on u.militar_id = r.militar_id where u.id = $1', [p.usuarioId])).toBe(1);
     }
-    expect(await n("select count(*)::int as n from laboratorio.usuario u join laboratorio.militar m on m.id = u.militar_id where m.matricula !~ '^990[0-9]{3}-[0-9]$'")).toBe(0);
+    expect(await n("select count(*)::int as n from laboratorio.usuario u join laboratorio.militar m on m.id = u.militar_id where m.matricula !~ '^100[0-9]{3}-[0-9]$'")).toBe(0);
     expect(await n('select count(*)::int as n from laboratorio.conta')).toBe(0);
     // o militar comum não tem nível nenhum; os outros têm exatamente um
     expect(await n('select count(*)::int as n from laboratorio.papel_usuario')).toBe(4);
@@ -120,7 +120,7 @@ describe('a carga de teste do espelho', () => {
     try {
       await migrar(sem, undefined, { espelho: false });
       await expect(cargaDoEspelho(sem, MES)).rejects.toThrow(/só roda no espelho/);
-      expect((await sem.query<{ n: number }>("select count(*)::int as n from public.militar where matricula like '990%'")).rows[0]!.n).toBe(0);
+      expect((await sem.query<{ n: number }>("select count(*)::int as n from public.militar where matricula like '100%'")).rows[0]!.n).toBe(0);
       expect((await sem.query<{ n: number }>('select count(*)::int as n from public.usuario')).rows[0]!.n).toBe(0);
     } finally {
       await sem.fechar();
@@ -131,7 +131,7 @@ describe('a carga de teste do espelho', () => {
     const primeira = await cargaDoEspelho(banco, MES);
     const segunda = await cargaDoEspelho(banco, MES);
     expect(segunda).toEqual(primeira);
-    expect(await n('select count(*)::int as n from laboratorio.militar where matricula like $1', ['990%'])).toBe(58);
+    expect(await n('select count(*)::int as n from laboratorio.militar where matricula like $1', ['100%'])).toBe(58);
     expect(await n('select count(*)::int as n from laboratorio.usuario')).toBe(5);
     expect(await n('select count(*)::int as n from laboratorio.papel_usuario')).toBe(4);
   });
