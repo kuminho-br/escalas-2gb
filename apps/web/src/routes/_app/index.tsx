@@ -137,8 +137,11 @@ function Inicio() {
           {/* ao encolher, a cena escurece um pouco, para a saudação e a linha do próximo serviço lerem bem sobre a imagem clara */}
           <div aria-hidden className="escurece pointer-events-none absolute inset-0" />
           <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/55 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
-            <h1 ref={titulo} tabIndex={-1} className="col-start-1 origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
-            <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+            {/* o nome e a data num elemento só: a animação do login mede este retângulo e deixa as brasas mais fracas sobre ele (a saudação em duas linhas fica toda coberta) */}
+            <div data-saudacao-da-faixa className="col-start-1 row-span-2 grid min-w-0 content-start gap-1">
+              <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
+              <p className="data text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+            </div>
             {/* os cartões entram junto com a saudação (o mesmo data-chegada) e somem antes da barra */}
             {proximos && <div className="proximos-da-cena col-start-1 min-w-0 self-end pb-4 md:pb-6"><ProximosServicos servicos={proximos} /></div>}
             {/* o lugar dos avisos (6.56): à direita da cena, a partir de 1024 px; abaixo disso o painel desce para logo abaixo da cena */}

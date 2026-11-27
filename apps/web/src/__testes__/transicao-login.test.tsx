@@ -322,3 +322,135 @@ describe('as brasas novas, que esfriam até virar cinza, por 4,2 s (6.67, Task 2
     expect(arcosEm({ x: 900, y: 500, w: 300 }) - arcosEm(null)).toBe(N_BRASAS_DO_BOTAO);
   });
 });
+
+describe('as brasas sobre o quadro e mais fracas sobre a saudação (6.67, Task 3)', () => {
+  type Cena = typeof import('@/lib/transicao-login/cena');
+  const cena = (): Promise<Cena> => import('@/lib/transicao-login/cena');
+  /** Um contexto que anota, em ordem, as translações, os recortes e os círculos (com o alfa do último preenchimento). */
+  const contexto = () => {
+    const eventos: { tipo: 'translate' | 'clip' | 'arc'; x?: number; y?: number; r?: number; alfa?: number }[] = [];
+    let ultimaCor = '';
+    const fazer = (): CanvasRenderingContext2D => {
+      const alvo: Record<string | symbol, unknown> = { canvas: { width: 1280, height: 800 } };
+      const ctx: unknown = new Proxy(alvo, {
+        get: (a, p) => {
+          if (p === 'translate') return (x: number, y: number) => (eventos.push({ tipo: 'translate', x, y }), ctx);
+          if (p === 'clip') return () => (eventos.push({ tipo: 'clip' }), ctx);
+          if (p === 'arc') return (x: number, y: number, r: number) => (eventos.push({ tipo: 'arc', x, y, r, alfa: Number(/,([\d.e-]+)\)$/.exec(ultimaCor)?.[1] ?? 1) }), ctx);
+          return p in a ? a[p] : () => ctx;
+        },
+        set: (a, p, v) => {
+          if (p === 'fillStyle' && typeof v === 'string') ultimaCor = v;
+          a[p] = v;
+          return true;
+        },
+      });
+      return ctx as CanvasRenderingContext2D;
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => fazer()) as never);
+    return { ctx: fazer(), eventos };
+  };
+  afterEach(() => vi.restoreAllMocks());
+  const APROVADA = { tipo: 'aprovada', em: 0 } as const;
+  const retangulo = (left: number, top: number, width: number, height: number) => ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top }) as DOMRect;
+
+  it('dentro(): 1 no meio do retângulo, 0 a mais de 24 px dele, entre 0 e 1 na borda; sem retângulo (null), 0 (Review Focus 4)', async () => {
+    const { dentro } = await cena();
+    const f = { x: 100, y: 100, w: 300, h: 80 };
+    expect(dentro(250, 140, f)).toBe(1);
+    expect(dentro(100 - 25, 140, f)).toBe(0);
+    expect(dentro(400 + 25, 140, f)).toBe(0);
+    expect(dentro(250, 100 - 25, f)).toBe(0);
+    expect(dentro(250, 180 + 25, f)).toBe(0);
+    const borda = dentro(100 - 12, 140, f);
+    expect(borda).toBeGreaterThan(0);
+    expect(borda).toBeLessThan(1);
+    expect(dentro(250, 140, null)).toBe(0);
+  });
+
+  it('uma brasa sobre a saudação sai com um terço da força de outra igual fora dela; sem retângulo, com a força inteira', async () => {
+    const { brasaEm } = await cena();
+    const tudo = { x: -1e4, y: -1e4, w: 2e4, h: 2e4 };
+    for (const i of [0, 7, 21, 40]) {
+      const livre = brasaEm(i, 5.5, 1280, 800, 1, 0, null);
+      const sobre = brasaEm(i, 5.5, 1280, 800, 1, 0, tudo);
+      expect(livre.al).toBeGreaterThan(0);
+      expect(sobre.al / livre.al).toBeCloseTo(1 - 0.68, 6);
+    }
+  });
+
+  it('Review Focus 3: a saudação em duas linhas (retângulo mais alto) continua toda coberta pela área fraca', async () => {
+    const { dentro } = await cena();
+    const umaLinha = { x: 28, y: 60, w: 500, h: 70 };
+    const duasLinhas = { x: 28, y: 60, w: 500, h: 118 };
+    // o ponto da segunda linha só está coberto quando o retângulo medido a inclui
+    expect(dentro(200, 160, umaLinha)).toBe(0);
+    expect(dentro(200, 160, duasLinhas)).toBe(1);
+  });
+
+  it('a força do campo do quadro chega em 0,6 s: 0 no pouso, 1 em 0,6 s', async () => {
+    const { forcaDoQuadro } = await cena();
+    expect(forcaDoQuadro(0)).toBe(0);
+    expect(forcaDoQuadro(0.6)).toBe(1);
+    expect(forcaDoQuadro(0.3)).toBeCloseTo(0.5, 6);
+    expect(forcaDoQuadro(3)).toBe(1);
+  });
+
+  it('depois do pouso, as 43 brasas do quadro são desenhadas com a origem no canto do quadro, dentro do recorte dele: nenhuma no pouso, e já no quadro aos 0,6 s', async () => {
+    const { desenhar, N_BRASAS_DO_QUADRO } = await cena();
+    const { inicioDasBoasVindas } = await import('@/lib/transicao-login/linha-do-tempo');
+    const pouso = inicioDasBoasVindas(APROVADA)!;
+    const faixa = retangulo(24, 80, 1232, 400);
+    const quadroEm = (th: number) => {
+      const { ctx, eventos } = contexto();
+      desenhar(ctx, { t: pouso + th, resposta: APROVADA, largura: 1280, altura: 800, faixa, imagem: {} as HTMLImageElement, saudacao: null });
+      const i = eventos.findIndex((e) => e.tipo === 'translate' && e.x === 24 && e.y === 80);
+      return { eventos, i };
+    };
+    // no pouso (th = 0) a força do quadro é 0: não há campo do quadro
+    expect(quadroEm(0).i).toBe(-1);
+    const { eventos, i } = quadroEm(0.6);
+    expect(i).toBeGreaterThan(-1);
+    // o recorte do quadro vem antes do campo do quadro
+    expect(eventos.slice(0, i).some((e) => e.tipo === 'clip')).toBe(true);
+    const doQuadro = eventos.slice(i).filter((e) => e.tipo === 'arc');
+    expect(doQuadro.length).toBeGreaterThan(N_BRASAS_DO_QUADRO / 2);
+    // em pixels do quadro (1232 x 400), com a folga das oscilações das brasas: fica no quadro
+    for (const a of doQuadro) {
+      expect(a.y!).toBeGreaterThan(-60);
+      expect(a.y!).toBeLessThan(400 + 60);
+      expect(a.x!).toBeGreaterThan(-0.05 * 1232 - 60);
+      expect(a.x!).toBeLessThan(1.05 * 1232 + 60);
+    }
+  });
+
+  it('Review Focus 5: redimensionar a janela depois do pouso: o campo do quadro segue o quadro novo', async () => {
+    const { desenhar } = await cena();
+    const { inicioDasBoasVindas } = await import('@/lib/transicao-login/linha-do-tempo');
+    const t = inicioDasBoasVindas(APROVADA)! + 1;
+    const origem = (faixa: DOMRect) => {
+      const { ctx, eventos } = contexto();
+      desenhar(ctx, { t, resposta: APROVADA, largura: 1280, altura: 800, faixa, imagem: {} as HTMLImageElement, saudacao: null });
+      return eventos.filter((e) => e.tipo === 'translate').map((e) => [e.x, e.y]);
+    };
+    expect(origem(retangulo(24, 80, 1232, 400))).toContainEqual([24, 80]);
+    expect(origem(retangulo(12, 70, 700, 250))).toContainEqual([12, 70]);
+  });
+
+  it('a saudação medida enfraquece as brasas ali (em pixels da tela e em pixels do quadro), e sem ela as brasas ficam com a força inteira (Review Focus 4)', async () => {
+    const { desenhar } = await cena();
+    const { inicioDasBoasVindas } = await import('@/lib/transicao-login/linha-do-tempo');
+    const t = inicioDasBoasVindas(APROVADA)! + 1;
+    const faixa = retangulo(24, 80, 1232, 400);
+    const soma = (saudacao: DOMRect | null) => {
+      const { ctx, eventos } = contexto();
+      desenhar(ctx, { t, resposta: APROVADA, largura: 1280, altura: 800, faixa, imagem: {} as HTMLImageElement, saudacao });
+      return eventos.filter((e) => e.tipo === 'arc').reduce((n, e) => n + (e.alfa ?? 0), 0);
+    };
+    const sem = soma(null);
+    // uma saudação que cobre a tela toda: tudo a um terço da força
+    const toda = soma(retangulo(-1000, -1000, 4000, 4000));
+    expect(sem).toBeGreaterThan(0);
+    expect(toda).toBeLessThan(sem * 0.5);
+  });
+});

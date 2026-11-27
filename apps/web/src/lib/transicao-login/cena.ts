@@ -418,6 +418,8 @@ type Palco = {
   W: number; H: number; s0: number; fy: number; D0: number;
   /** a faixa de boas-vindas na tela e a escala da imagem dentro dela; null sem a faixa */
   pouso: { bx: number; by: number; bw: number; bh: number; s1: number; q: Ponto; P: Ponto } | null;
+  /** o retângulo da saudação (o nome e a data) em pixels da tela, onde as brasas ficam a um terço da força; null sem a saudação na tela */
+  fraca: Fraca;
 };
 type Retangulo = { left: number; top: number; width: number; height: number };
 /** Onde a imagem pousa: a escala dela dentro da faixa e o ponto da tela em que fica o canto (0,0) da imagem. A conta é a do quadro (recorte.ts). */
@@ -426,7 +428,7 @@ export function pousoNaFaixa(faixa: Retangulo): { s1: number; t1: Ponto } {
   return { s1: r.escala, t1: [faixa.left - r.x0 * r.escala, faixa.top - r.y0 * r.escala] };
 }
 /** No celular (tela estreita) a câmera começa um pouco mais longe e a junta fica mais embaixo, como no mockup. */
-function medir(W: number, H: number, faixa: DOMRect | null): Palco {
+function medir(W: number, H: number, faixa: DOMRect | null, saudacao: DOMRect | null = null): Palco {
   const cel = W < 768;
   const s0 = cel ? (0.86 * W) / 390 : (1.2 * W) / 1280;
   const fy = cel ? 0.68 : 0.55;
@@ -438,7 +440,8 @@ function medir(W: number, H: number, faixa: DOMRect | null): Palco {
     const q: Ponto = [(t1[0] - t0[0]) / d, (t1[1] - t0[1]) / d];
     pouso = { bx: faixa.left, by: faixa.top, bw: faixa.width, bh: faixa.height, s1, q, P: [s0 * q[0] + t0[0], s0 * q[1] + t0[1]] };
   }
-  return { W, H, s0, fy, D0: W / 2 / s0 + 330, pouso };
+  const fraca: Fraca = saudacao && saudacao.width > 0 && saudacao.height > 0 ? { x: saudacao.left, y: saudacao.top, w: saudacao.width, h: saudacao.height } : null;
+  return { W, H, s0, fy, D0: W / 2 / s0 + 330, pouso, fraca };
 }
 function camera(L: Palco, p: number) {
   if (!L.pouso || p <= 0) return { s: L.s0, tx: L.W / 2 - FOCO.x * L.s0, ty: L.fy * L.H - FOCO.y * L.s0 };
@@ -783,6 +786,8 @@ export function brasas(g: Ctx, t: number, W: number, H: number, amp: number, fra
     g.fill();
   }
 }
+/** A força do campo de brasas do quadro depois do pouso: de 0 a 1 em 0,6 s (`th` = segundos desde o pouso). */
+export const forcaDoQuadro = (th: number) => ss(0, 0.6, th);
 /** O cartão se desfaz: brasas sobem do botão Entrar (52). */
 function estouroBotao(ctx: Ctx, t: number, bt: { x: number; y: number; w: number }) {
   const n = N_BRASAS_DO_BOTAO;
@@ -845,6 +850,8 @@ export type OpcoesDaCena = {
   imagem: HTMLImageElement;
   /** o centro e a largura do botão "Entrar" no clique, de onde sobem as primeiras brasas */
   botao?: { x: number; y: number; w: number } | null;
+  /** onde a saudação (o nome e a data) está na tela inicial; as brasas ficam mais fracas ali. null enquanto ela não existe: as brasas ficam com a força inteira */
+  saudacao?: DOMRect | null;
 };
 
 /** O recorte com a silhueta do quadro: cantos arredondados (num navegador sem `roundRect`, cantos vivos). */
@@ -879,7 +886,17 @@ function desenharPouso(ctx: Ctx, PR: number, L: Palco, s: Estado) {
     ctx.fillStyle = gr;
     ctx.fillRect(x, f.by, w, f.bh);
   }
-  brasas(ctx, s.t, L.W, L.H, s.amb);
+  // o campo da tela inteira (um terço das brasas fica no quadro), mais fraco sobre a saudação
+  brasas(ctx, s.t, L.W, L.H, s.amb, L.fraca);
+  // mais brasas só dentro do quadro, que chegam em 0,6 s para não saltarem no instante do pouso; a origem é o canto do quadro, e ele segue o quadro a cada quadro desenhado
+  const j = forcaDoQuadro(s.th);
+  if (j > 0) {
+    ctx.save();
+    ctx.translate(f.bx, f.by);
+    const fracaDoQuadro: Fraca = L.fraca ? { x: L.fraca.x - f.bx, y: L.fraca.y - f.by, w: L.fraca.w, h: L.fraca.h } : null;
+    brasas(ctx, s.t, f.bw, f.bh, s.amb * j, fracaDoQuadro, 300, N_BRASAS_DO_QUADRO);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -890,7 +907,7 @@ function desenharPouso(ctx: Ctx, PR: number, L: Palco, s: Estado) {
 export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
   const PR = ctx.canvas.width / o.largura;
   const R = prepararRecortes(o.imagem);
-  const L = medir(o.largura, o.altura, o.faixa);
+  const L = medir(o.largura, o.altura, o.faixa, o.saudacao ?? null);
   const s = estado(o.t, o.resposta, L.D0);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -999,7 +1016,7 @@ export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
   }
   // por cima de tudo, em pixels da tela
   ctx.setTransform(PR, 0, 0, PR, 0, 0);
-  brasas(ctx, s.t, L.W, L.H, s.amb);
+  brasas(ctx, s.t, L.W, L.H, s.amb, L.fraca);
   if (s.t < 1 && o.botao) estouroBotao(ctx, s.t, o.botao);
   ctx.restore();
 }
