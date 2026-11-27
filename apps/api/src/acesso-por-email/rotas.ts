@@ -1,7 +1,7 @@
 // Primeiro acesso e "Esqueci minha senha": o militar pede um código ao e-mail institucional da ficha e, com ele, cria a senha. As duas rotas são públicas (sem sessão).
 // A resposta do pedido nunca revela se o e-mail está numa ficha: mesma frase, mesmo código de resposta, e o envio sai depois dela.
 import { hashPassword } from 'better-auth/crypto';
-import { FRASE_DO_PEDIDO, MSG_CODIGO_INVALIDO, MSG_ENVIO_FORA_DO_AR, MSG_MUITOS_PEDIDOS, PedidoDeCodigo, SenhaPeloCodigo } from 'contratos';
+import { FRASE_DO_PEDIDO, MSG_CODIGO_INVALIDO, MSG_ENVIO_FORA_DO_AR, MSG_MUITAS_TENTATIVAS, MSG_MUITOS_PEDIDOS, PedidoDeCodigo, SenhaPeloCodigo } from 'contratos';
 import { timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import type { Banco, Consulta } from '../banco/banco.ts';
@@ -20,6 +20,8 @@ const LIMITE_DA_ORIGEM_POR_HORA = 10;
 const COTA_DO_DIA = 280;
 /** Na quinta tentativa errada o código morre, e a pessoa pede outro. */
 const TENTATIVAS_DO_CODIGO = 5;
+/** Tentativas de criar a senha por origem e por hora (soma de acertos e erros). */
+const LIMITE_DE_TENTATIVAS_POR_HORA = 20;
 
 export interface DependenciasDoAcessoPorEmail {
   banco: Banco;
@@ -54,6 +56,7 @@ export function rotasAcessoPorEmail(dep: DependenciasDoAcessoPorEmail): Hono {
   const r = new Hono();
   const { banco, segredo } = dep;
   const agora = dep.agora ?? (() => new Date());
+  const tentativas = new Map<string, number[]>();
 
   r.post('/acesso/codigo', async (c) => {
     const corpo = await lerCorpo(c, PedidoDeCodigo);
@@ -130,9 +133,19 @@ export function rotasAcessoPorEmail(dep: DependenciasDoAcessoPorEmail): Hono {
     const { codigo, novaSenha } = corpo.dados;
     const email = corpo.dados.email.toLowerCase();
     const invalido = () => c.json({ erro: MSG_CODIGO_INVALIDO, campos: { codigo: MSG_CODIGO_INVALIDO } }, 400);
-    // o hash custa o mesmo com o código certo ou errado
-    const hash = await hashPassword(novaSenha);
     const agoraEm = agora();
+    // tentativas por origem (achado da revisão): sem isso, qualquer um gastaria o servidor e mataria o código de outra pessoa a tentativas erradas. A contagem fica na memória desta instância
+    // (basta para frear: o que protege o código é o limite de 5 tentativas dele, no banco), e o hash só é calculado com o código certo: errar não custa nada ao servidor
+    const origem = origemDoPedido(c.req.header('x-forwarded-for'));
+    if (origem) {
+      const chave = resumir(origem, segredo);
+      const recentes = (tentativas.get(chave) ?? []).filter((t) => agoraEm.getTime() - t < 3_600_000);
+      if (recentes.length >= LIMITE_DE_TENTATIVAS_POR_HORA) {
+        tentativas.set(chave, recentes);
+        return c.json({ erro: MSG_MUITAS_TENTATIVAS }, 429);
+      }
+      tentativas.set(chave, [...recentes, agoraEm.getTime()]);
+    }
     let resultado: 'ok' | 'invalido' | 'email-em-uso';
     try {
       resultado = await banco.transacao(async (tx) => {
@@ -150,6 +163,7 @@ export function rotasAcessoPorEmail(dep: DependenciasDoAcessoPorEmail): Hono {
           else await tx.query('update codigo_de_acesso set tentativas = tentativas + 1 where militar_id = $1', [militar.id]);
           return 'invalido';
         }
+        const hash = await hashPassword(novaSenha);
         const usuarioId = await garantirUsuario(tx, militar.id);
         // o ficha tem e-mail (foi por ele que o código chegou), então o usuário existe ou foi criado agora
         if (!usuarioId) return 'invalido';

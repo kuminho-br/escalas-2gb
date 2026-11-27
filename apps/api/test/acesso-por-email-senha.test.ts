@@ -236,3 +236,31 @@ describe('criar a senha com o código', () => {
     expect(auditoria).not.toMatch(new RegExp(`"${codigo}"`));
   });
 });
+
+describe('o limite de tentativas de criar a senha (achado da revisão)', () => {
+  const comOrigem = (origem: string, email: string, codigo: string) =>
+    api.app.request(`${URL_BASE}/api/acesso/senha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: URL_BASE, 'x-forwarded-for': origem },
+      body: JSON.stringify({ email, codigo, novaSenha: SENHA_NOVA }),
+    });
+
+  it('a 21ª tentativa da mesma origem na hora é 429, para qualquer e-mail e código; outra origem não é afetada', async () => {
+    const origem = '203.0.113.200';
+    for (let i = 0; i < 20; i++) expect((await comOrigem(origem, `ninguem${i}@${DOMINIO}`, '000000')).status).toBe(400);
+    const r = await comOrigem(origem, `ninguem99@${DOMINIO}`, '000000');
+    expect(r.status).toBe(429);
+    expect(((await r.json()) as { erro: string }).erro).toBe('Muitas tentativas. Tente de novo daqui a uma hora.');
+    expect((await comOrigem('203.0.113.201', `ninguem0@${DOMINIO}`, '000000')).status).toBe(400);
+  });
+
+  it('passada a hora, a origem volta a poder tentar', async () => {
+    const origem = '203.0.113.202';
+    relogio = new Date('2026-12-05T10:00:00Z');
+    for (let i = 0; i < 20; i++) await comOrigem(origem, `ninguem${i}@${DOMINIO}`, '000000');
+    expect((await comOrigem(origem, `ninguem@${DOMINIO}`, '000000')).status).toBe(429);
+    relogio = new Date('2026-12-05T11:00:01Z');
+    expect((await comOrigem(origem, `ninguem@${DOMINIO}`, '000000')).status).toBe(400);
+    relogio = new Date();
+  });
+});

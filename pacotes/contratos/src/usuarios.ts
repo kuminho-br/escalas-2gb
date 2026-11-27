@@ -56,6 +56,7 @@ export type PedidoDeCodigo = z.infer<typeof PedidoDeCodigo>;
 /** A resposta do pedido é sempre esta, exista o e-mail ou não: a tela não revela quem tem ficha. */
 export const FRASE_DO_PEDIDO = 'Se este e-mail estiver na ficha de um militar, enviamos um código para ele. Confira também a caixa de spam.';
 export const MSG_MUITOS_PEDIDOS = 'Muitos pedidos de código. Tente de novo daqui a uma hora.';
+export const MSG_MUITAS_TENTATIVAS = 'Muitas tentativas. Tente de novo daqui a uma hora.';
 export const MSG_ENVIO_FORA_DO_AR = 'O envio de códigos está fora do ar agora. Procure a Seção de Pessoal.';
 /** O aviso das duas telas, sempre à vista depois do pedido. */
 export const AVISO_DO_CODIGO = 'Se o código não chegar em 5 minutos, procure no spam. Se ainda assim não chegar, procure a Seção de Pessoal.';
