@@ -14,6 +14,8 @@ import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { Checkbox } from '@/componentes/ui/checkbox';
 import { Espera } from '@/componentes/resposta/Espera';
+import { COLUNA_PRESA_ESQUERDA, useSombraDaRolagem } from '@/lib/tabela-com-rolagem';
+import { cn } from '@/lib/utils';
 
 /** Guarnições por faixa de horário, com versões por vigência (como as versões da guarnição). */
 export function Matriz({ escala, unidadeId }: { escala: Escala; unidadeId: string }) {
@@ -39,6 +41,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
   // as linhas (guarnições ativas e a etiqueta "desativada") seguem o mês do "Vale a partir de"
   // mantém as linhas à vista enquanto o mês novo carrega
   const guarnicoes = useQuery({ ...consultaGuarnicoes(unidadeId, /^\d{4}-\d{2}$/.test(desde) ? desde : (versao?.vigencia ?? mes)), placeholderData: keepPreviousData });
+  const caixaDaMatriz = useSombraDaRolagem();
   const itens = versao?.itens ?? [];
   // faixas marcadas de cada guarnição (chave "início|fim")
   const [marcas, setMarcas] = useState<Map<string, Set<string>>>(() => {
@@ -136,11 +139,12 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
       {guarnicoes.isPending && <Espera />}
       {guarnicoes.error && <p role="alert" className="text-alerta">{mensagemDe(guarnicoes.error)}</p>}
       {guarnicoes.data && escala.faixas.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max text-sm">
+        <div ref={caixaDaMatriz} data-rolagem="matriz" className="overflow-x-auto">
+          {/* `border-separate`: a fronteira da coluna presa (3 px em tinta, `lib/tabela-com-rolagem.ts`) acompanha a célula quando a tabela rola; as linhas entre as guarnições vão nas células */}
+          <table className="w-full min-w-max border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="border-b border-linha text-left">
-                <th className="sticky left-0 z-10 bg-superficie py-2 pr-4 text-xs font-normal text-apagado">Guarnição</th>
+              <tr className="*:border-b *:border-linha text-left">
+                <th className={cn('sticky left-0 z-10 bg-superficie py-2 pr-4 text-xs font-normal text-apagado', COLUNA_PRESA_ESQUERDA)}>Guarnição</th>
                 {escala.faixas.map((f) => (
                   <th key={chave(f.inicio, f.fim)} className="px-4 py-2 text-center font-normal">
                     {escala.comLetra && <span className="block font-cond text-base font-semibold text-tinta">{f.letras[0]}</span>}
@@ -153,8 +157,8 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
               {linhas.map((g) => {
                 const tamanho = lista.find((x) => x.id === g.id);
                 return (
-                  <tr key={g.id} className="border-b border-linha/60">
-                    <td className="sticky left-0 z-10 bg-superficie py-1.5 pr-4">
+                  <tr key={g.id} className="*:border-b *:border-linha/60">
+                    <td className={cn('sticky left-0 z-10 bg-superficie py-1.5 pr-4', COLUNA_PRESA_ESQUERDA)}>
                       <Link to="/configuracoes/modelos-de-guarnicao/$id" params={{ id: g.id }} className="font-medium text-vinho hover:underline">{g.nome}</Link>
                       {desativada.has(g.id) && <span className="ml-2 rounded border border-linha px-1.5 text-xs">desativada</span>}
                       {tamanho && <span className="block text-xs text-apagado">{limites(tamanho)}</span>}
@@ -180,7 +184,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
             {linhas.length > 0 && (
               <tfoot>
                 <tr className="text-xs text-apagado">
-                  <td className="sticky left-0 z-10 bg-superficie pt-2 pr-4">Mínimo de militares</td>
+                  <td className={cn('sticky left-0 z-10 bg-superficie pt-2 pr-4', COLUNA_PRESA_ESQUERDA)}>Mínimo de militares</td>
                   {escala.faixas.map((f) => <td key={chave(f.inicio, f.fim)} className="px-4 pt-2 text-center">mín. {minimoDaFaixa(chave(f.inicio, f.fim))}</td>)}
                 </tr>
               </tfoot>

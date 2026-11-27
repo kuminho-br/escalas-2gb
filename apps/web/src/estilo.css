@@ -153,6 +153,19 @@
   }
 }
 
+/* A sombra da "Tabela com rolagem" (lib/tabela-com-rolagem.ts, 6.70): ao rolar para os lados, uma sombra leve nasce do lado das partes presas. Só CSS sobre os atributos do
+   contêiner (`data-rolagem`, ligados por `useSombraDaRolagem`); são utilitários, então aceitam as variantes (`min-[1440px]:sombra-presa-dir`). */
+@utility sombra-presa-esq {
+  [data-rolagem][data-rolou-x] & {
+    box-shadow: 7px 0 8px -7px color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  }
+}
+@utility sombra-presa-dir {
+  [data-rolagem][data-resta-x] & {
+    box-shadow: -7px 0 8px -7px color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  }
+}
+
 /* O cenário do login (6.67), o mesmo no login e nas telas de primeiro acesso e esqueci minha senha. A foto (docs/telas/refatoracao/img/quartel.jpg, 1280 x 960) tem um
    enquadramento por plataforma (decisões de 25/11): no computador, as bandeiras livres no céu e a marca embaixo, sobre a parte densa do véu vinho; no celular (abaixo de
    1024 px), sem bandeiras e sem céu: a fachada, a estátua e o jardim, e a marca encostada no cartão. Sem a foto, o fundo é vinho liso. */

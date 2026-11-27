@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import { hoje } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
+import { CABECALHO_PRESO, COLUNA_PRESA_ESQUERDA, useSombraDaRolagem } from '@/lib/tabela-com-rolagem';
 import { cn } from '@/lib/utils';
 import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
 import { BarraComparativa } from './BarraComparativa';
@@ -24,11 +25,11 @@ function bordasDoDia(grade: GradeDoMes, i: number): string[] {
   return [segunda ? 'border-l border-l-[#C9CED6]' : '', vesperaDeSegunda ? '' : 'border-r border-r-[#EEF0F3]'];
 }
 
-// A fronteira da rolagem (6.46; Manual, "Tabela com rolagem"): entre o que fica preso e o que rola, uma linha de 2 px no token `encaixe`, contínua.
+// A fronteira da rolagem (6.46 e 6.70; `lib/tabela-com-rolagem.ts`): entre o que fica preso e o que rola, uma linha de 3 px na cor `tinta`, contínua, e uma sombra ao rolar.
 // Na Grade: à direita da coluna do militar, embaixo do cabeçalho (na largura toda) e, quando PJES e Diárias ficam presas (1440 px ou mais), à esquerda de PJES.
 // As linhas de dentro (entre dias, entre militares, a de segunda-feira) continuam mais fracas que ela.
-const FRONTEIRA_DO_MILITAR = 'border-r-2 border-r-encaixe';
-const FRONTEIRA_DO_CABECALHO = 'border-b-2 border-b-encaixe';
+const FRONTEIRA_DO_MILITAR = COLUNA_PRESA_ESQUERDA;
+const FRONTEIRA_DO_CABECALHO = CABECALHO_PRESO;
 /** O fundo da faixa de cada equipe. */
 const FUNDO_DA_FAIXA = 'bg-[#F1F3F6]';
 
@@ -37,7 +38,7 @@ export const nomeDoGrupo = (g: Pick<GrupoDaGrade, 'chave' | 'nome'>) => (g.chave
 
 /** PJES e Diárias: larguras fixas de verdade (w, min-w e max-w iguais; só w seria um mínimo) para as duas se empilharem presas à direita (right-16 = 4rem). */
 const COLUNAS_FINAIS = [
-  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-16', separador: 'min-[1440px]:border-l-2 min-[1440px]:border-l-encaixe' },
+  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-16', separador: 'min-[1440px]:border-l-3 min-[1440px]:border-l-tinta min-[1440px]:sombra-presa-dir' },
   { nome: 'Diárias', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-0', separador: '' },
 ] as const;
 const CELULA_FINAL = 'border-b border-b-[#EEF0F3] bg-superficie px-2 py-1 group-hover:bg-[#F7F7F8] min-[1440px]:sticky min-[1440px]:z-10';
@@ -66,6 +67,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
   const temHoje = grade.dias.some((d) => d.data === diaDeHoje);
   const colunaDeHoje = useRef<HTMLTableCellElement>(null);
   const jaRolou = useRef(false);
+  const caixa = useSombraDaRolagem();
   useEffect(() => {
     if (jaRolou.current || !temHoje || !colunaDeHoje.current) return;
     jaRolou.current = true;
@@ -75,7 +77,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
     // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as duas colunas finais): a célula que rola à vista não para debaixo delas.
-    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32">
+    <div ref={caixa} data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32">
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>

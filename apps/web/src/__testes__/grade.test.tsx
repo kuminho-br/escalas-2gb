@@ -373,17 +373,17 @@ describe('a cota de saldo na Grade geral (6.38)', () => {
   });
 });
 
-// 6.46: a fronteira entre o fixo e o que rola é uma linha de 2 px no token `encaixe` (regra do Manual: "Tabela com rolagem")
-describe('a fronteira da rolagem na Grade geral (6.46)', () => {
+// 6.46 e 6.70: a fronteira entre o fixo e o que rola é uma linha de 3 px no token `tinta` (regra do Manual: "Tabela com rolagem"; ver tabela-com-rolagem.test.tsx)
+describe('a fronteira da rolagem na Grade geral (6.46 e 6.70)', () => {
   const abrirGrade = async () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
   };
-  const FRONTEIRA_A_DIREITA = ['border-r-2', 'border-r-encaixe'];
-  const FRONTEIRA_DO_PJES = ['min-[1440px]:border-l-2', 'min-[1440px]:border-l-encaixe'];
+  const FRONTEIRA_A_DIREITA = ['border-r-3', 'border-r-tinta'];
+  const FRONTEIRA_DO_PJES = ['min-[1440px]:border-l-3', 'min-[1440px]:border-l-tinta'];
 
-  it('a coluna do militar tem a borda direita de 2 px encaixe no cabeçalho, em cada linha e na faixa de cada equipe (contínua)', async () => {
+  it('a coluna do militar tem a borda direita de 3 px tinta no cabeçalho, em cada linha e na faixa de cada equipe (contínua)', async () => {
     await abrirGrade();
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass(...FRONTEIRA_A_DIREITA);
     expect(linhaDe('CABO').querySelector('th')).toHaveClass(...FRONTEIRA_A_DIREITA);
@@ -401,11 +401,11 @@ describe('a fronteira da rolagem na Grade geral (6.46)', () => {
     expect(document.querySelector('tr[data-grupo="eq-alfa"] td:first-child')).toHaveClass(...FRONTEIRA_A_DIREITA);
   });
 
-  it('a base do cabeçalho tem 2 px encaixe na largura toda: "Militar", cada dia, PJES e Diárias', async () => {
+  it('a base do cabeçalho tem 3 px tinta na largura toda: "Militar", cada dia, PJES e Diárias', async () => {
     await abrirGrade();
     const cabecalhos = screen.getAllByRole('columnheader');
     expect(cabecalhos.length).toBe(GRADE.dias.length + 3);
-    for (const c of cabecalhos) expect(c, c.textContent ?? '').toHaveClass('border-b-2', 'border-b-encaixe');
+    for (const c of cabecalhos) expect(c, c.textContent ?? '').toHaveClass('border-b-3', 'border-b-tinta');
   });
 
   it('Review Focus 1: a fronteira à esquerda de PJES só existe quando a coluna fica presa (1440 px ou mais), e atravessa a faixa da equipe; Diárias não tem', async () => {
@@ -413,9 +413,9 @@ describe('a fronteira da rolagem na Grade geral (6.46)', () => {
     expect(screen.getByRole('columnheader', { name: 'PJES' })).toHaveClass(...FRONTEIRA_DO_PJES);
     const finais = [...linhaDe('CABO').querySelectorAll('td')].slice(-2);
     expect(finais[0]).toHaveClass(...FRONTEIRA_DO_PJES);
-    expect(finais[1]!.className).not.toMatch(/border-l-encaixe/);
+    expect(finais[1]!.className).not.toMatch(/border-l-tinta/);
     // abaixo de 1440 px nada disso vale: a classe só existe com o prefixo
-    expect(finais[0]!.className.split(' ')).not.toContain('border-l-2');
+    expect(finais[0]!.className.split(' ')).not.toContain('border-l-3');
     const daFaixa = [...document.querySelectorAll<HTMLElement>('tr[data-grupo="eq-alfa"] td')].slice(-2);
     expect(daFaixa[0]).toHaveClass(...FRONTEIRA_DO_PJES, 'min-[1440px]:sticky', 'min-[1440px]:right-16');
     expect(daFaixa[1]).toHaveClass('min-[1440px]:sticky', 'min-[1440px]:right-0');
