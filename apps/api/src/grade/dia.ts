@@ -5,6 +5,7 @@ import { textoFaixa, tipoDoServicoFixo } from 'contratos';
 import { cnhParaEscala, detectarChoques, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
+import { cotaDoServico, recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
@@ -131,10 +132,17 @@ async function frasesDeChoque(
     });
 }
 
+/** O serviço PJES ou diária tem cota neste mês e ela aceita mais um neste dia (o total não acabou, o máximo do dia não bateu e o resto não está reservado)? */
+async function cotaAceitaNoDia(c: Consulta, unidadeId: string, servicoId: string, nome: string, data: string): Promise<boolean> {
+  if (!(await cotaDoServico(c, unidadeId, servicoId, data.slice(0, 7)))) return false;
+  return (await recusaDaCota(c, { unidadeId, servicoId, nomeDoServico: nome, data })) === null;
+}
+
 /** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que vale para a escala, e "Sem guarnição"). */
 async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[], ignorarAfastamento = false): Promise<OpcaoDeServico[]> {
   const escalas = (await c.query<{ id: string; nome: string }>("select id, nome from escala where unidade_id = $1 and ativa and distribuicao = 'pre_escala' order by nome", [unidadeId])).rows;
   const resultado: OpcaoDeServico[] = [];
+  const cotaAceita = new Map<string, boolean>();
   for (const e of escalas) {
     const faixas = (
       await c.query<{ inicio: string; fim: string }>(
@@ -148,9 +156,18 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
       const { avaliados } = await avaliarFaixa(c, { escalaId: e.id, data, inicio: f.inicio, fim: f.fim, guarnicaoId: null, funcaoId: null, ignorarAfastamento }, militarId);
       const a = avaliados[0];
       if (!a || a.militarMotivo) continue;
-      const possiveis = a.porTurno
-        .filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO)
-        .map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
+      // 6.72: serviço PJES ou diária só aparece se o mês tem cota dele que aceita este dia; Pronto, Saldo e Expediente (ordinários) não dependem da cota
+      const livres = a.porTurno.filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO);
+      const comCota = [];
+      for (const t of livres) {
+        if (t.turno.tipo === 'ordinario') {
+          comCota.push(t);
+          continue;
+        }
+        if (!cotaAceita.has(t.turno.servicoId)) cotaAceita.set(t.turno.servicoId, await cotaAceitaNoDia(c, unidadeId, t.turno.servicoId, t.turno.nome, data));
+        if (cotaAceita.get(t.turno.servicoId)) comCota.push(t);
+      }
+      const possiveis = comCota.map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
       if (!possiveis.length) continue;
       // as vagas da faixa em que ele entra: guarnição e função com lugar e com a CNH que ele tem
       const guarnicaoIds = (vinculo?.itens ?? []).filter((i) => i.inicio.slice(0, 5) === f.inicio && i.fim.slice(0, 5) === f.fim).map((i) => i.guarnicaoId);

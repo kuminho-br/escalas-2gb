@@ -23,7 +23,7 @@ export async function criarRegistrosAlheios(api: ApiDeTeste, outra: string): Pro
   const servico = await pelaRaiz(api, 'POST', `${u}/servicos`, { nome: 'Alheio', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' });
   ids.servicos = servico.id;
   ids.turnos = (await pelaRaiz(api, 'POST', `/api/servicos/${servico.id}/turnos`, { letra: 'A', inicio: '08:00', fim: '16:00' })).turnos[0].id;
-  ids.cotas = (await pelaRaiz(api, 'POST', `${u}/cotas`, { mes: somarMeses(atual, 1), servicoId: servico.id, quantidade: 2, origem: 'interna', prioridade: 1 })).id;
+  ids.cotas = (await pelaRaiz(api, 'POST', `${u}/cotas`, { mes: somarMeses(atual, 1), servicoId: servico.id, quantidade: 2, prioridade: 1 })).id;
   ids.escalas = (await pelaRaiz(api, 'POST', `${u}/escalas`, { nome: 'Alheia' })).id;
   ids.guarnicoes = (await pelaRaiz(api, 'POST', `${u}/guarnicoes`, { nome: 'Alheia', vigencia: atual, versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [] } })).id;
   ids.funcoes = (await pelaRaiz(api, 'POST', `${u}/funcoes`, { nome: 'Alheia' })).id;

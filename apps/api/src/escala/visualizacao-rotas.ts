@@ -27,6 +27,7 @@ function paraACorporacao(e: EscalaDoMes): EscalaDoMes {
     dias: e.dias.map((d) => ({
       ...d,
       obrigatoriasVazias: 0,
+      metasAbaixo: [],
       faixas: d.faixas.map((f) => ({
         ...f,
         removidos: [],

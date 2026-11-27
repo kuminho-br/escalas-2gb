@@ -94,13 +94,13 @@ describe('erros esperados', () => {
 
   it('cota sem dia 1', async () => {
     await expect(
-      inserir(banco, 'cota', { mes: '2026-11-02', unidade_id: unidade, servico_id: jes, quantidade: 1, origem: 'interna', prioridade: 1 }),
+      inserir(banco, 'cota', { mes: '2026-11-02', unidade_id: unidade, servico_id: jes, quantidade: 1, prioridade: 1 }),
     ).rejects.toThrow();
   });
 
   it('cota de servico ordinario', async () => {
     await expect(
-      inserir(banco, 'cota', { mes: '2026-11-01', unidade_id: unidade, servico_id: pronto, quantidade: 1, origem: 'interna', prioridade: 1 }),
+      inserir(banco, 'cota', { mes: '2026-11-01', unidade_id: unidade, servico_id: pronto, quantidade: 1, prioridade: 1 }),
     ).rejects.toThrow(/PJES ou diária/);
   });
 

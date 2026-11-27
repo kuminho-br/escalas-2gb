@@ -340,7 +340,7 @@ describe('serviço com cotas', () => {
     await importar({ t, e: [] }, true);
     const s = await servico('Operação Cotada');
     await api.banco.query(
-      "insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade) values ('2026-12-01', $1, $2, 2, 'interna', 1)",
+      "insert into cota (mes, unidade_id, servico_id, quantidade, prioridade) values ('2026-12-01', $1, $2, 2, 1)",
       [api.ids.secao, s.id],
     );
     const trocada: Celula[][] = [['Operação Cotada', 'A', '08:00', '16:00', 8, 'Ordinário', '']];

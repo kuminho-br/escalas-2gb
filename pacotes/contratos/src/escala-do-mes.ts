@@ -86,6 +86,9 @@ export type FaixaDoDia = {
   removidos: { remocaoId: string; militarId: string; nomeGuerra: string; servico: string }[];
 };
 
+/** Um serviço PJES ou diária com meta neste dia (6.72) que ainda tem menos escalados do que o mínimo da meta. Só avisa: não impede fechar a escala. */
+export type MetaAbaixo = { servico: string; minimo: number; escalados: number };
+
 export type DiaDaEscala = {
   data: string;
   /** 0 = domingo */
@@ -93,6 +96,8 @@ export type DiaDaEscala = {
   feriado: string | null;
   faixas: FaixaDoDia[];
   obrigatoriasVazias: number;
+  /** as metas da cota (dos serviços desta escala) que o dia ainda não cumpriu; vazio quando não há meta ou todas foram cumpridas */
+  metasAbaixo: MetaAbaixo[];
 };
 
 /** A resposta de remover da vaga: a escala do mês e o id da remoção que ficou (o "Desfazer" do aviso usa). */

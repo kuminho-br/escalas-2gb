@@ -140,7 +140,7 @@ describe('serviços', () => {
 });
 
 describe('trocar o tipo de um serviço que tem cotas', () => {
-  const cota = (servicoId: string) => inserir(api.banco, 'cota', { mes: '2026-12-01', unidade_id: api.ids.secao, servico_id: servicoId, quantidade: 3, origem: 'interna', prioridade: 1 });
+  const cota = (servicoId: string) => inserir(api.banco, 'cota', { mes: '2026-12-01', unidade_id: api.ids.secao, servico_id: servicoId, quantidade: 3, prioridade: 1 });
 
   it('para ordinário é 409 com o que fazer, e o serviço continua como estava', async () => {
     const s = await criar('Com cota', { tipo: 'diaria', operacao: 'Bioma' });

@@ -1,6 +1,6 @@
 // Importação da aba COTAS (cotas das operações por mês), lida como lerCotas_ do protótipo. A regra nova: a cota
 // aponta direto para o serviço (PJES ou diária), e a operação deixa de existir como campo (adendo do design).
-import { mesParaData, mesPorExtenso, type ItemPrevia, type OrigemCota, type ProblemaImportacao } from 'contratos';
+import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar, servicoDaOperacao } from 'dominio';
 import { coluna, lerMes } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
@@ -15,11 +15,10 @@ const COLUNAS = {
   operacao: { rotulo: 'OPERAÇÃO', obrigatoria: false, ajuda: 'Operação: o nome do serviço, o atributo operação dele ou o nome de uma escala com um serviço só. Use quando não preencher SERVIÇO.' },
   servico: { rotulo: 'SERVIÇO', obrigatoria: false, ajuda: 'Serviço PJES ou diária que paga a cota. Vale mais que a OPERAÇÃO. Preencha SERVIÇO ou OPERAÇÃO.' },
   quantidade: { rotulo: 'QUANTIDADE', obrigatoria: true, ajuda: `Vagas da cota: número inteiro de 1 a ${MAX_QUANTIDADE}. Zero é ignorado, com aviso.` },
-  origem: { rotulo: 'ORIGEM', obrigatoria: false, ajuda: 'INTERNA ou EXTERNA. Vazio vale INTERNA.', opcoes: ['INTERNA', 'EXTERNA'] },
   prioridade: { rotulo: 'PRIORIDADE', obrigatoria: false, ajuda: `1 é preenchida primeiro (até ${MAX_PRIORIDADE}). Vazio segue a ordem das linhas do mês.` },
 } satisfies Record<string, ColunaModelo>;
 
-type Linha = { mes: string; servicoId: string; servico: string; origem: OrigemCota; quantidade: number; prioridade: number };
+type Linha = { mes: string; servicoId: string; servico: string; quantidade: number; prioridade: number };
 type Plano = { novas: Linha[]; alteradas: { id: string; quantidade: number; prioridade: number }[] };
 
 const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
@@ -137,12 +136,6 @@ export const importadorCotas: Importador<Plano> = {
         problema(`Serviço ${servico.nome} está desativado`, 'Reative o serviço na tela de Turnos ou use outro.');
         continue;
       }
-      const origemBruta = normalizar(pega(l.celulas, c.origem));
-      const origem: OrigemCota | null = origemBruta === '' || origemBruta.startsWith('INT') ? 'interna' : origemBruta.startsWith('EXT') ? 'externa' : null;
-      if (!origem) {
-        problema(`Origem "${pega(l.celulas, c.origem)}" de ${alvo}`, 'Use INTERNA ou EXTERNA na coluna ORIGEM.');
-        continue;
-      }
       const qBruta = pega(l.celulas, c.quantidade);
       if (!/^\d+$/.test(qBruta) || Number(qBruta) > MAX_QUANTIDADE) {
         problema(`Quantidade "${qBruta}" de ${alvo}`, `Use um número inteiro de 1 a ${MAX_QUANTIDADE} na coluna QUANTIDADE.`);
@@ -150,7 +143,7 @@ export const importadorCotas: Importador<Plano> = {
       }
       const quantidade = Number(qBruta);
       if (quantidade === 0) {
-        avisos.push(`${servico.nome} (${origem}) em ${mesPorExtenso(mes)} tem quantidade 0: a linha foi ignorada.`);
+        avisos.push(`${servico.nome} em ${mesPorExtenso(mes)} tem quantidade 0: a linha foi ignorada.`);
         continue;
       }
       const pBruta = pega(l.celulas, c.prioridade);
@@ -158,34 +151,34 @@ export const importadorCotas: Importador<Plano> = {
         problema(`Prioridade "${pBruta}" de ${alvo}`, `Use um número inteiro de 1 a ${MAX_PRIORIDADE} na coluna PRIORIDADE.`);
         continue;
       }
-      const chave = `${mes}|${servico.id}|${origem}`;
+      const chave = `${mes}|${servico.id}`;
       if (vistas.has(chave)) {
-        problema(`Cota repetida: ${servico.nome} (${origem}) em ${mesPorExtenso(mes)}`, 'Apague a linha repetida e mantenha só a certa.');
+        problema(`Cota repetida: ${servico.nome} em ${mesPorExtenso(mes)}`, 'Apague a linha repetida e mantenha só a certa.');
         continue;
       }
       vistas.add(chave);
       // prioridade vazia: a posição da linha entre as aceitas do mês
       const posicao = (ordemNoMes.get(mes) ?? 0) + 1;
       ordemNoMes.set(mes, posicao);
-      lidas.push({ mes, servicoId: servico.id, servico: servico.nome, origem, quantidade, prioridade: pBruta ? Number(pBruta) : posicao });
+      lidas.push({ mes, servicoId: servico.id, servico: servico.nome, quantidade, prioridade: pBruta ? Number(pBruta) : posicao });
     }
 
     // contra o que já está no sistema (só os meses da planilha)
     const meses = [...new Set(lidas.map((x) => x.mes))];
     if (meses.length) {
-      const { rows } = await tx.query<{ id: string; mes: string; servico_id: string; origem: string; quantidade: number; prioridade: number }>(
-        "select id, to_char(mes, 'YYYY-MM') as mes, servico_id, origem, quantidade, prioridade from cota where unidade_id = $1 and mes = any($2::date[])",
+      const { rows } = await tx.query<{ id: string; mes: string; servico_id: string; quantidade: number; prioridade: number }>(
+        "select id, to_char(mes, 'YYYY-MM') as mes, servico_id, quantidade, prioridade from cota where unidade_id = $1 and mes = any($2::date[])",
         [unidadeId, meses.map(mesParaData)],
       );
-      for (const r of rows) doSistema.set(`${r.mes}|${r.servico_id}|${r.origem}`, { id: r.id, quantidade: r.quantidade, prioridade: r.prioridade });
+      for (const r of rows) doSistema.set(`${r.mes}|${r.servico_id}`, { id: r.id, quantidade: r.quantidade, prioridade: r.prioridade });
     }
     let iguais = 0;
     for (const x of lidas) {
-      const atual = doSistema.get(`${x.mes}|${x.servicoId}|${x.origem}`);
-      const quem = `${x.servico} (${x.origem}) em ${mesPorExtenso(x.mes)}`;
+      const atual = doSistema.get(`${x.mes}|${x.servicoId}`);
+      const quem = `${x.servico} em ${mesPorExtenso(x.mes)}`;
       if (!atual) {
         plano.novas.push(x);
-        novos.push({ chave: `${x.mes}|${x.servico}|${x.origem}`, descricao: `${quem}: ${x.quantidade}` });
+        novos.push({ chave: `${x.mes}|${x.servico}`, descricao: `${quem}: ${x.quantidade}` });
         continue;
       }
       const mudancas: string[] = [];
@@ -196,7 +189,7 @@ export const importadorCotas: Importador<Plano> = {
         continue;
       }
       plano.alteradas.push({ id: atual.id, quantidade: x.quantidade, prioridade: x.prioridade });
-      alterados.push({ chave: `${x.mes}|${x.servico}|${x.origem}`, descricao: quem, mudancas });
+      alterados.push({ chave: `${x.mes}|${x.servico}`, descricao: quem, mudancas });
     }
     return { previa: { novos, alterados, iguais, problemas, avisos }, plano };
   },
@@ -204,8 +197,8 @@ export const importadorCotas: Importador<Plano> = {
   async aplicar(plano, { tx, unidadeId }) {
     for (const x of plano.novas) {
       await tx.query(
-        'insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade) values ($1::date, $2, $3, $4, $5, $6)',
-        [mesParaData(x.mes), unidadeId, x.servicoId, x.quantidade, x.origem, x.prioridade],
+        'insert into cota (mes, unidade_id, servico_id, quantidade, prioridade) values ($1::date, $2, $3, $4, $5)',
+        [mesParaData(x.mes), unidadeId, x.servicoId, x.quantidade, x.prioridade],
       );
     }
     // só quantidade e prioridade vêm da planilha

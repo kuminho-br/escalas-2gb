@@ -27,8 +27,8 @@ const abrir = async (mes: string) => {
   return api.pedir('gestorGb', 'POST', rota(mes, '/abrir'));
 };
 const lancarJes = (mes: string, dia: string, letra: string, nome: string) => api.pedir('gestorGb', 'POST', rota(mes, '/lancamentos'), { dia, letra, servico: 'jes', militarId: ids[nome] });
-const cotaDeJes = (mes: string, quantidade: number, origem = 'interna', prioridade = 1) =>
-  inserir(api.banco, 'cota', { mes: `${mes}-01`, unidade_id: api.ids.gb, servico_id: rodada.jes, quantidade, origem, prioridade });
+const cotaDeJes = (mes: string, quantidade: number, prioridade = 1) =>
+  inserir(api.banco, 'cota', { mes: `${mes}-01`, unidade_id: api.ids.gb, servico_id: rodada.jes, quantidade, prioridade });
 
 beforeAll(async () => {
   api = await montarApi();
@@ -61,9 +61,8 @@ describe('a cota de JES do mês', () => {
     expect(e.jes).toEqual({ cota: null, usados: 1 });
   });
 
-  it('com cota cadastrada: a cota é a soma das cotas do serviço JES da unidade no mês, e os usados contam os JES de todas as escalas da unidade', async () => {
-    await cotaDeJes('2027-06', 10, 'interna', 1);
-    await cotaDeJes('2027-06', 5, 'externa', 2);
+  it('com cota cadastrada: a cota é a do serviço JES da unidade no mês, e os usados contam os JES de todas as escalas da unidade', async () => {
+    await cotaDeJes('2027-06', 15);
     // uma cota de outro mês não entra
     await cotaDeJes('2027-07', 99);
     // um JES lançado em outra escala da unidade no mesmo mês (Review Focus 3)

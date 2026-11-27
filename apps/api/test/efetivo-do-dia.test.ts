@@ -345,7 +345,7 @@ describe('cotas restantes', () => {
   const d = dia(5);
   it('traz por serviço a soma das cotas do mês e das alocações já distribuídas', async () => {
     expect((await ler(d)).cotas).toEqual([]);
-    const cota = await api.pedir('escalante', 'POST', `${secao()}/cotas`, { mes: d.slice(0, 7), servicoId: jes.id, quantidade: 40, origem: 'interna', prioridade: 1 });
+    const cota = await api.pedir('escalante', 'POST', `${secao()}/cotas`, { mes: d.slice(0, 7), servicoId: jes.id, quantidade: 40, prioridade: 1 });
     expect(cota.status).toBe(201);
     await alocar('COTA-1', ordinario, jes.id, jes.a, d, null, null);
     await alocar('COTA-2', ordinario, jes.id, jes.a, d, null, null);

@@ -4,6 +4,7 @@ import type { DesfazerResolucao, NovaAlocacao, NovoAcumulo, ResolverChoque } fro
 import { motivoDaCnh } from 'dominio';
 import { CADASTRO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -70,9 +71,10 @@ const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { ini
 /** Escala o militar na vaga e devolve o mês da alocação. */
 export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean } = {}): Promise<string> {
   const turno = (
-    await tx.query<{ servico_id: string; inicio: string; fim: string }>(
-      `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-         from turno t join escala_servico es on es.servico_id = t.servico_id and es.escala_id = $1 where t.id = $2`,
+    await tx.query<{ servico_id: string; inicio: string; fim: string; servico: string; tipo: string; unidade_id: string }>(
+      `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, s.tipo, e.unidade_id
+         from turno t join escala_servico es on es.servico_id = t.servico_id and es.escala_id = $1
+         join servico s on s.id = t.servico_id join escala e on e.id = es.escala_id where t.id = $2`,
       [escalaId, d.turnoId],
     )
   ).rows[0];
@@ -100,6 +102,11 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
   if (mover) {
     await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [mover.id, d.guarnicaoId, d.funcaoId]);
     return mes;
+  }
+  // 6.72: a cota esgotada bloqueia escalar mais um militar em PJES ou diária (a alocação movida acima já está contada); remover nunca é bloqueado
+  if (turno.tipo !== 'ordinario') {
+    const recusa = await recusaDaCota(tx, { unidadeId: turno.unidade_id, servicoId: turno.servico_id, nomeDoServico: turno.servico, data: d.data });
+    if (recusa) throw new Recusa(recusa);
   }
   try {
     await tx.query(
