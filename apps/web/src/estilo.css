@@ -413,3 +413,25 @@
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+/* O Laboratório (6.59): a faixa fixa no alto de toda tela de teste. Cor e desenho só dela: listras em dois roxos, que nenhum aviso, estado ou serviço usa. */
+@theme {
+  --color-laboratorio: #3A2A7A;
+  --color-laboratorio-escuro: #2D2062;
+}
+/* o que gruda no alto (cabeçalho, menu, painéis) desce a altura da faixa; sem Laboratório a variável vale zero */
+:root {
+  --faixa: 0px;
+}
+:root[data-laboratorio] {
+  --faixa: 3.5rem;
+}
+@media (min-width: 768px) {
+  :root[data-laboratorio] {
+    --faixa: 2.25rem;
+  }
+}
+.faixa-do-laboratorio {
+  background-color: var(--color-laboratorio);
+  background-image: repeating-linear-gradient(-45deg, var(--color-laboratorio) 0 14px, var(--color-laboratorio-escuro) 14px 28px);
+}

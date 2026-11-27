@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Hono } from 'hono';
+import { criarApp } from '../src/app.ts';
 import { bancoDoEspelho } from '../src/laboratorio/banco-do-espelho.ts';
 import { ESCOLHA_UM_PERFIL, FORA_DO_LABORATORIO, SO_NO_LABORATORIO } from '../src/laboratorio/rotas-lab.ts';
 import { hojeRecife } from '../src/datas.ts';
@@ -7,6 +9,7 @@ import { formulario, planilha } from './planilha-teste.ts';
 
 // 6.59, Task 2: o sistema sobre o espelho, com o isolamento provado. Dados fictícios (D7).
 let api: ApiDeTeste;
+let hono: Hono;
 let labGb: string;
 let labSecao: string;
 let labSd: string;
@@ -37,7 +40,7 @@ async function instantaneo(schema: string): Promise<Record<string, string>> {
 }
 
 beforeAll(async () => {
-  api = await montarApi(undefined, { espelho: true });
+  api = await montarApi(({ banco, auth }) => (hono = criarApp({ banco, auth, limiteDeBuscas: Infinity })), { espelho: true });
   for (const p of (await (await api.pedir('semPapel', 'GET', '/api/laboratorio/perfis')).json()) as { perfilId: string; nivel: string }[]) perfil[p.nivel] = p.perfilId;
   const un = async (sigla: string) => (await api.banco.query<{ id: string }>('select id from laboratorio.unidade where sigla = $1', [sigla])).rows[0]!.id;
   labGb = await un('2º GB');
@@ -168,6 +171,28 @@ describe('as leituras do catálogo valem para o espelho (apagar militar, estrutu
     expect(await instantaneo('public')).toEqual(antes);
     expect(await (await api.pedir('admin', 'GET', '/api/estrutura')).json()).toEqual(estruturaDoReal);
   }, 60000);
+});
+
+describe('a varredura de toda rota do /api/lab', () => {
+  it('sem o cabeçalho, 409; com o cabeçalho e sem login, 401; com login e sem perfil escolhido, 409 "Escolha um perfil de teste." (nenhuma rota escapa do guarda)', async () => {
+    const vistas = new Set<string>();
+    for (const r of hono.routes) {
+      if (r.method === 'ALL' || !r.path.startsWith('/api/lab/')) continue;
+      vistas.add(`${r.method} ${r.path.replace(/:[A-Za-z]+/g, 'x').replace(/\*/g, 'x')}`);
+    }
+    expect(vistas.size).toBeGreaterThan(40);
+    const diferentes: string[] = [];
+    for (const rota of vistas) {
+      const [metodo, caminho] = rota.split(' ') as [string, string];
+      const sem = await api.pedir('escalante', metodo, caminho);
+      if (sem.status !== 409 || (await sem.json()).erro !== FORA_DO_LABORATORIO) diferentes.push(`sem cabeçalho: ${rota} → ${sem.status}`);
+      const semLogin = await api.app.request(`${URL_BASE}${caminho}`, { method: metodo, headers: { ...LAB, Origin: URL_BASE } });
+      if (semLogin.status !== 401) diferentes.push(`sem login: ${rota} → ${semLogin.status}`);
+      const semPerfil = await api.pedir('escalante', metodo, caminho, undefined, LAB);
+      if (semPerfil.status !== 409 || (await semPerfil.json()).erro !== ESCOLHA_UM_PERFIL) diferentes.push(`sem perfil: ${rota} → ${semPerfil.status}`);
+    }
+    expect(diferentes).toEqual([]);
+  }, 120000);
 });
 
 describe('o banco do espelho', () => {

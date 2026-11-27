@@ -91,7 +91,7 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoTroca
   const fimDeSemana = dia.diaDaSemana === 0 || dia.diaDaSemana === 6;
   return (
     <section id={`dia-${dia.data}`} aria-label={`Dia ${n}`} className={cn('scroll-mt-20 grid grid-cols-[4.5rem_0.375rem_1fr] gap-3 rounded-xl border border-linha p-3 sm:grid-cols-[6rem_0.375rem_1fr]', fimDeSemana ? 'bg-black/[0.03]' : 'bg-fundo/40')}>
-      <div className="self-start sticky top-[4.5rem]">
+      <div className="self-start sticky top-[calc(var(--faixa)+4.5rem)]">
         <span className={cn('block font-cond text-4xl leading-none font-semibold', dia.feriado && 'text-alerta')}>{n}</span>
         <span className="block text-xs text-apagado">{DIA_DA_SEMANA[dia.diaDaSemana]}</span>
         {dia.feriado && <span className="block text-xs font-medium text-alerta">{dia.feriado}</span>}

@@ -65,7 +65,8 @@ export function rotasDaVarredura(hono: Hono, ids: Record<string, string>, outra:
   const rotas: RotaDaVarredura[] = [];
   const mes = somarMeses(atual, 1);
   for (const r of hono.routes) {
-    if (r.method === 'ALL' || !r.path.startsWith('/api/')) continue;
+    // o Laboratório (/api/lab) tem a varredura dele, em laboratorio-isolamento.test.ts: aqui valem as rotas do real
+    if (r.method === 'ALL' || !r.path.startsWith('/api/') || r.path.startsWith('/api/lab/')) continue;
     if (!(r.path.includes(':u') || r.path.includes(':id'))) continue;
     if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade', '/api/visualizacao'].some((p) => r.path.startsWith(p))) continue;
     const recurso = /^\/api\/([a-z]+)\/:id/.exec(r.path)?.[1];

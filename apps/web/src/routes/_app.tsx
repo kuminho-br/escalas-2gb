@@ -7,6 +7,8 @@ import { ProvedorDeResposta } from '@/componentes/resposta/ProvedorDeResposta';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
 import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
+import { Faixa } from '@/laboratorio/Faixa';
+import { useModoLaboratorio } from '@/laboratorio/useModoLaboratorio';
 import { guardarEstadoDoMenu, lerEstadoDoMenu, type EstadoDoMenu } from '@/lib/estado-do-menu';
 import { useTelaEstreita } from '@/lib/useTelaEstreita';
 import { Menu } from 'lucide-react';
@@ -46,6 +48,12 @@ function Casca() {
   // o trilho é do módulo em que a pessoa está; na tela inicial e na Minha ficha não há
   const comTrilho = modulo !== null && modulo.itens.length > 0;
   const [menuAberto, setMenuAberto] = useState(false);
+  // o Laboratório (6.59): a faixa no alto de toda tela, e o atributo na página inteira (o que gruda no alto desce a altura da faixa)
+  const emLaboratorio = useModoLaboratorio();
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-laboratorio', emLaboratorio);
+    return () => document.documentElement.removeAttribute('data-laboratorio');
+  }, [emLaboratorio]);
   const botaoDoMenu = useRef<HTMLButtonElement>(null);
   const fecharMenu = (devolverFoco = false) => {
     setMenuAberto(false);
@@ -91,6 +99,7 @@ function Casca() {
   return (
     <ProvedorDeResposta>
     <JustificarPassado>
+    {emLaboratorio && <Faixa />}
     <div className={cn('min-h-dvh', comMenu && estado === 'largo' && 'md:grid md:grid-cols-[240px_1fr]', comMenu && estado === 'recolhido' && 'md:grid md:grid-cols-[84px_1fr]')}>
       {comMenu && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} estado={estado} aoMudarEstado={escolher} />}
       {/* escondido: o botão "Menu" fica no alto, à esquerda, por cima do cabeçalho (que abre espaço para ele) */}

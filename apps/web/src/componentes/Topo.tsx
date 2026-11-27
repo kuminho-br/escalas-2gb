@@ -56,7 +56,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false, menuEsco
   }
 
   return (
-    <header className={cn('sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 pt-0.75 md:gap-4 md:px-6', menuEscondido && 'md:pl-31')}>
+    <header className={cn('sticky top-[var(--faixa)] z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 pt-0.75 md:gap-4 md:px-6', menuEscondido && 'md:pl-31')}>
       {/* o fio vinho amarra o topo à identidade do sistema */}
       <span data-fio-vinho aria-hidden className="absolute inset-x-0 top-0 h-0.75 bg-vinho" />
       {semTrilho ? (

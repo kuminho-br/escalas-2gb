@@ -27,7 +27,7 @@ export function ListaDetalhe({
         {/* a lista fica parada e só os itens dela rolam (a lista marca a área com data-lista-rolavel); o detalhe rola com a página. 10rem = o que está acima da coluna ao abrir a página, para o rodapé da lista caber à vista */}
         <div
           className={cn(
-            'flex min-w-0 flex-col rounded-xl border border-linha bg-superficie lg:sticky lg:top-20 lg:max-h-[calc(100dvh-10rem)] lg:overflow-hidden',
+            'flex min-w-0 flex-col rounded-xl border border-linha bg-superficie lg:sticky lg:top-[calc(var(--faixa)+5rem)] lg:max-h-[calc(100dvh-10rem)] lg:overflow-hidden',
             temDetalhe && 'max-lg:hidden',
           )}
         >

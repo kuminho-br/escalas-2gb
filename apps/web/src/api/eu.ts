@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { UnidadeDeTrabalho } from 'contratos';
-import { ErroApi, SEM_CONEXAO } from './cliente';
+import { buscar, ErroApi, SEM_CONEXAO } from './cliente';
 
 export type Papel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante';
 
@@ -34,7 +34,7 @@ export type Eu = EuDaApi & { unidade: UnidadeDeTrabalho; soConsulta: boolean };
 export async function buscarEu(): Promise<EuDaApi | null> {
   let r: Response;
   try {
-    r = await fetch('/api/eu', { credentials: 'include' });
+    r = await buscar('/api/eu', { credentials: 'include' });
   } catch {
     // a tela de falha diferencia "sem conexão" de "erro do sistema"
     throw new ErroApi(SEM_CONEXAO, 0);

@@ -19,6 +19,8 @@ describe('acesso às rotas', () => {
     for (const r of hono.routes) {
       if (r.method === 'ALL' || !r.path.startsWith('/api/')) continue;
       if (r.path.startsWith('/api/saude') || r.path.startsWith('/api/auth')) continue;
+      // o Laboratório (/api/lab) tem a varredura dele (cabeçalho, login e perfil), em laboratorio-isolamento.test.ts
+      if (r.path.startsWith('/api/lab/')) continue;
       vistas.add(`${r.method} ${r.path.replace(/:[A-Za-z]+/g, 'x').replace(/\*/g, 'x')}`);
     }
     // se a lista vier vazia o teste não prova nada

@@ -5,6 +5,7 @@ import { saida } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { authCliente } from '@/auth-cliente';
+import { sairDoModo } from '@/laboratorio/modo';
 
 /** O "Sair": só sai da tela quando o servidor confirmou (num computador compartilhado, a sessão não pode ficar válida). */
 export function useSair() {
@@ -26,6 +27,8 @@ export function useSair() {
       setErroSair('Não foi possível sair. Confira a conexão e tente de novo.');
       return;
     }
+    // quem sai da conta sai do Laboratório também: a próxima entrada, nesta aba, é no real
+    sairDoModo();
     queryClient.clear();
     queryClient.setQueryData(consultaEu.queryKey, null);
     await navigate({ to: '/entrar', ignoreBlocker: true });

@@ -1,5 +1,6 @@
 import type { UnidadeDeTrabalho } from 'contratos';
 import type { EuDaApi } from '@/api/eu';
+import { emLaboratorio } from '@/laboratorio/modo';
 
 const CHAVE = 'unidade-de-trabalho';
 // Cada aba lê a escolha do navegador uma vez e depois vale a dela: a escolha de outra aba não troca a unidade desta no meio do trabalho
@@ -19,6 +20,8 @@ export function lerUnidadeGuardada(): string | null {
 
 export function guardarUnidade(id: string): void {
   daAba = id;
+  // as unidades do Laboratório são as do espelho: a escolha vale só nesta aba e nunca vai para o navegador, onde está a preferência do real
+  if (emLaboratorio()) return;
   try {
     localStorage.setItem(CHAVE, id);
   } catch {
