@@ -12,7 +12,7 @@ import { COM_ACENTO, LIMITE_DA_BUSCA, palavrasDaBusca, SEM_ACENTO } from './cons
 /** O que a busca devolve, ou o erro que a rota repete (com o status). */
 export type RespostaDaBusca = { ok: true; resultado: ResultadoDaBusca } | { ok: false; status: 400 | 403 | 404; erro: string };
 
-/** A matrícula só com os dígitos: "990012-3" e "9900123" são a mesma; sem dígito nenhum, vale o texto (vai para as não encontradas). */
+/** A matrícula só com os dígitos: "100012-3" e "1000123" são a mesma; sem dígito nenhum, vale o texto (vai para as não encontradas). */
 const chaveDaMatricula = (m: string) => m.replace(/\D/g, '') || m;
 
 type Linha = {

@@ -52,11 +52,11 @@ type Nivel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante' | 'mili
 
 /** Os usuários de teste, um por nível de acesso. Nomes e matrículas fictícios; ninguém entra com eles, a 6.59 injeta a sessão. Também fazem parte da carga que o `separar-teste` reconhece. */
 export const PERFIS_DE_TESTE: { id: string; nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
-  { id: '00000000-0000-4000-8000-0000000000a1', nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '990101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
-  { id: '00000000-0000-4000-8000-0000000000a2', nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '990102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
-  { id: '00000000-0000-4000-8000-0000000000a3', nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '990103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
-  { id: '00000000-0000-4000-8000-0000000000a4', nome: 'Auxiliar administrativo de teste', nivel: 'escalante', unidade: '1ª SB', posto: 'ST', matricula: '990104-4', guerra: 'TESTE AUX', email: 'auxiliar@laboratorio.invalid' },
-  { id: '00000000-0000-4000-8000-0000000000a5', nome: 'Militar de teste', nivel: 'militar', unidade: null, posto: 'SD', matricula: '990105-5', guerra: 'TESTE MILITAR', email: 'militar@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a1', nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '100101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a2', nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '100102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a3', nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '100103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a4', nome: 'Auxiliar administrativo de teste', nivel: 'escalante', unidade: '1ª SB', posto: 'ST', matricula: '100104-4', guerra: 'TESTE AUX', email: 'auxiliar@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a5', nome: 'Militar de teste', nivel: 'militar', unidade: null, posto: 'SD', matricula: '100105-5', guerra: 'TESTE MILITAR', email: 'militar@laboratorio.invalid' },
 ];
 
 /** Cria os cinco usuários de teste que ainda faltam, lotados na 1ª SB e com o nível dado. Devolve quantos existem. */

@@ -3,7 +3,7 @@ import type { Banco, Consulta } from '../banco/banco.ts';
 import { SCHEMA_ESPELHO } from '../laboratorio/constantes.ts';
 
 /**
- * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB (matrículas 990001-1 a 990053-3, só da carga: 990xxx-x também é matrícula de militar real),
+ * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB (matrículas 100001-1 a 100053-3, a faixa 100xxx-x que só o teste usa: 990xxx-x é matrícula de militar real),
  * nas proporções da sandbox, e os serviços/turnos usados nos esboços.
  * Nunca roda no ambiente de teste, onde estão os dados reais.
  */
@@ -28,8 +28,8 @@ const GRUPOS: Grupo[] = [
 ];
 const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
 
-/** A matrícula do n-ésimo militar da carga (1 a 53): 990001-1 ... 990053-3. */
-const matriculaDaCarga = (n: number) => `990${String(n).padStart(3, '0')}-${n % 10}`;
+/** A matrícula do n-ésimo militar da carga (1 a 53): 100001-1 ... 100053-3. */
+const matriculaDaCarga = (n: number) => `100${String(n).padStart(3, '0')}-${n % 10}`;
 
 /**
  * Os militares que a carga cria, na ordem: matrícula e nome de guerra. É a lista que o `separar-teste` usa para dizer quem pode ser marcado como teste
