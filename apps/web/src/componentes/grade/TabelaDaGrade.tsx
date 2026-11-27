@@ -54,7 +54,9 @@ const FUNDO_DA_MARCA_NO_CABECALHO = 'bg-[#F7EFEF]';
  * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES e Diárias. `grupos` são os
  * que aparecem (o filtro de equipes já aplicado); `maximos` vêm da grade inteira.
  */
-export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, aoAbrirFicha, recolhidas, aoAlternar }: {
+export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, aoAbrirFicha, recolhidas, aoAlternar, cheia = false }: {
+  /** Na tela cheia (6.70) a tabela ocupa quase a altura toda da janela. */
+  cheia?: boolean;
   grade: GradeDoMes;
   grupos: GrupoDaGrade[];
   maximos: { pjes: number; diarias: number };
@@ -81,7 +83,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
     // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as duas colunas finais): a célula que rola à vista não para debaixo delas.
-    <div ref={caixa} data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32">
+    <div ref={caixa} data-rolagem="grade" className={cn(cheia ? 'max-h-[calc(100dvh-8rem)]' : 'max-h-[calc(100dvh-13rem)]', 'scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32')}>
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>

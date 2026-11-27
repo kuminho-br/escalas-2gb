@@ -83,13 +83,16 @@ function Casca() {
     if (quem === 'botao') botaoFlutuante.current?.focus();
     else if (quem === 'menu' && estado !== 'escondido') document.querySelector<HTMLElement>('nav[aria-label="Navegação principal"] ul a[href]')?.focus();
   }, [guardado]);
-  const escondido = comTrilho && estado === 'escondido';
+  // a tela cheia da Grade (6.70): sem menu e sem cabeçalho; a busca da Grade diz quando é
+  const cheia = local.pathname.toLowerCase().startsWith('/grade') && (local.search as Record<string, unknown>).cheia === true;
+  const comMenu = comTrilho && !cheia;
+  const escondido = comMenu && estado === 'escondido';
 
   return (
     <ProvedorDeResposta>
     <JustificarPassado>
-    <div className={cn('min-h-dvh', comTrilho && estado === 'largo' && 'md:grid md:grid-cols-[240px_1fr]', comTrilho && estado === 'recolhido' && 'md:grid md:grid-cols-[84px_1fr]')}>
-      {comTrilho && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} estado={estado} aoMudarEstado={escolher} />}
+    <div className={cn('min-h-dvh', comMenu && estado === 'largo' && 'md:grid md:grid-cols-[240px_1fr]', comMenu && estado === 'recolhido' && 'md:grid md:grid-cols-[84px_1fr]')}>
+      {comMenu && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} estado={estado} aoMudarEstado={escolher} />}
       {/* escondido: o botão "Menu" fica no alto, à esquerda, por cima do cabeçalho (que abre espaço para ele) */}
       {escondido && (
         <button
@@ -103,8 +106,8 @@ function Casca() {
         </button>
       )}
       <div className="flex min-w-0 flex-col">
-        <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} botaoDoMenu={botaoDoMenu} semTrilho={!comTrilho} menuEscondido={escondido} />
-        <main className="flex-1 px-4 py-6 md:px-8">
+        {!cheia && <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} botaoDoMenu={botaoDoMenu} semTrilho={!comTrilho} menuEscondido={escondido} />}
+        <main className={cn('flex-1', cheia ? 'px-2 py-2 md:px-4 md:py-3' : 'px-4 py-6 md:px-8')}>
           {/* a faixa das telas de escala numa unidade só de consulta: a pessoa vê e não altera nada */}
           {eu.soConsulta && modulo?.id === 'escalas' && <FaixaSoConsulta unidade={eu.unidade.sigla} />}
           {/* a pesquisa do Pecúlio e a seleção vivem aqui, acima das rotas: abrir a ficha de um militar e voltar não as perde; sair do módulo as zera */}
