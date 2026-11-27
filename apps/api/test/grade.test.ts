@@ -6,6 +6,7 @@ import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 // Cenário fictício (D7), dezembro de 2026 (dia 1 = terça; dia 5 = sábado; dia 8 = feriado de teste; 31 = quinta).
 // Serviços: Pronto (A 08–20, B 20–08), Madrugada (06–14), JES (PJES, 08–20), Bioma (diária, 08–16) e Saldo (A 08–20).
 // Equipes: Alfa (CABO, SD1, SD2, TRANSF) e Bravo (BRAVO); Adm (ADM); de outra seção, escalado aqui (FORA).
+// 6.71: o expediente do Adm é só o serviço Expediente (A 08–16) lançado pela pré-escala; o ADM o tem nos dias 2, 22, 24 e 29.
 let api: ApiDeTeste;
 let outraSecao: string;
 let escala: string;
@@ -86,8 +87,14 @@ beforeAll(async () => {
   await alocar('BRAVO', 'JES', 'a', dia(11));
   await alocar('BRAVO', 'Pronto', 'a', dia(8));
   await alocar('FORA', 'Pronto', 'a', dia(3));
-  // ADM: uma diária num dia útil (choca com o expediente) e um Saldo (que substitui o expediente do dia)
+  // ADM: o expediente lançado pela pré-escala (sem escala) nos dias 2, 22, 24 e 29; uma diária no dia 22 (choca com ele); um Saldo no dia 23, sem expediente lançado
+  const expediente = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Expediente', tipo: 'ordinario', cor: '#8A94A1' });
+  const turnoDoExpediente = await inserir(api.banco, 'turno', { servico_id: expediente, letra: 'A', inicio: '08:00', fim: '16:00' });
+  for (const d of [2, 22, 24, 29]) {
+    await inserir(api.banco, 'alocacao', { militar_id: militar.ADM, escala_id: null, servico_id: expediente, turno_id: turnoDoExpediente, data: dia(d), origem: 'pre_escala' });
+  }
   await alocar('ADM', 'Bioma', 'a', dia(22));
+  await alocar('ADM', 'Madrugada', 'a', dia(22));
   await alocar('ADM', 'Saldo', 'a', dia(23));
   // 6.37: o JES num dia útil choca com o expediente (antes só a diária chocava); o Pronto de outra seção (08h às 20h), no dia 29, também
   await alocar('ADM', 'JES', 'a', dia(24));
@@ -137,23 +144,23 @@ describe('blocos', () => {
   it('o turno B do último dia aparece só no último dia, com a letra e a cor do serviço', async () => {
     const l = linhaDe(await ler(), 'CABO');
     expect(l.dias[dia(31)]).toEqual([
-      { alocacaoId: expect.any(String), servico: { id: servico.Pronto!.id, nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'B', inicio: '20:00', fim: '08:00', expediente: false },
+      { alocacaoId: expect.any(String), servico: { id: servico.Pronto!.id, nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'B', inicio: '20:00', fim: '08:00' },
     ]);
     expect(Object.keys(l.dias).every((d) => d.startsWith(MES))).toBe(true);
     expect(l.dias['2027-01-01']).toBeUndefined();
   });
 
-  it('o expediente do Adm é um bloco sem letra nos dias úteis, e não aparece no fim de semana, no feriado, no afastamento nem no dia do Saldo', async () => {
+  it('o expediente do Adm é só o lançado: um bloco do serviço Expediente, com a letra do turno; os outros dias úteis, o fim de semana, o feriado e o afastamento não têm bloco', async () => {
     const l = linhaDe(await ler(), 'ADM');
-    expect(l.dias[dia(2)]).toEqual([{ alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true }]);
-    for (const d of [5, 6, 8, 14, 15, 16]) expect(l.dias[dia(d)]).toBeUndefined();
-    // o Saldo substitui o expediente do dia 23
-    expect(l.dias[dia(23)]!.map((b) => [b.servico?.nome, b.expediente])).toEqual([['Saldo', false]]);
+    expect(l.dias[dia(2)]).toEqual([{ alocacaoId: expect.any(String), servico: { id: expect.any(String), nome: 'Expediente', cor: '#8A94A1', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '16:00' }]);
+    for (const d of [1, 3, 4, 5, 6, 8, 14, 15, 16]) expect(l.dias[dia(d)]).toBeUndefined();
+    // sem expediente lançado, o Saldo do dia 23 é o único bloco
+    expect(l.dias[dia(23)]!.map((b) => b.servico.nome)).toEqual(['Saldo']);
   });
 
   it('os blocos do dia vêm em ordem de início', async () => {
     const l = linhaDe(await ler(), 'ADM');
-    expect(l.dias[dia(22)]!.map((b) => [b.inicio, b.expediente])).toEqual([['08:00', true], ['08:00', false]]);
+    expect(l.dias[dia(22)]!.map((b) => b.inicio)).toEqual(['06:00', '08:00', '08:00']);
   });
 });
 
@@ -167,11 +174,11 @@ describe('choques (Review Focus 1)', () => {
     expect(l.choques).toEqual([dia(31)]);
   });
 
-  it('a diária e, desde a 6.37, o JES e o serviço de outra seção num dia útil chocam com o expediente do Adm; o Saldo no lugar dele não', async () => {
+  it('a diária, o JES e o serviço de outra seção chocam com o expediente lançado do Adm (dias 22, 24 e 29); sem expediente lançado, nada choca', async () => {
     expect(linhaDe(await ler(), 'ADM').choques).toEqual([dia(22), dia(24), dia(29)]);
   });
 
-  it('o Saldo no lugar do expediente não é choque, e quem não tem choque vem com a lista vazia', async () => {
+  it('o Saldo de um dia sem expediente lançado não é choque, e quem não tem choque vem com a lista vazia', async () => {
     const g = await ler();
     expect(linhaDe(g, 'SD2').choques).toEqual([]);
     expect(linhaDe(g, 'ADM').choques).not.toContain(dia(23));

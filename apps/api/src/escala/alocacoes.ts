@@ -257,7 +257,7 @@ export async function escalarResolvendo(
     const lotacao = (await tx.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and desde <= $2::date and (ate is null or ate >= $2::date) limit 1', [d.militarId, d.data])).rows[0];
     // o pedido só muda o que acontece quando o serviço pode tirar do expediente; o motivo "De expediente" de quem não pode continua valendo
     if (turnoDaVaga.tira && lotacao && !(await temPapel(tx, usuarioId, lotacao.unidade_id, CADASTRO, hoje))) throw new Proibida(MSG_SEM_PODER_NA_LOTACAO);
-    // o expediente que a pré-escala lançou (6.40) sai antes, pela remoção devolvível; o expediente calculado some sozinho sob o serviço
+    // o expediente que a pré-escala lançou (6.40) sai antes, pela remoção devolvível (6.71: ele é o único expediente que existe)
     let remocaoId: string | null = null;
     const lancado = turnoDaVaga.tira ? (await doTurno())?.conflito?.expedienteLancado : undefined;
     if (lancado) remocaoId = (await remover(tx, lancado.id, usuarioId)).remocaoId;

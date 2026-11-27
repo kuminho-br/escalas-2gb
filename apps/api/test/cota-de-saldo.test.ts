@@ -96,8 +96,11 @@ describe('a cota de saldo na lista de candidatos', () => {
     expect(lista.aptos.find((a) => a.nomeGuerra === 'ADMSETE')!.saldos).toEqual({ feitos: 7, total: 6 });
   });
 
-  it('quem está de expediente (em choque) também traz a cota', async () => {
+  it('quem está de expediente (o Expediente lançado pela pré-escala, em choque) também traz a cota', async () => {
     const util = dias.find((d) => d > `${atual}-02` && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
+    const expediente = ((await (await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/servicos`, { nome: 'Expediente', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#8A94A1' })).json()) as { id: string }).id;
+    const turno = (await (await api.pedir('admin', 'POST', `/api/servicos/${expediente}/turnos`, { letra: 'A', inicio: '08:00', fim: '16:00' })).json()).turnos[0].id as string;
+    await inserir(api.banco, 'alocacao', { militar_id: militar.ADMZERO, escala_id: null, servico_id: expediente, turno_id: turno, data: util, origem: 'pre_escala' });
     const lista = await candidatos(util);
     expect(lista.emChoque.find((e) => e.nomeGuerra === 'ADMZERO')!.saldos).toEqual({ feitos: 0, total: 6 });
   });

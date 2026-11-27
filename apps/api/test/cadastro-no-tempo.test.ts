@@ -100,16 +100,18 @@ describe('a Grade com duas situações no mês (revisão final)', () => {
     expect(nomes).toContain('VOLTOU2');
   });
 
-  it('o Adm em Reserva a partir do dia 10 só tem expediente até o dia 9', async () => {
+  it('o Adm em Reserva a partir do dia 10 continua na Grade, só com o que foi lançado (6.71: não há expediente calculado)', async () => {
     const id = await inserir(api.banco, 'militar', { matricula: '991499-9', posto_grad_id: posto['SD'], nome_guerra: 'ADMRES', antiguidade: 99 });
     const base = { militar_id: id, unidade_id: api.ids.secao, jornada: 'adm', quadro_id: quadro.QBMG };
     await inserir(api.banco, 'rastreio', { ...base, desde: '2026-11-01', ate: dia(9), situacao_id: await situacaoDoMilitar(api.banco, 'Ativa') });
     await inserir(api.banco, 'rastreio', { ...base, desde: dia(10), situacao_id: await situacaoDoMilitar(api.banco, 'Reserva') });
+    // o expediente que a pré-escala lançou, antes de ele ir para a Reserva
+    const expediente = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Expediente', tipo: 'ordinario', cor: '#8A94A1' });
+    const turno = await inserir(api.banco, 'turno', { servico_id: expediente, letra: 'A', inicio: '08:00', fim: '16:00' });
+    await inserir(api.banco, 'alocacao', { militar_id: id, escala_id: null, servico_id: expediente, turno_id: turno, data: dia(4), origem: 'pre_escala' });
     const linha = (await grade()).grupos.flatMap((x) => x.linhas).find((l) => l.nomeGuerra === 'ADMRES');
     expect(linha).toBeDefined();
-    const dias = Object.keys(linha!.dias).sort();
-    expect(dias.length).toBeGreaterThan(0);
-    expect(dias.every((d) => d < dia(10))).toBe(true);
+    expect(Object.keys(linha!.dias)).toEqual([dia(4)]);
   });
 });
 

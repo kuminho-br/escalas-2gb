@@ -5,10 +5,12 @@ import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { escalaDaRodada, type RodadaDeTeste } from './apoio-oficiais.ts';
 
 // 6.39: a escala dos oficiais confere o choque como as outras (6.37) e o Saldo no expediente se resolve com a decisão do escalante (6.38). Dados fictícios (D7).
+// 6.71: o expediente do Adm é só o serviço Expediente lançado pela pré-escala; sem ele lançado, nada choca com expediente.
 // Setembro de 2027: dia 1 = quarta; 4 e 5 = fim de semana; 6 e 8 a 10 = dias úteis (o 7 é feriado nacional).
 let api: ApiDeTeste;
 let rodada: RodadaDeTeste;
 let outraEscala: string;
+let expediente: { id: string; turno: string };
 const posto: Record<string, string> = {};
 const quadro: Record<string, string> = {};
 const ids: Record<string, string> = {};
@@ -27,6 +29,8 @@ const ler = async (): Promise<EscalaDosOficiais> => (await api.pedir('gestorGb',
 const lancar = (d: string, letra: string, servico: 'jes' | 'saldo', nome: string, resolverChoque?: { expediente: true }) =>
   api.pedir('gestorGb', 'POST', rota('/lancamentos'), { dia: d, letra, servico, militarId: ids[nome], ...(resolverChoque ? { resolverChoque } : {}) });
 const doLugar = (e: EscalaDosOficiais, d: string, letra: string) => e.turnos.find((t) => t.dia === d && t.letra === letra)!;
+const lancarExpediente = (nome: string, d: string) =>
+  inserir(api.banco, 'alocacao', { militar_id: ids[nome], escala_id: null, servico_id: expediente.id, turno_id: expediente.turno, data: d, origem: 'pre_escala' });
 const alocacoes = async (nome: string, d: string) => (await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [ids[nome], d])).rows.length;
 
 beforeAll(async () => {
@@ -37,6 +41,10 @@ beforeAll(async () => {
   await oficial('adm2', 'adm', 2);
   await oficial('pronto', 'pronto', 3);
   rodada = await escalaDaRodada(api.banco, api.ids.gb);
+  const servicoExpediente = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Expediente', tipo: 'ordinario', cor: '#8A94A1' });
+  expediente = { id: servicoExpediente, turno: await inserir(api.banco, 'turno', { servico_id: servicoExpediente, letra: 'A', inicio: '08:00', fim: '16:00' }) };
+  for (const d of [8, 9]) await lancarExpediente('adm', dia(d));
+  for (const d of [8, 10]) await lancarExpediente('adm2', dia(d));
   // outra escala da unidade que também usa o serviço JES (o JES lançado lá conta para o choque)
   outraEscala = await inserir(api.banco, 'escala', { unidade_id: api.ids.gb, nome: 'Operações comuns', titulo: 'OPERAÇÕES', militares_doc: 'escalados', dias_doc: 'todos' });
   await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [outraEscala, rodada.jes]);
@@ -68,23 +76,28 @@ describe('a escala dos oficiais confere o choque (6.39)', () => {
     expect(doLugar(await ler(), dia(11), 'A').militarId).toBeNull();
   });
 
-  it('o oficial com jornada Adm, num dia útil: o JES no horário do expediente é 409 "De expediente neste dia" (e não pode ser resolvido); em fim de semana passa', async () => {
+  it('o oficial com jornada Adm, num dia com o expediente lançado: o JES no horário do expediente é 409 "De expediente neste dia" (e não pode ser resolvido); em fim de semana passa', async () => {
     const r = await lancar(dia(8), 'A', 'jes', 'adm');
     expect(r.status).toBe(409);
     const corpo = await r.json();
     expect(corpo.erro).toBe('De expediente neste dia');
     expect('resolvivel' in corpo).toBe(false);
-    expect(await alocacoes('adm', dia(8))).toBe(0);
+    expect(await alocacoes('adm', dia(8))).toBe(1); // só o expediente lançado
     expect((await lancar(dia(5), 'A', 'jes', 'adm')).status).toBe(200);
+    // sem expediente lançado, o dia útil não choca (6.71)
+    expect((await lancar(dia(6), 'A', 'jes', 'adm2')).status).toBe(200);
   });
 
   it('o Saldo no expediente: 409 que diz que dá para resolver; com `resolverChoque: { expediente: true }` grava', async () => {
     const sem = await lancar(dia(9), 'A', 'saldo', 'adm');
     expect(sem.status).toBe(409);
     expect(await sem.json()).toMatchObject({ erro: 'De expediente neste dia', resolvivel: 'expediente' });
-    expect(await alocacoes('adm', dia(9))).toBe(0);
+    expect(await alocacoes('adm', dia(9))).toBe(1);
     const com = await lancar(dia(9), 'A', 'saldo', 'adm', { expediente: true });
     expect(com.status).toBe(200);
+    // o expediente lançado saiu, pela remoção devolvível, e só o Saldo ficou
+    expect(await alocacoes('adm', dia(9))).toBe(1);
+    expect((await api.banco.query('select 1 from remocao where militar_id = $1 and data = $2::date', [ids.adm, dia(9)])).rows).toHaveLength(1);
     expect(doLugar(await com.json(), dia(9), 'A')).toMatchObject({ servico: 'saldo', militarId: ids.adm });
   });
 
@@ -92,7 +105,7 @@ describe('a escala dos oficiais confere o choque (6.39)', () => {
     const r = await lancar(dia(10), 'A', 'jes', 'adm2', { expediente: true });
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('De expediente neste dia');
-    expect(await alocacoes('adm2', dia(10))).toBe(0);
+    expect(await alocacoes('adm2', dia(10))).toBe(1); // só o expediente lançado
   });
 
   it('o oficial sem jornada Adm não tem expediente: JES e Saldo num dia útil passam', async () => {
