@@ -82,6 +82,7 @@ export function rotasDoLaboratorio(dep: { banco: Banco; auth: Auth }): Hono<Ambi
     if ((ferramenta && !UUID.test(ferramenta)) || (de && !Data.safeParse(de).success) || (ate && !Data.safeParse(ate).success)) {
       return c.json({ erro: 'Confira o filtro: use a ferramenta da lista e datas no formato aaaa-mm-dd.' }, 400);
     }
+    if (de && ate && de > ate) return c.json({ erro: 'A data inicial vem depois da final. Confira o período.' }, 400);
     return c.json(await listarRetornos(dep.banco, { ferramenta, de, ate }));
   });
   return r;

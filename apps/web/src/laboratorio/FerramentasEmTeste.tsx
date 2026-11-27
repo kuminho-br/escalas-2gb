@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { consultaFerramentas, type FerramentaDeTeste } from '@/api/laboratorio';
 import { mensagemDe } from '@/api/cliente';
+import { Espera } from '@/componentes/resposta/Espera';
 import { Button } from '@/componentes/ui/button';
 import { DeixarRetorno } from './DeixarRetorno';
 
@@ -22,6 +23,7 @@ export function FerramentasEmTeste() {
   return (
     <section aria-labelledby="ferramentas-em-teste" className="pb-8 md:pb-10">
       <h2 id="ferramentas-em-teste" className="font-cond text-bloco font-semibold">Ferramentas em teste</h2>
+      {ferramentas.isPending && <Espera className="mt-2" />}
       {ferramentas.isError && <p role="alert" className="mt-2 text-corpo text-alerta">{mensagemDe(ferramentas.error)}</p>}
       {ferramentas.data && emTeste.length === 0 && <p className="mt-2 text-corpo text-apagado">Nenhuma ferramenta em teste agora.</p>}
       <ul className="mt-3 grid gap-2">

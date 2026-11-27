@@ -16,7 +16,11 @@ export type SituacaoDaFerramenta = z.infer<typeof SituacaoDaFerramenta>;
 
 const NomeDaFerramenta = z.string().trim().min(1, 'Dê um nome à ferramenta.').max(80, 'O nome tem até 80 caracteres.');
 const OQueTestar = z.string().trim().min(1, 'Diga o que testar.').max(500, 'O texto tem até 500 caracteres.');
-const Caminho = z.string().trim().max(200, 'O caminho tem até 200 caracteres.').refine((c) => c.startsWith('/'), 'O caminho começa com /.');
+const Caminho = z
+  .string()
+  .trim()
+  .max(200, 'O caminho tem até 200 caracteres.')
+  .refine((c) => c.startsWith('/') && !c.startsWith('//') && !c.includes(':'), 'O caminho começa com / e fica dentro do site.');
 
 /** Cadastrar: o nome, o que testar e, se houver, o caminho da ferramenta dentro do Laboratório. */
 export const NovaFerramenta = z.object({ nome: NomeDaFerramenta, oQueTestar: OQueTestar, caminho: Caminho.nullish() }).strict();
@@ -52,7 +56,8 @@ export type RetornoListado = {
   id: string;
   ferramentaId: string;
   ferramenta: string;
-  conta: { nome: string; matricula: string };
+  /** null se a conta de quem deixou foi apagada: o retorno fica, sem autoria */
+  conta: { nome: string; matricula: string } | null;
   perfilDeTeste: string;
   tela: string;
   texto: string;

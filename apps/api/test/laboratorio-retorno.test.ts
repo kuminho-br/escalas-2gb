@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { telaSemParametros } from '../src/laboratorio/retornos.ts';
-import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { montarApi, entrarComo, type ApiDeTeste } from './apoio-api.ts';
 
 // 6.60, Task 1: as ferramentas em teste e o retorno (do REAL, ligados à conta real). Dados fictícios (D7).
 let api: ApiDeTeste;
@@ -17,6 +17,7 @@ const cadastrar = async (nome = 'Grade nova', extra: Record<string, unknown> = {
   expect(r.status).toBe(201);
   return (await r.json()) as { id: string; situacao: string; fim: string | null };
 };
+const entrarNoLab = () => entrar('semPapel', 'administrador');
 const retorno = (quem: 'semPapel' | 'escalante' | 'gestorGb' | 'admin', corpo: Record<string, unknown>) => api.pedir(quem, 'POST', '/api/laboratorio/retornos', corpo);
 
 beforeAll(async () => {
@@ -66,7 +67,7 @@ describe('as ferramentas em teste', () => {
   it('os dados do cadastro têm limite e frase amigável; ferramenta que não existe é 404', async () => {
     const ruim = await api.pedir('admin', 'POST', '/api/laboratorio/ferramentas', { nome: '', oQueTestar: '', caminho: 'grade' });
     expect(ruim.status).toBe(400);
-    expect(await ruim.json()).toMatchObject({ campos: { nome: 'Dê um nome à ferramenta.', oQueTestar: 'Diga o que testar.', caminho: 'O caminho começa com /.' } });
+    expect(await ruim.json()).toMatchObject({ campos: { nome: 'Dê um nome à ferramenta.', oQueTestar: 'Diga o que testar.', caminho: 'O caminho começa com / e fica dentro do site.' } });
     expect((await api.pedir('admin', 'PATCH', '/api/laboratorio/ferramentas/00000000-0000-4000-8000-000000000999', { situacao: 'encerrada' })).status).toBe(404);
     expect((await api.pedir('admin', 'PATCH', '/api/laboratorio/ferramentas/x', { situacao: 'encerrada' })).status).toBe(404);
   });
@@ -150,10 +151,49 @@ describe('o retorno', () => {
     expect((await api.pedir('admin', 'GET', '/api/laboratorio/retornos?ferramenta=x')).status).toBe(400);
   });
 
+  it('apagar o militar de quem deixou um retorno funciona: o retorno fica, sem autoria, e a lista do administrador diz "conta apagada"', async () => {
+    await entrarNoLab();
+    const f = await cadastrar('Retorno de quem sai');
+    const pessoa = await entrarComo(api, { matricula: '990971-9', nome: 'RETORNANTE' });
+    expect((await pessoa.pedir('PUT', '/api/laboratorio/perfil', { perfilId: perfil.militar })).status).toBe(200);
+    expect((await pessoa.pedir('POST', '/api/laboratorio/retornos', { ferramentaId: f.id, tela: '/grade', texto: 'Vou sair.', nota: 3 })).status).toBe(201);
+    const apagar = await api.pedir('admin', 'DELETE', `/api/militares/${pessoa.militarId}`, { matricula: '990971-9' });
+    expect(apagar.status).toBe(204);
+    const [linha] = (await api.banco.query<{ usuario_id: string | null; texto: string }>("select usuario_id, texto from retorno_laboratorio where texto = 'Vou sair.'")).rows;
+    expect(linha).toEqual({ usuario_id: null, texto: 'Vou sair.' });
+    const lista = (await (await api.pedir('admin', 'GET', '/api/laboratorio/retornos')).json()) as { texto: string; conta: unknown }[];
+    expect(lista.find((r) => r.texto === 'Vou sair.')?.conta).toBeNull();
+  });
+
+  it('a limpeza dos dados de teste (separar-teste) também não quebra com um retorno de conta de teste', async () => {
+    const f = await cadastrar('Retorno de teste');
+    const pessoa = await entrarComo(api, { matricula: '990972-9', nome: 'CONTADETESTE' });
+    expect((await pessoa.pedir('PUT', '/api/laboratorio/perfil', { perfilId: perfil.militar })).status).toBe(200);
+    expect((await pessoa.pedir('POST', '/api/laboratorio/retornos', { ferramentaId: f.id, tela: '/grade', texto: 'Conta de teste.', nota: 4 })).status).toBe(201);
+    const { contagemParaVarios } = await import('../src/cadastros/apagar-militar.ts');
+    await api.banco.transacao(async (tx) => {
+      await contagemParaVarios(tx, [pessoa.militarId], true);
+    });
+    expect((await api.banco.query("select 1 from retorno_laboratorio where texto = 'Conta de teste.' and usuario_id is null")).rows).toHaveLength(1);
+  });
+
+  it('só a perda da conta passa pelo gatilho: apagar ou mudar outro campo do retorno continua recusado, mesmo junto com esvaziar a conta', async () => {
+    await expect(api.banco.query("update retorno_laboratorio set usuario_id = null, texto = 'mudado' where usuario_id is not null")).rejects.toThrow(/não se altera nem se apaga/);
+    await expect(api.banco.query('delete from retorno_laboratorio where usuario_id is null')).rejects.toThrow(/não se altera nem se apaga/);
+  });
+
+  it('o caminho da ferramenta fica dentro do site: // e : são recusados; datas do período invertidas, 400', async () => {
+    for (const caminho of ['//evil.com', '/a:b', 'grade', 'https://x.com']) {
+      expect((await api.pedir('admin', 'POST', '/api/laboratorio/ferramentas', { nome: 'x', oQueTestar: 'y', caminho })).status, caminho).toBe(400);
+    }
+    expect((await api.pedir('admin', 'GET', '/api/laboratorio/retornos?de=2026-12-31&ate=2026-12-01')).status).toBe(400);
+  });
+
   it('a tela é gravada sem parâmetros: sem busca, sem âncora, sem barra final, e o identificador vira :id', () => {
     expect(telaSemParametros('/grade?mes=2026-12&militar=1#topo')).toBe('/grade');
     expect(telaSemParametros('/escalas/')).toBe('/escalas');
     expect(telaSemParametros('/militares/3f2b8c1e-0b7a-4c3e-9d1a-1234567890ab/acesso')).toBe('/militares/:id/acesso');
+    expect(telaSemParametros('/militares/123456-7')).toBe('/militares/:id');
     expect(telaSemParametros('/')).toBe('/');
     expect(telaSemParametros('?x=1')).toBe('/');
   });

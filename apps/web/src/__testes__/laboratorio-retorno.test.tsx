@@ -163,6 +163,14 @@ describe('os retornos e o cadastro, para o administrador', () => {
     await waitFor(() => expect(f.mock.calls.some(([e]) => /ferramenta=f2&de=2026-11-01&ate=2026-11-30/.test(String(e)))).toBe(true));
   });
 
+  it('o retorno de uma conta que foi apagada continua na lista, como "Conta apagada"', async () => {
+    simularApi({ ...rotasDoAdmin, '/api/laboratorio/retornos': { status: 200, corpo: [{ ...RETORNOS[0], conta: null }] } });
+    abrir('/laboratorio/retornos');
+    const item = (await screen.findByText(/Ficou claro\./)).closest('li')!;
+    expect(item).toHaveTextContent('Conta apagada');
+    expect(item).toHaveTextContent('testando como Gestor de teste');
+  });
+
   it('sem retorno, a tela diz isso', async () => {
     simularApi({ ...rotasDoAdmin, '/api/laboratorio/retornos': { status: 200, corpo: [] } });
     abrir('/laboratorio/retornos');

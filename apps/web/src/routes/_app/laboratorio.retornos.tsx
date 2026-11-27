@@ -92,7 +92,7 @@ function ItemDeRetorno({ r }: { r: RetornoListado }) {
       </div>
       <p className="text-corpo whitespace-pre-line">{r.texto}</p>
       <p className="text-apoio text-apagado">
-        <span className="font-medium text-tinta">{r.conta.nome}</span> ({r.conta.matricula}), testando como {r.perfilDeTeste}, na tela <span className="break-all">{r.tela}</span>
+        {r.conta ? <><span className="font-medium text-tinta">{r.conta.nome}</span> ({r.conta.matricula})</> : <span className="font-medium text-tinta">Conta apagada</span>}, testando como {r.perfilDeTeste}, na tela <span className="break-all">{r.tela}</span>
       </p>
     </li>
   );
