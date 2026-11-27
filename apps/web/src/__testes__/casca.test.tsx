@@ -112,7 +112,7 @@ describe('casca', () => {
     const caminho = screen.getByRole('navigation', { name: 'Unidade' });
     expect(within(caminho).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
-    expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
+    expect(within(screen.getByRole('navigation', { name: 'Navegação principal' })).getByRole('img', { name: 'Brasão do 2º Grupamento de Bombeiros' })).toHaveAttribute('src', '/brasao-2gb.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByText('Estrutura')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
@@ -170,12 +170,12 @@ describe('trilho', () => {
   const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
-  it('no computador o menu é um trilho de 84 px', async () => {
+  it('no computador o menu abre largo (240 px); o trilho de 84 px é o estado recolhido (6.70)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
     await screen.findByText('SD ANDRADE');
-    expect(menu().parentElement?.className).toContain('md:grid-cols-[84px_1fr]');
-    expect(menu().className).toContain('md:w-[84px]');
+    expect(menu().parentElement?.className).toContain('md:grid-cols-[240px_1fr]');
+    expect(menu().className).toContain('md:w-60');
   });
 
   it('cada item do trilho mantém o nome', async () => {
