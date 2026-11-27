@@ -358,19 +358,20 @@ describe('a cota de saldo na Grade geral (6.38)', () => {
     const matricula = within(linhaDe('ADM')).getByText('990001-1');
     expect(matricula.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // a matrícula (dentro do botão do militar) à esquerda e a barra à direita, na segunda linha de uma grade de duas colunas
+    // (6.70: a célula do nome é o botão de ponta a ponta, que é a grade de duas colunas; a barra vem dentro dele)
     const linhaDaMatricula = barra.parentElement!.parentElement!;
     expect(linhaDaMatricula).toContainElement(matricula);
-    expect(linhaDaMatricula).toHaveClass('grid', 'items-end');
+    expect(linhaDaMatricula).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
     expect(barra.parentElement).toHaveClass('col-start-2', 'row-start-2');
-    // a célula tem 12 px de folga à direita, até a fronteira
-    expect(linhaDe('ADM').querySelector('th')).toHaveClass('pr-3');
+    // o botão tem 12 px de folga à direita, até a fronteira
+    expect(linhaDaMatricula).toHaveClass('pr-3');
     // a barra continua com 28 por 6 px
     expect(barra).toHaveClass('w-7', 'h-1.5');
     // Review Focus 3: no Pronto, a matrícula fica no mesmo lugar (a mesma linha, a mesma folga), sem barra
     const doPronto = within(linhaDe('CABO')).getByText('990001-1');
-    expect(doPronto.parentElement!.parentElement).toHaveClass('grid', 'items-end');
+    expect(doPronto.parentElement).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
     expect(doPronto.className).toBe(matricula.className);
-    expect(linhaDe('CABO').querySelector('th')).toHaveClass('pr-3');
+    expect(doPronto.parentElement).toHaveClass('pr-3');
     expect(within(linhaDe('SOBRA')).getByRole('img', { name: '7 de 6 saldos no mês' })).toHaveAttribute('data-estado', 'acima');
     expect(within(linhaDe('CABO')).queryByRole('img')).toBeNull();
   });
