@@ -5,6 +5,7 @@ import { trocarSenha } from '@/api/acesso';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Campo } from '@/componentes/Campo';
+import { RequisitosDaSenha } from '@/componentes/acesso/RequisitosDaSenha';
 import { useSair } from '@/componentes/useSair';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -27,13 +28,12 @@ function CriarSenha() {
   const [campos, setCampos] = useState<Record<string, string>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [nova, setNova] = useState('');
+  const [repita, setRepita] = useState('');
   const { sair, erroSair } = useSair();
 
   async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const dados = new FormData(e.currentTarget);
-    const nova = String(dados.get('nova'));
-    const repita = String(dados.get('repita'));
     setErro(null);
     const lida = NovaSenha.safeParse({ novaSenha: nova });
     const erros: Record<string, string> = {};
@@ -62,12 +62,12 @@ function CriarSenha() {
         </header>
         <form onSubmit={enviar} className="grid gap-4 p-6" noValidate>
           <Campo id="nova" rotulo="Nova senha" erro={campos.nova}>
-            <Input id="nova" name="nova" type="password" autoComplete="new-password" autoFocus />
+            <Input id="nova" name="nova" type="password" autoComplete="new-password" autoFocus value={nova} onChange={(e) => setNova(e.target.value)} />
           </Campo>
           <Campo id="repita" rotulo="Repita a nova senha" erro={campos.repita}>
-            <Input id="repita" name="repita" type="password" autoComplete="new-password" />
+            <Input id="repita" name="repita" type="password" autoComplete="new-password" value={repita} onChange={(e) => setRepita(e.target.value)} />
           </Campo>
-          <p className="text-sm text-apagado">Use pelo menos 10 caracteres.</p>
+          <RequisitosDaSenha senha={nova} confirmacao={repita} />
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           {erroSair && <p role="alert" className="text-sm text-alerta">{erroSair}</p>}
           <div className="flex flex-wrap gap-2">

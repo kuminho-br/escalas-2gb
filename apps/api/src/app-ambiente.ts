@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { enviarPeloBrevo } from './acesso-por-email/enviar-email.ts';
 import { criarApp } from './app.ts';
 import { criarAuth } from './auth.ts';
 import { bancoPg } from './banco/banco.ts';
@@ -24,5 +25,7 @@ export function criarAppDoAmbiente(env: Ambiente): Hono {
   const banco = bancoPg(env.DATABASE_URL);
   const auth = criarAuth({ banco, segredo: env.BETTER_AUTH_SECRET, urlBase: env.BETTER_AUTH_URL });
   const migracoesEsperadas = typeof __MIGRACOES_ESPERADAS__ === 'undefined' ? undefined : __MIGRACOES_ESPERADAS__;
-  return criarApp({ banco, auth, cronSecret: env.CRON_SECRET, migracoesEsperadas });
+  // sem BREVO_API_KEY e EMAIL_REMETENTE (postos no Vercel pelo usuário), o envio de códigos fica fora do ar e o resto funciona
+  const enviarEmail = env.BREVO_API_KEY && env.EMAIL_REMETENTE ? enviarPeloBrevo({ chave: env.BREVO_API_KEY, remetente: env.EMAIL_REMETENTE }) : null;
+  return criarApp({ banco, auth, cronSecret: env.CRON_SECRET, migracoesEsperadas, segredo: env.BETTER_AUTH_SECRET, enviarEmail });
 }

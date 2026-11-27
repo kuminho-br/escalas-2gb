@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { saida } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
@@ -33,7 +33,6 @@ function Entrar() {
   const { queryClient } = Route.useRouteContext();
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [esqueci, setEsqueci] = useState(false);
   const senha = useRef<HTMLInputElement>(null);
   const botao = useRef<HTMLButtonElement>(null);
   // a cena das mangueiras (docs/superpowers/specs/2026-11-20-transicao-login-design.md): a imagem é carregada quando o login abre
@@ -135,10 +134,14 @@ function Entrar() {
           <Button ref={botao} type="submit" disabled={enviando} className="mt-1 h-[46px] lg:h-10">
             {enviando ? 'Entrando…' : 'Entrar'}
           </Button>
-          <button type="button" aria-expanded={esqueci} onClick={() => setEsqueci(!esqueci)} className="justify-self-start text-sm text-vinho underline underline-offset-2">
-            Esqueci minha senha
-          </button>
-          {esqueci && <p className="text-sm text-apagado">Peça uma senha nova ao auxiliar administrativo da sua seção.</p>}
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link to="/esqueci-a-senha" className="text-sm text-vinho underline underline-offset-2">
+              Esqueci minha senha
+            </Link>
+            <Link to="/primeiro-acesso" className="text-sm text-vinho underline underline-offset-2">
+              Primeiro acesso
+            </Link>
+          </div>
         </form>
       </div>
     </main>

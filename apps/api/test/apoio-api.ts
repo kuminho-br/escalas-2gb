@@ -8,6 +8,8 @@ import { bancoDeTeste, inserir } from './banco-teste.ts';
 
 export const URL_BASE = 'http://localhost:8787';
 const SENHA = 'senha-de-teste-123';
+/** O segredo do auth dos testes, que também é o dos resumos do código de acesso por e-mail. */
+export const SEGREDO_DE_TESTE = 'segredo-de-teste-com-tamanho-suficiente-123';
 
 /** `gestorGb`: gestor do 2º GB, o "papel de cima" das seções (dono dos blocos do Pecúlio da ficha). */
 export type Quem = 'admin' | 'escalante' | 'gestorGb' | 'semPapel';
@@ -44,9 +46,9 @@ const idDe = async (banco: Banco, sigla: string) =>
  */
 export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) => Pick<Hono, 'request'>): Promise<ApiDeTeste> {
   const banco = await bancoDeTeste();
-  const auth = criarAuth({ banco, segredo: 'segredo-de-teste-com-tamanho-suficiente-123', urlBase: URL_BASE });
+  const auth = criarAuth({ banco, segredo: SEGREDO_DE_TESTE, urlBase: URL_BASE });
   // os testes buscam mais de 30 vezes por minuto: o limite da consulta fica de fora (`consulta-limite.test.ts` prova o limite, com o padrão)
-  const app = fabricar ? fabricar({ banco, auth }) : criarApp({ banco, auth, limiteDeBuscas: Infinity });
+  const app = fabricar ? fabricar({ banco, auth }) : criarApp({ banco, auth, limiteDeBuscas: Infinity, segredo: SEGREDO_DE_TESTE });
   const ids = { raiz: await idDe(banco, 'CBMPE'), gb: await idDe(banco, '2º GB'), secao: await idDe(banco, '1ª SB') };
   const hoje = hojeRecife();
 

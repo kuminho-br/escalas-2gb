@@ -14,6 +14,8 @@ import { rotasDoLote } from './cadastros/lote.ts';
 import { rotasMilitares } from './cadastros/militares.ts';
 import { rotasServicos } from './cadastros/servicos.ts';
 import { rotasSituacoes } from './cadastros/situacoes.ts';
+import { rotasAcessoPorEmail } from './acesso-por-email/rotas.ts';
+import type { EnviarEmail } from './acesso-por-email/enviar-email.ts';
 import { exigirMigracoesEmDia } from './migracoes-pendentes.ts';
 import { IMPORTADORES } from './importacao/registro.ts';
 import { limiteDeEnvio } from './limites.ts';
@@ -43,6 +45,10 @@ export interface Dependencias {
   limiteDeBuscas?: number;
   /** O relógio das rotas que dependem de "agora" (os próximos serviços); sem ele, a hora de verdade. Os testes o trocam. */
   agora?: () => Date;
+  /** A chave dos resumos (HMAC) do código de acesso por e-mail: o `BETTER_AUTH_SECRET`. Sem ela, as rotas do código não existem. */
+  segredo?: string;
+  /** O envio de e-mail (Brevo na Vercel). `null` ou ausente: o envio de códigos está fora do ar (503), e o resto do sistema funciona. */
+  enviarEmail?: EnviarEmail | null;
 }
 
 export function criarApp(dep: Dependencias): Hono {
@@ -60,9 +66,19 @@ export function criarApp(dep: Dependencias): Hono {
       if (sessao && (await dep.banco.query('select 1 from usuario where id = $1 and senha_provisoria_ate is not null', [sessao.user.id])).rows.length) {
         return c.json({ erro: MSG_CRIE_A_SENHA }, 403);
       }
-      return next();
+      await next();
+      // quem trocou a senha não fica com um código por e-mail esquecido, ainda valendo
+      // a senha já foi trocada: se apagar o código falhar, a pessoa não recebe um 500
+      if (sessao && c.res.status === 200) {
+        try {
+          await dep.banco.query('delete from codigo_de_acesso where militar_id = (select militar_id from usuario where id = $1)', [sessao.user.id]);
+        } catch {
+          console.error('Não deu para apagar o código de acesso pendente depois de trocar a senha.');
+        }
+      }
     });
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+    if (dep.segredo) app.route('/api', rotasAcessoPorEmail({ banco: dep.banco, segredo: dep.segredo, enviarEmail: dep.enviarEmail ?? null, agora: dep.agora }));
     app.route('/api/eu', rotasEu(dep.banco, auth));
     app.route('/api', rotasConfiguracoes(comAuth));
     app.route('/api', rotasGuarnicoes(comAuth));
