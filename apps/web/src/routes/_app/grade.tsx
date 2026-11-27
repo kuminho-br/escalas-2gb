@@ -103,8 +103,17 @@ function GradeGeral() {
   const gradeCarregada = !!grade;
   useEffect(() => {
     if (!militarEscolhido || !diaEscolhido || !gradeCarregada) return;
-    document.querySelector<HTMLElement>(`tr[data-militar="${militarEscolhido}"] [data-data="${diaEscolhido}"]`)?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
-  }, [militarEscolhido, diaEscolhido, gradeCarregada]);
+    const celula = document.querySelector<HTMLElement>(`tr[data-militar="${militarEscolhido}"] [data-data="${diaEscolhido}"]`);
+    // no celular o painel é uma folha que cobre quase dois terços da tela (6.70): a tabela sobe para o alto da tela e a linha escolhida rola para logo abaixo do cabeçalho dos dias
+    const caixa = celula?.closest<HTMLElement>('[data-rolagem]');
+    const linha = celula?.closest('tr');
+    if (celular && caixa && linha) {
+      document.querySelector<HTMLElement>('[data-grade]')?.scrollIntoView?.({ block: 'start' });
+      const cabecalho = caixa.querySelector('thead')?.getBoundingClientRect().height ?? 0;
+      caixa.scrollTo?.({ top: caixa.scrollTop + linha.getBoundingClientRect().top - caixa.getBoundingClientRect().top - cabecalho });
+    }
+    celula?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+  }, [militarEscolhido, diaEscolhido, gradeCarregada, celular]);
 
   return (
     <Moldura
