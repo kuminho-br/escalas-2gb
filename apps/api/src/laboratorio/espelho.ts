@@ -51,12 +51,12 @@ export async function prepararPapelDoEspelho(c: Consulta): Promise<void> {
 type Nivel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante' | 'militar';
 
 /** Os usuários de teste, um por nível de acesso. Nomes e matrículas fictícios; ninguém entra com eles, a 6.59 injeta a sessão. Também fazem parte da carga que o `separar-teste` reconhece. */
-export const PERFIS_DE_TESTE: { nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
-  { nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '990101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
-  { nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '990102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
-  { nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '990103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
-  { nome: 'Auxiliar administrativo de teste', nivel: 'escalante', unidade: '1ª SB', posto: 'ST', matricula: '990104-4', guerra: 'TESTE AUX', email: 'auxiliar@laboratorio.invalid' },
-  { nome: 'Militar de teste', nivel: 'militar', unidade: null, posto: 'SD', matricula: '990105-5', guerra: 'TESTE MILITAR', email: 'militar@laboratorio.invalid' },
+export const PERFIS_DE_TESTE: { id: string; nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
+  { id: '00000000-0000-4000-8000-0000000000a1', nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '990101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a2', nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '990102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a3', nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '990103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a4', nome: 'Auxiliar administrativo de teste', nivel: 'escalante', unidade: '1ª SB', posto: 'ST', matricula: '990104-4', guerra: 'TESTE AUX', email: 'auxiliar@laboratorio.invalid' },
+  { id: '00000000-0000-4000-8000-0000000000a5', nome: 'Militar de teste', nivel: 'militar', unidade: null, posto: 'SD', matricula: '990105-5', guerra: 'TESTE MILITAR', email: 'militar@laboratorio.invalid' },
 ];
 
 /** Cria os cinco usuários de teste que ainda faltam, lotados na 1ª SB e com o nível dado. Devolve quantos existem. */
@@ -74,7 +74,7 @@ async function criarPerfisDeTeste(tx: Consulta, mes: string): Promise<number> {
       )
     ).rows[0]!.id;
     const usuario = (
-      await tx.query<{ id: string }>('insert into usuario (nome, email, militar_id) values ($1, $2, $3) returning id', [p.nome, p.email, militar])
+      await tx.query<{ id: string }>('insert into usuario (id, nome, email, militar_id) values ($1, $2, $3, $4) returning id', [p.id, p.nome, p.email, militar])
     ).rows[0]!.id;
     const quadro = await quadroParaOPosto(tx, posto, undefined, null);
     await tx.query("insert into rastreio (militar_id, unidade_id, jornada, desde, quadro_id) values ($1, $2, 'adm', $3, $4)", [
@@ -96,18 +96,21 @@ async function criarPerfisDeTeste(tx: Consulta, mes: string): Promise<number> {
  * Recusa se o espelho não existir: sem ele o `search_path` cairia no `public`, e a carga fictícia nunca vai para o real. Repetível: não duplica.
  */
 export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ militares: number; perfis: number }> {
-  return banco.transacao(async (tx) => {
-    await tx.exec(`set local search_path to ${SCHEMA_ESPELHO}, public`);
-    const alvo = (await tx.query<{ s: string | null }>('select current_schema() as s')).rows[0]!.s;
-    if (alvo !== SCHEMA_ESPELHO) throw new Error('A carga de teste só roda no espelho (schema laboratorio), e ele não existe neste banco.');
-    // como o papel do espelho: se a carga escrevesse no real por engano, o banco negaria
-    await tx.exec(`set local role ${ESPELHO_PAPEL}`);
-    const { militares } = await cargaExemploEm(tx, mes, { deTeste: true });
-    const perfis = await criarPerfisDeTeste(tx, mes);
-    // no espelho tudo é de teste: o que já estava lá sem a marca (um espelho carregado antes da coluna existir) ganha a marca agora
-    await tx.exec('update militar set de_teste = true where not de_teste');
-    return { militares, perfis };
-  });
+  return banco.transacao((tx) => cargaDoEspelhoEm(tx, mes));
+}
+
+/** O corpo da carga do espelho, sobre a transação dada (a do `recomecarEspelho` a reaproveita). Depois dela a transação segue com o papel do espelho: quem precisa voltar ao dono, faz `reset role`. */
+export async function cargaDoEspelhoEm(tx: Consulta, mes: string): Promise<{ militares: number; perfis: number }> {
+  await tx.exec(`set local search_path to ${SCHEMA_ESPELHO}, public`);
+  const alvo = (await tx.query<{ s: string | null }>('select current_schema() as s')).rows[0]!.s;
+  if (alvo !== SCHEMA_ESPELHO) throw new Error('A carga de teste só roda no espelho (schema laboratorio), e ele não existe neste banco.');
+  // como o papel do espelho: se a carga escrevesse no real por engano, o banco negaria
+  await tx.exec(`set local role ${ESPELHO_PAPEL}`);
+  const { militares } = await cargaExemploEm(tx, mes, { deTeste: true });
+  const perfis = await criarPerfisDeTeste(tx, mes);
+  // no espelho tudo é de teste: o que já estava lá sem a marca (um espelho carregado antes da coluna existir) ganha a marca agora
+  await tx.exec('update militar set de_teste = true where not de_teste');
+  return { militares, perfis };
 }
 
 export interface PerfilDeTeste {
@@ -122,7 +125,10 @@ export async function perfisDeTeste(c: Consulta): Promise<PerfilDeTeste[]> {
   const { rows } = await c.query<PerfilDeTeste>(
     `select u.id as "usuarioId", u.nome, coalesce(p.papel, 'militar') as nivel
        from ${SCHEMA_ESPELHO}.usuario u left join ${SCHEMA_ESPELHO}.papel_usuario p on p.usuario_id = u.id
+      where u.id = any($1::uuid[])
       order by array_position(array['administrador', 'gestor', 'gestor_lateral', 'escalante', 'militar']::text[], coalesce(p.papel, 'militar')), u.nome`,
+    // só os cinco perfis (os ids são fixos): um usuário a mais no espelho não vira perfil
+    [PERFIS_DE_TESTE.map((p) => p.id)],
   );
   return rows;
 }

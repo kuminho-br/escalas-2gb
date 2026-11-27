@@ -139,12 +139,12 @@ describe('tela inicial', () => {
     expect(within(nav).queryByText('Abrir')).toBeNull();
   });
 
-  it('o militar comum vê quatro atalhos: Pecúlio Geral (que leva direto à pesquisa), Visualização, Minha ficha e Configurações (Review Focus 5)', async () => {
+  it('o militar comum vê quatro atalhos de módulo, mais o cartão do Laboratório: Pecúlio Geral (que leva direto à pesquisa), Visualização, Minha ficha e Configurações (Review Focus 5)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
     const nav = screen.getByRole('navigation', { name: 'Módulos' });
-    expect(within(nav).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['Pecúlio Geral', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
+    expect(within(nav).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['Pecúlio Geral', 'Visualização de escalas', 'Minha ficha', 'Configurações', 'Laboratório']);
     const peculio = within(nav).getByRole('link', { name: /Pecúlio Geral/ });
     expect(peculio).toHaveAttribute('href', '/peculio/pesquisar');
     expect(peculio).toHaveTextContent('Pesquisar militares');

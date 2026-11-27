@@ -8,6 +8,8 @@ import { JanelaDoAviso, type ModoDaJanela } from '@/componentes/inicio/JanelaDoA
 import { QuadroDeAvisos } from '@/componentes/inicio/QuadroDeAvisos';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
 import { SeuProximoServico } from '@/componentes/inicio/SeuProximoServico';
+import { CartaoLaboratorio } from '@/laboratorio/CartaoLaboratorio';
+import { useModoLaboratorio } from '@/laboratorio/useModoLaboratorio';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
 import { alturaDaCena, quadroAoRolar } from '@/lib/cena-inicial';
@@ -17,11 +19,11 @@ import { useTransicao } from '@/lib/transicao-login/armazem';
 import { POSICAO_VERTICAL } from '@/lib/transicao-login/recorte';
 import { pedeMenosMovimento } from '@/lib/transicao-login/regra';
 
-type Busca = BuscaDaGrade & { aviso?: 'outro-papel' };
+type Busca = BuscaDaGrade & { aviso?: 'outro-papel' | 'laboratorio-encerrado' };
 
 export const Route = createFileRoute('/_app/')({
   // a Grade geral era a página inicial: os favoritos antigos (/?mes=…) continuam levando a ela, agora em /grade
-  validateSearch: (s: Record<string, unknown>): Busca => ({ ...buscaDaGrade(s), aviso: s.aviso === 'outro-papel' ? 'outro-papel' : undefined }),
+  validateSearch: (s: Record<string, unknown>): Busca => ({ ...buscaDaGrade(s), aviso: s.aviso === 'outro-papel' || s.aviso === 'laboratorio-encerrado' ? s.aviso : undefined }),
   beforeLoad: ({ search }) => {
     const { aviso: _aviso, ...grade } = search;
     if (temBuscaDaGrade(grade)) throw redirect({ to: '/grade', search: grade });
@@ -115,6 +117,7 @@ function Inicio() {
   const [janelaDoAviso, setJanelaDoAviso] = useState<ModoDaJanela | null>(null);
   const painelDosAvisos = { idAtual: idDoAviso, aoMudarId: setIdDoAviso, aoAbrirJanela: setJanelaDoAviso };
   const larga = useTelaLarga();
+  const emLaboratorio = useModoLaboratorio();
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento
   const { fase, cartoes } = useTransicao();
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -129,7 +132,7 @@ function Inicio() {
   return (
     <div className="-mt-6">
       {/* o que gruda abaixo do Topo é este bloco, com o fundo da página: ele cobre a margem entre o Topo e o quadro enquanto o conteúdo passa por baixo */}
-      <div className="sticky z-10 bg-fundo" style={{ top: TOPO, paddingTop: MARGEM }}>
+      <div className="sticky z-10 bg-fundo" style={{ top: `calc(var(--faixa) + ${TOPO}px)`, paddingTop: MARGEM }}>
         {/* a altura das classes é a cheia, para a tela já nascer do tamanho certo; o script a sobrescreve ao medir e ao rolar */}
         <section ref={quadro} data-faixa-boas-vindas data-com-linha={primeiro ? '' : undefined} className="cena-inicial relative h-[250px] overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada md:h-[400px]">
           {/* a cena final da animação do login: a imagem cobre o quadro, centrada, a 66% na vertical. A animação pousa nesta mesma conta (recorte.ts) */}
@@ -166,6 +169,9 @@ function Inicio() {
           <QuadroDeAvisos quadro={avisos} {...painelDosAvisos} className="bg-tinta backdrop-blur-none" />
         </div>
       )}
+      {aviso === 'laboratorio-encerrado' && (
+        <p role="status" className="mt-4 rounded-controle bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">O Laboratório foi encerrado.</p>
+      )}
       {aviso === 'outro-papel' && (
         <p role="status" className="mt-4 rounded-controle bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">Essa área é de outro nível de acesso.</p>
       )}
@@ -177,6 +183,12 @@ function Inicio() {
               <Atalho modulo={m} eu={eu} agora={agora} />
             </li>
           ))}
+          {/* o Laboratório (6.59): para todo militar com conta; dentro dele o cartão não aparece (já está lá) */}
+          {!emLaboratorio && (
+            <li data-chegada={chegadaDosCartoes} style={chegadaDosCartoes ? { animationDelay: `${MODULOS.filter((m) => m.ve(eu)).length * 135}ms` } : undefined} className="cartao-da-chegada flex min-w-0">
+              <CartaoLaboratorio className={`${classeDoAtalho} border-linha bg-superficie text-tinta transition-colors hover:border-encaixe hover:bg-passa motion-reduce:transition-none`} />
+            </li>
+          )}
         </ul>
       </nav>
       {/* o detalhe do primeiro cartão (6.55) */}

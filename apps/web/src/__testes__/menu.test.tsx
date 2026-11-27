@@ -106,7 +106,7 @@ describe('esconder e trazer de volta', () => {
     expect(menu().parentElement?.className).not.toContain('md:grid-cols-');
     const flutuante = screen.getByRole('button', { name: 'Menu' });
     expect(flutuante.className).toContain('fixed');
-    expect(flutuante.className).toContain('top-2');
+    expect(flutuante.className).toContain('top-[calc(var(--faixa)+0.5rem)]');
     // o cabeçalho abre espaço à esquerda: o botão não cobre a unidade
     expect(screen.getAllByRole('banner')[0]!.className).toContain('md:pl-31');
     await userEvent.click(flutuante);

@@ -72,7 +72,7 @@ export function Trilho({ modulo, eu, aberto, aoFechar, estado, aoMudarEstado }: 
         ref={nav}
         aria-label="Navegação principal"
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[84%] flex-col gap-3 bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:z-40 md:h-dvh md:max-w-none md:translate-x-0 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          'fixed top-[var(--faixa)] bottom-0 left-0 z-50 flex w-72 max-w-[84%] flex-col gap-3 bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-[var(--faixa)] md:z-40 md:h-[calc(100dvh-var(--faixa))] md:max-w-none md:translate-x-0 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           estado === 'largo' && 'md:w-60',
           recolhido && 'md:w-[84px] md:items-center md:px-1.5 md:py-3',
           estado === 'escondido' && 'md:hidden',

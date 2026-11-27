@@ -34,7 +34,7 @@ export function simularApi(rotas: Record<string, Resposta>) {
     if (r.espera) await r.espera;
     // 204 e afins não têm corpo (o Response recusa um)
     const semCorpo = [204, 205, 304].includes(r.status);
-    return new Response(semCorpo ? null : JSON.stringify(r.corpo ?? {}), { status: r.status, headers: semCorpo ? undefined : { 'Content-Type': 'application/json' } });
+    return new Response(semCorpo ? null : JSON.stringify(r.corpo === undefined ? {} : r.corpo), { status: r.status, headers: semCorpo ? undefined : { 'Content-Type': 'application/json' } });
   });
   vi.stubGlobal('fetch', fetchFalso);
   return fetchFalso;

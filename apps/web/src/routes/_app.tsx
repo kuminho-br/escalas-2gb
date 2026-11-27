@@ -7,6 +7,9 @@ import { ProvedorDeResposta } from '@/componentes/resposta/ProvedorDeResposta';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
 import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
+import { Faixa } from '@/laboratorio/Faixa';
+import { consumirEncerrado } from '@/laboratorio/modo';
+import { useModoLaboratorio } from '@/laboratorio/useModoLaboratorio';
 import { guardarEstadoDoMenu, lerEstadoDoMenu, type EstadoDoMenu } from '@/lib/estado-do-menu';
 import { useTelaEstreita } from '@/lib/useTelaEstreita';
 import { Menu } from 'lucide-react';
@@ -18,6 +21,8 @@ export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context, location }) => {
     const dados = await context.queryClient.ensureQueryData(consultaEu);
     if (!dados) throw redirect({ to: '/entrar' });
+    // o Laboratório foi encerrado por trás (outra aba saiu, ou o espelho está em manutenção): a aba voltou ao real, e a tela inicial diz isso
+    if (consumirEncerrado()) throw redirect({ to: '/', search: { aviso: 'laboratorio-encerrado' } });
     // entrou com a senha provisória: nada abre antes de criar a senha
     if (dados.trocarSenha) throw redirect({ to: '/criar-senha' });
     // a unidade em que as telas trabalham: a de consulta escolhida nesta aba, a última escolhida neste navegador (se ainda vale) ou a do papel mais baixo; sem nenhuma, a orientação
@@ -46,6 +51,12 @@ function Casca() {
   // o trilho é do módulo em que a pessoa está; na tela inicial e na Minha ficha não há
   const comTrilho = modulo !== null && modulo.itens.length > 0;
   const [menuAberto, setMenuAberto] = useState(false);
+  // o Laboratório (6.59): a faixa no alto de toda tela, e o atributo na página inteira (o que gruda no alto desce a altura da faixa)
+  const emLaboratorio = useModoLaboratorio();
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-laboratorio', emLaboratorio);
+    return () => document.documentElement.removeAttribute('data-laboratorio');
+  }, [emLaboratorio]);
   const botaoDoMenu = useRef<HTMLButtonElement>(null);
   const fecharMenu = (devolverFoco = false) => {
     setMenuAberto(false);
@@ -91,6 +102,7 @@ function Casca() {
   return (
     <ProvedorDeResposta>
     <JustificarPassado>
+    {emLaboratorio && <Faixa />}
     <div className={cn('min-h-dvh', comMenu && estado === 'largo' && 'md:grid md:grid-cols-[240px_1fr]', comMenu && estado === 'recolhido' && 'md:grid md:grid-cols-[84px_1fr]')}>
       {comMenu && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} estado={estado} aoMudarEstado={escolher} />}
       {/* escondido: o botão "Menu" fica no alto, à esquerda, por cima do cabeçalho (que abre espaço para ele) */}
@@ -99,7 +111,7 @@ function Casca() {
           ref={botaoFlutuante}
           type="button"
           onClick={() => mudarEstado(antesDeEsconder.current)}
-          className="fixed top-2 left-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
+          className="fixed top-[calc(var(--faixa)+0.5rem)] left-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
         >
           <Menu className="size-5" strokeWidth={1.75} aria-hidden />
           Menu

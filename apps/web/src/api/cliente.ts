@@ -1,4 +1,5 @@
 import { descartarPendencias } from '@/componentes/AlteracoesPendentes';
+import { cabecalhosDoModo, caminhoDoModo, sairDoModo } from '@/laboratorio/modo';
 
 // Chamadas à API: devolvem o JSON ou lançam ErroApi com a mensagem para mostrar na tela.
 export class ErroApi extends Error {
@@ -37,7 +38,20 @@ export const saida = { marcar: (v: boolean) => { saindo = v; } };
 function sessaoTerminou(caminho: string) {
   if (caminho === '/api/eu' || window.location.pathname === '/entrar' || saindo) return;
   descartarPendencias();
+  // a sessão da conta acabou: a tela de entrar e o código por e-mail são do real
+  sairDoModo();
   navegador.ir(`/entrar?sessao=terminou&voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+}
+
+/**
+ * O único `fetch` do site para a API: aplica o modo Laboratório (6.59), o endereço `/api/lab/…` e o cabeçalho. Fora do modo, o pedido sai como sempre foi.
+ * Nenhum outro lugar chama `fetch` com um endereço da API: é assim que um pedido do Laboratório nunca sai sem o prefixo, e um do real nunca sai com ele.
+ */
+export function buscar(caminho: string, init: RequestInit = {}): Promise<Response> {
+  const final = caminhoDoModo(caminho);
+  const extra = cabecalhosDoModo(final);
+  if (!Object.keys(extra).length) return fetch(final, init);
+  return fetch(final, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...extra } });
 }
 
 async function resposta<T>(r: Response): Promise<T> {
@@ -97,7 +111,7 @@ export async function pedir<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELET
 async function pedirUma<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', caminho: string, corpo?: unknown): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(caminho, {
+    r = await buscar(caminho, {
       method: metodo,
       credentials: 'include',
       headers: corpo === undefined ? undefined : { 'Content-Type': 'application/json' },
@@ -115,7 +129,7 @@ export async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<
   corpo.append('arquivo', arquivo);
   let r: Response;
   try {
-    r = await fetch(caminho, { method: 'POST', credentials: 'include', body: corpo });
+    r = await buscar(caminho, { method: 'POST', credentials: 'include', body: corpo });
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }
@@ -131,7 +145,7 @@ export async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<
 export async function baixarArquivo(caminho: string, corpo: unknown, nome: string): Promise<void> {
   let r: Response;
   try {
-    r = await fetch(caminho, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    r = await buscar(caminho, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }
@@ -144,7 +158,7 @@ export async function baixarEnvio(caminho: string, arquivo: File, nome: string):
   corpo.append('arquivo', arquivo);
   let r: Response;
   try {
-    r = await fetch(caminho, { method: 'POST', credentials: 'include', body: corpo });
+    r = await buscar(caminho, { method: 'POST', credentials: 'include', body: corpo });
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }

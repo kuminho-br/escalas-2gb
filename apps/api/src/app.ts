@@ -1,37 +1,16 @@
 import { Hono } from 'hono';
 import type { Auth } from './auth.ts';
 import type { Banco } from './banco/banco.ts';
-import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
-import { rotasCotas } from './cadastros/cotas.ts';
-import { rotasEstrutura } from './cadastros/estrutura.ts';
-import { rotasTiposDeUnidade } from './cadastros/tipos-de-unidade.ts';
-import { rotasExternos } from './cadastros/externos.ts';
-import { rotasFeriados } from './cadastros/feriados.ts';
-import { rotasFuncoesDoMilitar } from './cadastros/funcoes-do-militar.ts';
-import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
-import { rotasEscalas } from './cadastros/escalas.ts';
-import { rotasDoLote } from './cadastros/lote.ts';
-import { rotasMilitares } from './cadastros/militares.ts';
-import { rotasServicos } from './cadastros/servicos.ts';
-import { rotasSituacoes } from './cadastros/situacoes.ts';
 import { rotasAcessoPorEmail } from './acesso-por-email/rotas.ts';
 import type { EnviarEmail } from './acesso-por-email/enviar-email.ts';
 import { exigirMigracoesEmDia } from './migracoes-pendentes.ts';
-import { IMPORTADORES } from './importacao/registro.ts';
 import { limiteDeEnvio } from './limites.ts';
-import { rotasImportacao } from './importacao/rotas.ts';
-import { rotasEfetivo } from './efetivo/rotas.ts';
-import { rotasOficiais } from './oficiais/rotas.ts';
-import { rotasEscalaDoMes } from './escala/rotas.ts';
-import { rotasGrade } from './grade/rotas.ts';
-import { rotasAvisos } from './avisos/rotas.ts';
-import { rotasVisualizacao } from './escala/visualizacao-rotas.ts';
-import { rotasVoluntariado } from './voluntariado/rotas.ts';
-import { rotasVisao } from './visao/rotas.ts';
+import { rotasDoLaboratorio } from './laboratorio/rotas.ts';
+import { CABECALHO_DO_LABORATORIO, SO_NO_LABORATORIO, rotasDoLaboratorioSobreOEspelho } from './laboratorio/rotas-lab.ts';
+import { montarRotasDoSistema } from './rotas-do-sistema.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
 import { MSG_CRIE_A_SENHA } from './usuarios/mensagens.ts';
-import { rotasAcesso } from './usuarios/rotas.ts';
 
 export interface Dependencias {
   banco: Banco;
@@ -54,6 +33,8 @@ export interface Dependencias {
 export function criarApp(dep: Dependencias): Hono {
   const app = new Hono();
   app.use('/api/*', limiteDeEnvio);
+  // o real recusa o pedido do Laboratório (o site em modo Laboratório manda o cabeçalho): nada do espelho vai parar no real por engano
+  app.use('/api/*', async (c, next) => (!c.req.path.startsWith('/api/lab/') && c.req.header(CABECALHO_DO_LABORATORIO) ? c.json({ erro: SO_NO_LABORATORIO }, 409) : next()));
   // com a lista de migrações esperadas (o build da Vercel a embute), a API responde 503 enquanto falta alguma; sem a lista, não confere
   if (dep.migracoesEsperadas) app.use('/api/*', exigirMigracoesEmDia(dep.banco, dep.migracoesEsperadas, { intervaloMs: dep.intervaloMs }));
   app.route('/api/saude', rotasSaude(dep.banco, dep.cronSecret));
@@ -79,30 +60,11 @@ export function criarApp(dep: Dependencias): Hono {
     });
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
     if (dep.segredo) app.route('/api', rotasAcessoPorEmail({ banco: dep.banco, segredo: dep.segredo, enviarEmail: dep.enviarEmail ?? null, agora: dep.agora }));
+    // o Laboratório vem antes das rotas do real: o prefixo /api/lab nunca cai numa rota do real
+    app.route('/api/lab', rotasDoLaboratorioSobreOEspelho({ ...comAuth, agora: dep.agora, limiteDeBuscas: dep.limiteDeBuscas }));
     app.route('/api/eu', rotasEu(dep.banco, auth));
-    app.route('/api', rotasConfiguracoes(comAuth));
-    app.route('/api', rotasGuarnicoes(comAuth));
-    app.route('/api', rotasMilitares(comAuth));
-    app.route('/api', rotasDoLote(comAuth));
-    app.route('/api', rotasAcesso(comAuth));
-    app.route('/api', rotasServicos(comAuth));
-    app.route('/api', rotasSituacoes(comAuth));
-    app.route('/api', rotasFuncoesDoMilitar(comAuth));
-    app.route('/api', rotasCotas(comAuth));
-    app.route('/api', rotasFeriados(comAuth));
-    app.route('/api', rotasExternos(comAuth));
-    app.route('/api', rotasEstrutura(comAuth));
-    app.route('/api', rotasTiposDeUnidade(comAuth));
-    app.route('/api', rotasEscalas(comAuth));
-    app.route('/api', rotasEscalaDoMes(comAuth));
-    app.route('/api', rotasVisualizacao({ ...comAuth, agora: dep.agora }));
-    app.route('/api', rotasAvisos({ ...comAuth, agora: dep.agora }));
-    app.route('/api', rotasEfetivo(comAuth));
-    app.route('/api', rotasGrade(comAuth));
-    app.route('/api', rotasOficiais(comAuth));
-    app.route('/api', rotasVoluntariado(comAuth));
-    app.route('/api', rotasVisao({ ...comAuth, limiteDeBuscas: dep.limiteDeBuscas }));
-    app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
+    montarRotasDoSistema(app, comAuth, { agora: dep.agora, limiteDeBuscas: dep.limiteDeBuscas, comContas: true });
+    app.route('/api', rotasDoLaboratorio(comAuth));
   }
   return app;
 }
