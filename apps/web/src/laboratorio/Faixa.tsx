@@ -3,7 +3,8 @@ import { useRouter } from '@tanstack/react-router';
 import { FlaskConical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
-import { buscarPerfilEmUso, encerrarSessaoNoLaboratorio } from '@/api/laboratorio';
+import { buscarPerfilEmUso, consultaFerramentas, encerrarSessaoNoLaboratorio } from '@/api/laboratorio';
+import { DeixarRetorno } from './DeixarRetorno';
 import { EscolherPerfil } from './EscolherPerfil';
 import { trocarDeMundo } from './trocar-de-mundo';
 
@@ -19,6 +20,8 @@ export function Faixa() {
   const router = useRouter();
   const [trocando, setTrocando] = useState(false);
   const [saindo, setSaindo] = useState(false);
+  const [retornando, setRetornando] = useState(false);
+  const emTeste = (useQuery(consultaFerramentas()).data ?? []).filter((x) => x.situacao === 'em_teste');
   const emUso = useQuery({ queryKey: ['laboratorio', 'em-uso'], queryFn: buscarPerfilEmUso, refetchOnWindowFocus: true, retry: false, staleTime: 0 });
 
   useEffect(() => {
@@ -48,6 +51,11 @@ export function Faixa() {
       <FlaskConical aria-hidden className="size-4 shrink-0" />
       <span className="font-semibold">Laboratório: dados de teste. Nada aqui vale.</span>
       <span className="ml-auto flex min-w-0 items-center gap-3 max-md:w-full max-md:justify-between">
+        {emTeste.length > 0 && (
+          <button type="button" onClick={() => setRetornando(true)} className="shrink-0 underline decoration-white/60 underline-offset-2 hover:decoration-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            Deixar retorno
+          </button>
+        )}
         {emUso.data && (
           <button type="button" onClick={() => setTrocando(true)} className="min-w-0 truncate underline decoration-white/60 underline-offset-2 hover:decoration-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             {`Testando como: ${emUso.data.nome}`}
@@ -57,6 +65,7 @@ export function Faixa() {
           Sair do Laboratório
         </button>
       </span>
+      {retornando && <DeixarRetorno ferramentas={emTeste} aoFechar={() => setRetornando(false)} />}
       <EscolherPerfil aberto={trocando} aoFechar={() => setTrocando(false)} atual={emUso.data?.perfilId} />
     </div>
   );
