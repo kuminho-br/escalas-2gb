@@ -3,7 +3,7 @@ import type { Banco, Consulta } from '../banco/banco.ts';
 import { SCHEMA_ESPELHO } from '../laboratorio/constantes.ts';
 
 /**
- * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB com matrícula 990xxx-x,
+ * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB (matrículas 990001-1 a 990053-3, só da carga: 990xxx-x também é matrícula de militar real),
  * nas proporções da sandbox, e os serviços/turnos usados nos esboços.
  * Nunca roda no ambiente de teste, onde estão os dados reais.
  */
@@ -27,6 +27,15 @@ const GRUPOS: Grupo[] = [
   { jornada: 'pronto', equipe: 'Delta', postos: [['2º SGT', 1], ['3º SGT', 2], ['CB', 1], ['SD', 4]] },
 ];
 const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
+
+/** A matrícula do n-ésimo militar da carga (1 a 53): 990001-1 ... 990053-3. */
+const matriculaDaCarga = (n: number) => `990${String(n).padStart(3, '0')}-${n % 10}`;
+
+/**
+ * Os militares que a carga cria, na ordem: matrícula e nome de guerra. É a lista que o `separar-teste` usa para dizer quem pode ser marcado como teste
+ * no banco real (matrícula e nome iguais, juntos): vem daqui, do próprio código da carga, sem repetir à mão.
+ */
+export const MILITARES_DA_CARGA: { matricula: string; nomeGuerra: string }[] = NOMES.map((nomeGuerra, i) => ({ matricula: matriculaDaCarga(i + 1), nomeGuerra }));
 
 const SERVICOS: { nome: string; tipo: string; operacao: string | null; cor: string; turnos: [string, string, string][] }[] = [
   { nome: 'Pronto', tipo: 'ordinario', operacao: null, cor: '#2F8F5B', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
@@ -66,10 +75,14 @@ export async function cargaExemplo(banco: Banco, ambiente: string | undefined, m
   return banco.transacao((tx) => cargaExemploEm(tx, mes));
 }
 
-/** O corpo da carga, sobre a transação dada (a do real, ou a do espelho com o `search_path` dele: `cargaDoEspelho`). */
-export async function cargaExemploEm(tx: Consulta, mes: string): Promise<{ militares: number }> {
-  // já carregada se as matrículas da carga (990001 a 990053) existem
-  const ja = await tx.query<{ n: number }>("select count(*)::int as n from militar where matricula between '990001-0' and '990053-9'");
+/** O corpo da carga, sobre a transação dada (a do real, ou a do espelho com o `search_path` dele: `cargaDoEspelho`, que pede `deTeste` para marcar os militares). */
+export async function cargaExemploEm(tx: Consulta, mes: string, opcoes: { deTeste?: boolean } = {}): Promise<{ militares: number }> {
+  const deTeste = opcoes.deTeste ?? false;
+  // já carregada se a carga existe: militar com a matrícula e o nome de um da carga, juntos (a matrícula sozinha não diz nada)
+  const ja = await tx.query<{ n: number }>(
+    'select count(*)::int as n from militar m join unnest($1::text[], $2::text[]) as c(matricula, nome) on c.matricula = m.matricula and c.nome = m.nome_guerra',
+    [MILITARES_DA_CARGA.map((m) => m.matricula), MILITARES_DA_CARGA.map((m) => m.nomeGuerra)],
+  );
   if (ja.rows[0]!.n > 0) return { militares: ja.rows[0]!.n };
 
   const secao = await id(tx, "select id from unidade where sigla = '1ª SB'", []);
@@ -89,9 +102,9 @@ export async function cargaExemploEm(tx: Consulta, mes: string): Promise<{ milit
         const cnh = MOTORISTAS[n] ?? [];
         const militar = await id(
           tx,
-          `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-           values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-          [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
+          `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, de_teste)
+           values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+          [matriculaDaCarga(n), postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n), deTeste],
         );
         // o quadro vale por período: o do posto, quando ele só existe em um
         const quadro = ((await quadroParaOPosto(tx, postos.get(posto)!, undefined, null)) as { quadroId: string | null }).quadroId;

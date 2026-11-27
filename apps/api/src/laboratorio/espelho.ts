@@ -50,8 +50,8 @@ export async function prepararPapelDoEspelho(c: Consulta): Promise<void> {
 
 type Nivel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante' | 'militar';
 
-/** Os usuários de teste, um por nível de acesso. Nomes e matrículas fictícios (990xxx-x); ninguém entra com eles, a 6.59 injeta a sessão. */
-const PERFIS: { nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
+/** Os usuários de teste, um por nível de acesso. Nomes e matrículas fictícios; ninguém entra com eles, a 6.59 injeta a sessão. Também fazem parte da carga que o `separar-teste` reconhece. */
+export const PERFIS_DE_TESTE: { nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
   { nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '990101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
   { nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '990102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
   { nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '990103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
@@ -63,14 +63,14 @@ const PERFIS: { nome: string; nivel: Nivel; unidade: string | null; posto: strin
 async function criarPerfisDeTeste(tx: Consulta, mes: string): Promise<number> {
   const secao = (await tx.query<{ id: string }>("select id from unidade where sigla = '1ª SB'")).rows[0]?.id;
   if (!secao) throw new Error('Unidade 1ª SB não encontrada no espelho.');
-  for (const p of PERFIS) {
+  for (const p of PERFIS_DE_TESTE) {
     if ((await tx.query('select 1 from usuario where email = $1', [p.email])).rows.length) continue;
     const posto = (await tx.query<{ id: string }>('select id from posto_grad where sigla = $1', [p.posto])).rows[0]?.id;
     if (!posto) throw new Error(`Posto não encontrado no espelho: ${p.posto}`);
     const militar = (
       await tx.query<{ id: string }>(
-        'insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade) values ($1, $2, $3, $4) returning id',
-        [p.matricula, posto, p.guerra, 100 + PERFIS.indexOf(p)],
+        'insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, de_teste) values ($1, $2, $3, $4, true) returning id',
+        [p.matricula, posto, p.guerra, 100 + PERFIS_DE_TESTE.indexOf(p)],
       )
     ).rows[0]!.id;
     const usuario = (
@@ -92,7 +92,7 @@ async function criarPerfisDeTeste(tx: Consulta, mes: string): Promise<number> {
 }
 
 /**
- * A carga do espelho: os militares fictícios (a mesma carga de exemplo de sempre, 990001 a 990053) e os cinco usuários de teste, tudo no `laboratorio`.
+ * A carga do espelho: os militares fictícios (a mesma carga de exemplo de sempre) e os cinco usuários de teste, tudo no `laboratorio` e tudo marcado como teste (`de_teste`).
  * Recusa se o espelho não existir: sem ele o `search_path` cairia no `public`, e a carga fictícia nunca vai para o real. Repetível: não duplica.
  */
 export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ militares: number; perfis: number }> {
@@ -102,7 +102,7 @@ export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ milit
     if (alvo !== SCHEMA_ESPELHO) throw new Error('A carga de teste só roda no espelho (schema laboratorio), e ele não existe neste banco.');
     // como o papel do espelho: se a carga escrevesse no real por engano, o banco negaria
     await tx.exec(`set local role ${ESPELHO_PAPEL}`);
-    const { militares } = await cargaExemploEm(tx, mes);
+    const { militares } = await cargaExemploEm(tx, mes, { deTeste: true });
     const perfis = await criarPerfisDeTeste(tx, mes);
     return { militares, perfis };
   });

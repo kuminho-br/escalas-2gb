@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Banco } from '../src/banco/banco.ts';
 import { bancoPglite } from '../src/banco/pglite.ts';
 import { migrar } from '../src/banco/migrar.ts';
-import { motivoParaRecusarExemplo } from '../src/carga/exemplo.ts';
+import { cargaExemplo, motivoParaRecusarExemplo } from '../src/carga/exemplo.ts';
 import { cargaDoEspelho, ESPELHO_PAPEL, perfisDeTeste } from '../src/laboratorio/espelho.ts';
 
 // 6.58: o papel de banco do espelho e a carga de teste (os 53 militares fictícios e um usuário por nível de acesso).
@@ -50,6 +50,21 @@ describe('a carga de teste do espelho', () => {
       auditoria: await n('select count(*)::int as n from public.auditoria'),
     }).toEqual(realAntes);
     expect(await n("select count(*)::int as n from public.militar where matricula like '990%'")).toBe(0);
+  });
+
+  it('a carga do espelho marca como teste os 53 militares e os 5 perfis; a carga de exemplo comum não marca ninguém', async () => {
+    await cargaDoEspelho(banco, MES);
+    expect(await n('select count(*)::int as n from laboratorio.militar where de_teste')).toBe(58);
+    expect(await n('select count(*)::int as n from laboratorio.militar where not de_teste')).toBe(0);
+    const solto = await bancoPglite();
+    try {
+      await migrar(solto, undefined, { espelho: false });
+      await cargaExemplo(solto, undefined, MES);
+      expect((await solto.query<{ n: number }>('select count(*)::int as n from public.militar where de_teste')).rows[0]!.n).toBe(0);
+      expect((await solto.query<{ n: number }>('select count(*)::int as n from public.militar')).rows[0]!.n).toBe(53);
+    } finally {
+      await solto.fechar();
+    }
   });
 
   it('a carga roda como o papel do espelho: se ela escrevesse no real, o banco negaria', async () => {
