@@ -104,6 +104,8 @@ export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ milit
     await tx.exec(`set local role ${ESPELHO_PAPEL}`);
     const { militares } = await cargaExemploEm(tx, mes, { deTeste: true });
     const perfis = await criarPerfisDeTeste(tx, mes);
+    // no espelho tudo é de teste: o que já estava lá sem a marca (um espelho carregado antes da coluna existir) ganha a marca agora
+    await tx.exec('update militar set de_teste = true where not de_teste');
     return { militares, perfis };
   });
 }

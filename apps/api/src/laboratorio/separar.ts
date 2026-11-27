@@ -37,12 +37,16 @@ async function militaresMarcados(c: Consulta): Promise<Candidato[]> {
  * Só lê.
  */
 export async function candidatosDeTeste(c: Consulta): Promise<{ seguros: Candidato[]; suspeitos: Suspeito[] }> {
-  const { rows } = await c.query<{ id: string; matricula: string; nome_guerra: string; acao: string | null; matricula_inicial: string | null; nome_inicial: string | null }>(
-    `select m.id, m.matricula, m.nome_guerra, i.acao, i.matricula as matricula_inicial, i.nome as nome_inicial
+  const { rows } = await c.query<{
+    id: string; matricula: string; nome_guerra: string; com_identidade: boolean;
+    acao: string | null; matricula_inicial: string | null; nome_inicial: string | null; por_usuario: boolean | null;
+  }>(
+    `select m.id, m.matricula, m.nome_guerra, (m.nome_completo is not null or m.cpf is not null or m.rg_funcional is not null) as com_identidade,
+            i.acao, i.matricula as matricula_inicial, i.nome as nome_inicial, i.por_usuario
        from public.militar m
        join unnest($1::text[], $2::text[]) as k(matricula, nome) on k.matricula = m.matricula and k.nome = m.nome_guerra
        left join lateral (
-         select a.acao, a.depois ->> 'matricula' as matricula, a.depois ->> 'nome_guerra' as nome
+         select a.acao, a.depois ->> 'matricula' as matricula, a.depois ->> 'nome_guerra' as nome, a.usuario_id is not null as por_usuario
            from public.auditoria a where a.tabela = 'militar' and a.registro_id = m.id::text order by a.id limit 1
        ) i on true
       where not m.de_teste
@@ -53,12 +57,39 @@ export async function candidatosDeTeste(c: Consulta): Promise<{ seguros: Candida
   const suspeitos: Suspeito[] = [];
   for (const r of rows) {
     const quem = { id: r.id, matricula: r.matricula };
-    if (r.acao === 'insert' && r.matricula_inicial === r.matricula && r.nome_inicial === r.nome_guerra) seguros.push(quem);
-    else if (r.acao === null) suspeitos.push({ ...quem, motivo: 'sem registro de inclusão na auditoria' });
-    else if (r.acao !== 'insert') suspeitos.push({ ...quem, motivo: 'o primeiro registro da auditoria não é a inclusão' });
-    else suspeitos.push({ ...quem, motivo: 'nasceu com outro nome ou outra matrícula e foi alterado para os da carga' });
+    const suspeito = (motivo: string) => suspeitos.push({ ...quem, motivo });
+    if (r.acao === null) suspeito('sem registro de inclusão na auditoria');
+    else if (r.acao !== 'insert') suspeito('o primeiro registro da auditoria não é a inclusão');
+    else if (r.matricula_inicial !== r.matricula || r.nome_inicial !== r.nome_guerra) suspeito('nasceu com outro nome ou outra matrícula e foi alterado para os da carga');
+    // a carga roda sem usuário e não preenche a identidade: a inclusão feita por um usuário do sistema, ou a ficha com nome completo, CPF ou RG, é de gente de verdade
+    else if (r.por_usuario) suspeito('a inclusão foi feita por um usuário do sistema (a carga não grava usuário)');
+    else if (r.com_identidade) suspeito('tem nome completo, CPF ou RG preenchido (a carga não preenche)');
+    else seguros.push(quem);
   }
   return { seguros, suspeitos };
+}
+
+/** Quantos militares sem a marca têm a matrícula de um da carga com outro nome: não são candidatos (a matrícula sozinha não diz nada), e a lista os conta. */
+async function comMatriculaDaCargaEOutroNome(c: Consulta): Promise<number> {
+  const { rows } = await c.query<{ n: number }>(
+    `select count(*)::int as n from public.militar m
+      where not m.de_teste and m.matricula = any($1::text[])
+        and not exists (select 1 from unnest($1::text[], $2::text[]) as k(matricula, nome) where k.matricula = m.matricula and k.nome = m.nome_guerra)`,
+    [DA_CARGA.map((m) => m.matricula), DA_CARGA.map((m) => m.nomeGuerra)],
+  );
+  return rows[0]!.n;
+}
+
+/** As matrículas dos militares marcados como teste que NÃO são da carga (matrícula e nome diferentes dos da carga): a marca veio de fora do script. */
+async function marcadosForaDaCarga(c: Consulta): Promise<string[]> {
+  const { rows } = await c.query<{ matricula: string }>(
+    `select m.matricula from public.militar m
+      where m.de_teste
+        and not exists (select 1 from unnest($1::text[], $2::text[]) as k(matricula, nome) where k.matricula = m.matricula and k.nome = m.nome_guerra)
+      order by m.matricula`,
+    [DA_CARGA.map((m) => m.matricula), DA_CARGA.map((m) => m.nomeGuerra)],
+  );
+  return rows.map((r) => r.matricula);
 }
 
 /**
@@ -72,7 +103,9 @@ export async function marcarSeguros(banco: Banco, esperados: number): Promise<nu
       throw new Error(`Confira a lista: são ${seguros.length} candidatos seguros, e não ${esperados}. Rode de novo com --marcar=${seguros.length}. Nada foi marcado.`);
     }
     if (!seguros.length) return 0;
-    await tx.query('update public.militar set de_teste = true where id = any($1::uuid[]) and not de_teste', [seguros.map((s) => s.id)]);
+    const marcados = await tx.query('update public.militar set de_teste = true where id = any($1::uuid[]) and not de_teste returning id', [seguros.map((s) => s.id)]);
+    // se alguma linha mudou entre a conferência e a marcação, a transação volta atrás
+    if (marcados.rows.length !== seguros.length) throw new Error('A lista mudou durante a marcação. Nada foi marcado; rode de novo para ver a lista.');
     return seguros.length;
   });
 }
@@ -127,6 +160,17 @@ export async function removerRegistrosDeTeste(banco: Banco, militaresEsperados?:
     if (militaresEsperados !== undefined && ids.length !== militaresEsperados) {
       throw new Error(`A lista mudou: agora são ${ids.length} militares marcados como teste, e não ${militaresEsperados}. Nada foi apagado; rode de novo para ver a lista.`);
     }
+    // só sai quem a carga criou: a marca posta por fora do script (um UPDATE à mão) num militar que não é da carga trava a limpeza, que não apaga ninguém
+    const foraDaCarga = await marcadosForaDaCarga(tx);
+    if (foraDaCarga.length) {
+      throw new Error(
+        `O militar de matrícula ${foraDaCarga.slice(0, 5).join(', ')}${foraDaCarga.length > 5 ? ' e outros' : ''} está marcado como teste, mas não é da carga de exemplo (a matrícula e o nome não são os da carga). Nada foi apagado; confira à mão antes de continuar.`,
+      );
+    }
+    // dentro da própria transação: quem chama a função direto também não deixa o sistema sem nenhum administrador
+    if ((await contasDeTesteComNivel(tx)).some((c) => c.nivel === 'administrador') && (await administradoresQueFicam(tx)) === 0) {
+      throw new Error('A limpeza deixaria o sistema sem nenhum administrador (as contas de teste com esse nível sairiam). Crie antes uma conta de administrador de verdade e rode de novo. Nada foi apagado.');
+    }
     const contagem = await contagemParaVarios(tx, ids, true);
     return [...contagem].filter(([, q]) => q > 0).map(([tabela, removidos]) => ({ tabela, removidos }));
   });
@@ -146,13 +190,11 @@ export type Passo = 'listar' | 'marcar' | 'aplicar';
 
 /** Os argumentos do script: nenhum lista; `--marcar=N` marca os seguros; `--aplicar=N` tira os marcados. Um passo por vez. */
 export function passoDoScript(args: string[]): { passo: Passo; confirmar: number | undefined } {
-  const pega = (nome: string) => args.find((a) => a === `--${nome}` || a.startsWith(`--${nome}=`));
-  const marcar = pega('marcar');
-  const aplicar = pega('aplicar');
-  if (marcar && aplicar) throw new Error('--marcar e --aplicar são passos separados: um passo por vez. Rode primeiro --marcar=N, confira, e só depois --aplicar=N.');
-  const arg = marcar ?? aplicar;
-  const texto = arg?.split('=')[1];
-  return { passo: marcar ? 'marcar' : aplicar ? 'aplicar' : 'listar', confirmar: texto !== undefined && /^\d+$/.test(texto) ? Number(texto) : undefined };
+  if (args.length > 1) throw new Error('Rode um passo por vez: --marcar=N ou --aplicar=N. Rode primeiro --marcar=N, confira, e só depois --aplicar=N.');
+  if (!args.length) return { passo: 'listar', confirmar: undefined };
+  const achado = /^--(marcar|aplicar)(?:=(\d+))?$/.exec(args[0]!);
+  if (!achado) throw new Error(`Argumento não reconhecido: ${args[0]}. Use --marcar=N ou --aplicar=N (ou nenhum, para só listar).`);
+  return { passo: achado[1] as Passo, confirmar: achado[2] === undefined ? undefined : Number(achado[2]) };
 }
 
 export interface ResultadoDaSeparacao {
@@ -198,6 +240,10 @@ export async function separarTeste(
   };
   if (!seguros.length && !suspeitos.length && !marcados.length) {
     escrever('Nada de teste no banco real.');
+    // o número conferido vale também aqui: sem nada na lista, só o zero confere
+    if (passo !== 'listar' && opcoes.confirmar !== 0) {
+      throw new Error(`A lista está vazia: rode de novo com --${passo === 'marcar' ? 'marcar' : 'aplicar'}=0, ou sem argumentos. Nada foi alterado.`);
+    }
     return { ...base, restantes: passo === 'aplicar' ? 0 : null };
   }
   if (seguros.length || suspeitos.length) {
@@ -207,7 +253,10 @@ export async function separarTeste(
     escrever(`  suspeitos (o script nunca marca; confira à mão): ${suspeitos.length}`);
     for (const s of suspeitos) escrever(`    ${s.matricula}: ${s.motivo}`);
   }
+  const outroNome = await comMatriculaDaCargaEOutroNome(banco);
+  if (outroNome) escrever(`${outroNome} ${outroNome === 1 ? 'militar com' : 'militares com'} matrícula da carga e outro nome (não ${outroNome === 1 ? 'é candidato' : 'são candidatos'}; a matrícula sozinha não diz nada).`);
   escrever(`${marcados.length} militares marcados como teste no banco real${marcados.length ? ':' : '.'}`);
+  if (marcados.length) escrever(`  matrículas: ${marcados.map((m) => m.matricula).join(', ')}`);
   for (const r of registros) escrever(`  ${r.tabela}: ${r.quantidade}`);
   const contas = await contasDeTesteComNivel(banco);
   if (marcados.length) {
@@ -239,9 +288,7 @@ export async function separarTeste(
   if (opcoes.confirmar !== marcados.length) {
     throw new Error(`Confira a lista acima e rode de novo com --aplicar=${marcados.length} (a quantidade de militares marcados da lista). Nada foi apagado.`);
   }
-  if (contas.some((c) => c.nivel === 'administrador') && (await administradoresQueFicam(banco)) === 0) {
-    throw new Error('A limpeza deixaria o sistema sem nenhum administrador (as contas de teste com esse nível sairiam). Crie antes uma conta de administrador de verdade e rode de novo. Nada foi apagado.');
-  }
+  // a recusa por falta de administrador, a de marcado que não é da carga e a conferência da quantidade vivem dentro da transação que apaga
   const removidos = await removerRegistrosDeTeste(banco, opcoes.confirmar);
   escrever('Removidos:');
   for (const r of removidos) escrever(`  ${r.tabela}: ${r.removidos}`);

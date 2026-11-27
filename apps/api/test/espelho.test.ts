@@ -67,6 +67,14 @@ describe('a carga de teste do espelho', () => {
     }
   });
 
+  it('um espelho carregado antes da marca existir (ou com militar sem ela) é marcado inteiro na próxima carga: no espelho tudo é de teste', async () => {
+    await cargaDoEspelho(banco, MES);
+    await banco.exec('update laboratorio.militar set de_teste = false');
+    expect(await cargaDoEspelho(banco, MES)).toEqual({ militares: 53, perfis: 5 });
+    expect(await n('select count(*)::int as n from laboratorio.militar where de_teste')).toBe(58);
+    expect(await n('select count(*)::int as n from laboratorio.militar where not de_teste')).toBe(0);
+  });
+
   it('a carga roda como o papel do espelho: se ela escrevesse no real, o banco negaria', async () => {
     await banco.exec(`
       create table laboratorio.zz_quem (quem text);

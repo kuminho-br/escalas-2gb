@@ -430,6 +430,99 @@ describe('quem pode ser marcado como teste (a matrícula não diz nada)', () => 
   });
 });
 
+describe('os achados da revisão do Opus (a limpeza só toca quem a carga criou)', () => {
+  const daCarga = (i: number) => MILITARES_DA_CARGA[i]!;
+  const novoMilitar = async (b: Banco, matricula: string, nomeGuerra: string) =>
+    inserir(b, 'militar', { matricula, posto_grad_id: await um("select id from posto_grad where sigla = 'SD'"), nome_guerra: nomeGuerra });
+  const comRastreio = async (m: string) => inserir(banco, 'rastreio', { militar_id: m, unidade_id: await um("select id from unidade where sigla = '1ª SB'"), jornada: 'pronto', desde: '2026-12-01' });
+
+  it('aplicar recusa o militar marcado que não é da carga (marcado por fora do script) e não apaga ninguém', async () => {
+    const seguro = await novoMilitar(banco, daCarga(0).matricula, daCarga(0).nomeGuerra);
+    const real = await novoMilitar(banco, '990777-7', 'FULANO REAL');
+    await comRastreio(seguro);
+    await comRastreio(real);
+    await marcarSeguros(banco, 1);
+    await banco.query('update militar set de_teste = true where id = $1', [real]); // um UPDATE à mão: a quantidade bateria (2), mas quem é não
+    const antes = await fotografia(banco);
+    const linhas: string[] = [];
+    await expect(separarTeste(banco, { passo: 'aplicar', confirmar: 2, escrever: (l) => linhas.push(l) })).rejects.toThrow(/não é da carga/);
+    expect(await fotografia(banco)).toEqual(antes);
+    // a lista mostra quem são os marcados, para o operador conferir (matrículas, nunca nomes)
+    const texto = linhas.join('\n');
+    expect(texto).toContain('990777-7');
+    expect(texto).toContain(daCarga(0).matricula);
+    expect(texto).not.toContain('FULANO REAL');
+    // direto na função que apaga, a recusa vale do mesmo jeito
+    await expect(removerRegistrosDeTeste(banco, 2)).rejects.toThrow(/não é da carga/);
+    expect(await fotografia(banco)).toEqual(antes);
+  });
+
+  it('a inclusão feita por um usuário do sistema, ou a ficha com nome completo preenchido, não é segura (a carga não faz nenhuma das duas)', async () => {
+    const usuario = '00000000-0000-4000-8000-000000000001';
+    const posto = await um("select id from posto_grad where sigla = 'SD'");
+    await banco.transacao(async (tx) => {
+      await tx.query("select set_config('app.usuario_id', $1, true)", [usuario]);
+      await tx.query('insert into militar (matricula, posto_grad_id, nome_guerra) values ($1, $2, $3)', [daCarga(0).matricula, posto, daCarga(0).nomeGuerra]);
+    });
+    const comNome = await novoMilitar(banco, daCarga(1).matricula, daCarga(1).nomeGuerra);
+    await banco.query("update militar set nome_completo = 'Fulano de Tal' where id = $1", [comNome]);
+    await novoMilitar(banco, daCarga(2).matricula, daCarga(2).nomeGuerra); // este é da carga mesmo
+    const { seguros, suspeitos } = await candidatosDeTeste(banco);
+    expect(seguros.map((s) => s.matricula)).toEqual([daCarga(2).matricula]);
+    expect(suspeitos.map((s) => [s.matricula, s.motivo])).toEqual([
+      [daCarga(0).matricula, expect.stringMatching(/usuário/)],
+      [daCarga(1).matricula, expect.stringMatching(/nome completo, CPF ou RG/)],
+    ]);
+  });
+
+  it('banco sem nada de teste: um N diferente de zero recusa, em vez de dizer que deu certo', async () => {
+    await expect(separarTeste(banco, { passo: 'marcar', confirmar: 5, escrever: () => {} })).rejects.toThrow(/--marcar=0/);
+    await expect(separarTeste(banco, { passo: 'marcar', escrever: () => {} })).rejects.toThrow(/--marcar=0/);
+    await expect(separarTeste(banco, { passo: 'aplicar', confirmar: 3, escrever: () => {} })).rejects.toThrow(/--aplicar=0/);
+    await expect(separarTeste(banco, { passo: 'marcar', confirmar: 0, escrever: () => {} })).resolves.toMatchObject({ marcadosAgora: null });
+    await expect(separarTeste(banco, { passo: 'aplicar', confirmar: 0, escrever: () => {} })).resolves.toMatchObject({ restantes: 0 });
+  });
+
+  it('a conferência do administrador vale dentro da própria limpeza: quem chama removerRegistrosDeTeste direto também não deixa o sistema sem administrador', async () => {
+    const { usuarioTeste, admin } = await montar(banco);
+    const raiz = await um('select id from unidade where mae_id is null');
+    await banco.query('delete from papel_usuario where usuario_id = $1', [admin]);
+    await inserir(banco, 'papel_usuario', { usuario_id: usuarioTeste, unidade_id: raiz, papel: 'administrador', desde: '2020-01-01' });
+    const antes = await fotografia(banco);
+    await expect(removerRegistrosDeTeste(banco)).rejects.toThrow(/nenhum administrador/);
+    expect(await fotografia(banco)).toEqual(antes);
+  });
+
+  it('a ficha da carga que ganhou outro nome não some da conversa: a lista diz quantas há; marcar com a quantidade errada pelo script recusa; e o real com matrícula da carga sai intacto', async () => {
+    const seguro = await novoMilitar(banco, daCarga(0).matricula, daCarga(0).nomeGuerra);
+    const real = await novoMilitar(banco, daCarga(7).matricula, 'FULANO REAL'); // matrícula da carga, nome real
+    for (const m of [seguro, real]) {
+      await comRastreio(m);
+      await inserir(banco, 'afastamento', { militar_id: m, tipo_afastamento_id: await um('select id from tipo_afastamento limit 1'), inicio: '2026-12-02', fim: '2026-12-04' });
+    }
+    const linhas: string[] = [];
+    await separarTeste(banco, { passo: 'listar', escrever: (l) => linhas.push(l) });
+    expect(linhas.join('\n')).toMatch(/1 militar com matrícula da carga e outro nome/);
+    const antes = await fotografia(banco);
+    await expect(separarTeste(banco, { passo: 'marcar', confirmar: 2, escrever: () => {} })).rejects.toThrow(/--marcar=1/);
+    expect(await fotografia(banco)).toEqual(antes);
+    expect(await n('select count(*)::int as n from militar where de_teste')).toBe(0);
+    await separarTeste(banco, { passo: 'marcar', confirmar: 1, escrever: () => {} });
+    await separarTeste(banco, { passo: 'aplicar', confirmar: 1, escrever: () => {} });
+    expect(await n('select count(*)::int as n from militar where id = $1', [seguro])).toBe(0);
+    expect(await n('select count(*)::int as n from militar where id = $1', [real])).toBe(1);
+    expect(await n('select count(*)::int as n from rastreio where militar_id = $1', [real])).toBe(1);
+    expect(await n('select count(*)::int as n from afastamento where militar_id = $1', [real])).toBe(1);
+  });
+
+  it('o script só aceita --marcar=N ou --aplicar=N, um por vez, sem formas tortas', () => {
+    expect(() => passoDoScript(['--marcar=3=4'])).toThrow(/Argumento/);
+    expect(() => passoDoScript(['--marcar=1', '--marcar=2'])).toThrow(/um passo por vez/);
+    expect(() => passoDoScript(['--aplicar=x'])).toThrow(/Argumento/);
+    expect(() => passoDoScript(['--qualquer'])).toThrow(/Argumento/);
+  });
+});
+
 describe('com o espelho no mesmo banco', () => {
   it('apagar um militar no sistema segue funcionando (a leitura das chaves não olha para o espelho) e a separação não toca no espelho', async () => {
     const completo = await bancoPglite();
