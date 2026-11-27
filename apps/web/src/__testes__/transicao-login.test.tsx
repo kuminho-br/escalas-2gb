@@ -205,3 +205,120 @@ describe('o desenho de um quadro (achados da revisão final)', () => {
     expect(atribuicoes.some(([p, v]) => p === 'globalCompositeOperation' && v === 'source-in')).toBe(true);
   });
 });
+
+describe('as brasas novas, que esfriam até virar cinza, por 4,2 s (6.67, Task 2)', () => {
+  type Cena = typeof import('@/lib/transicao-login/cena');
+  const cena = (): Promise<Cena> => import('@/lib/transicao-login/cena');
+  const contexto = () => {
+    const arcos: [number, number, number][] = [];
+    const fazer = (): CanvasRenderingContext2D => {
+      const alvo: Record<string | symbol, unknown> = { canvas: { width: 1280, height: 800 } };
+      const ctx: unknown = new Proxy(alvo, {
+        get: (a, p) => (p === 'arc' ? (x: number, y: number, r: number) => (arcos.push([x, y, r]), ctx) : p in a ? a[p] : () => ctx),
+        set: (a, p, v) => ((a[p] = v), true),
+      });
+      return ctx as CanvasRenderingContext2D;
+    };
+    // os recortes que a cena prepara usam `canvas` auxiliares: o jsdom não tem `getContext`, então eles também ganham o contexto anotado
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => fazer()) as never);
+    return { ctx: fazer(), arcos };
+  };
+  afterEach(() => vi.restoreAllMocks());
+
+  it('as quantidades do mockup: 59 brasas, 44 pontos de cinza, 52 no botão, 43 no quadro', async () => {
+    const m = await cena();
+    expect([m.N_BRASAS, m.N_CINZA, m.N_BRASAS_DO_BOTAO, m.N_BRASAS_DO_QUADRO, m.SEM_CINZA]).toEqual([59, 44, 52, 43, 0.25]);
+  });
+
+  it('uma em cada quatro brasas apaga ainda alaranjada: 17 das 59 (semente 0) e 8 das 43 (semente 300)', async () => {
+    const { semCinza } = await cena();
+    expect(Array.from({ length: 59 }, (_, i) => semCinza(i, 0)).filter(Boolean)).toHaveLength(17);
+    expect(Array.from({ length: 43 }, (_, i) => semCinza(i, 300)).filter(Boolean)).toHaveLength(8);
+  });
+
+  it('três profundidades: as pequenas são mais lentas e apagadas, ao fundo; as grandes, mais rápidas e fortes, na frente', async () => {
+    const { brasaEm, N_BRASAS } = await cena();
+    const todas = Array.from({ length: N_BRASAS }, (_, i) => brasaEm(i, 3, 1280, 800, 1, 0, null));
+    const porProfundidade = [...todas].sort((a, b) => a.prof - b.prof);
+    for (let k = 1; k < porProfundidade.length; k++) {
+      expect(porProfundidade[k]!.r).toBeGreaterThanOrEqual(porProfundidade[k - 1]!.r);
+      expect(porProfundidade[k]!.vel).toBeGreaterThanOrEqual(porProfundidade[k - 1]!.vel);
+    }
+    for (const b of todas) {
+      expect(b.vel).toBeCloseTo(26 + 118 * b.prof, 6);
+      expect(b.r).toBeCloseTo(0.8 + 2.4 * b.prof * b.prof, 6);
+    }
+    expect(Math.min(...todas.map((b) => b.prof))).toBeLessThan(0.2);
+    expect(Math.max(...todas.map((b) => b.prof))).toBeGreaterThan(0.8);
+  });
+
+  it('as que esfriam viram cinza na subida (esfriar de 0,42 a 0,9 da subida); as sem cinza nunca passam de uma luz alaranjada que só avermelha um pouco', async () => {
+    const { brasaEm, semCinza, N_BRASAS } = await cena();
+    for (let i = 0; i < N_BRASAS; i++) {
+      for (let t = 0; t < 60; t += 0.37) {
+        const b = brasaEm(i, t, 1280, 800, 1, 0, null);
+        if (semCinza(i, 0)) {
+          expect(b.cinza).toBe(0);
+          expect(b.cor).toBeGreaterThanOrEqual(0.6);
+        } else expect(b.cinza).toBeCloseTo(1 - b.cor, 9);
+        if (b.u < 0.42) expect(b.cinza).toBe(0);
+      }
+    }
+    // e há brasas que chegam a ficar totalmente cinza
+    expect(Array.from({ length: 59 }, (_, i) => brasaEm(i, 5, 1280, 800, 1, 0, null)).some((b) => b.cinza > 0.98)).toBe(true);
+  });
+
+  it('o desenho de um quadro a meio: o número de círculos é o das brasas (duas luzes a quente, uma a frio) mais a cinza, conferido pela própria conta das brasas', async () => {
+    const { brasas, brasaEm, cinzaEm, N_BRASAS, N_CINZA } = await cena();
+    const { ctx, arcos } = contexto();
+    const t = 7.3;
+    brasas(ctx, t, 1280, 800, 1, null, 0, N_BRASAS);
+    let esperado = 0;
+    for (let i = 0; i < N_BRASAS; i++) {
+      const b = brasaEm(i, t, 1280, 800, 1, 0, null);
+      if (b.al <= 0.004) continue;
+      if (b.cinza < 0.98) esperado += 2;
+      if (b.cinza > 0.02) esperado += 1;
+    }
+    for (let i = 0; i < N_CINZA; i++) if (cinzaEm(i, t, 1280, 800, 1, 0, null).al > 0.004) esperado += 1;
+    expect(arcos.length).toBe(esperado);
+    expect(esperado).toBeGreaterThan(N_BRASAS);
+  });
+
+  it('sem força (amp 0) não desenha nada', async () => {
+    const { brasas } = await cena();
+    const { ctx, arcos } = contexto();
+    brasas(ctx, 3, 1280, 800, 0, null, 0, 59);
+    expect(arcos).toEqual([]);
+  });
+
+  it('depois do pouso: a força das brasas é 1 no começo e vai a 0 aos 4,2 s, apagando nos últimos 1,6 s; as constantes são uma só para os dois números', async () => {
+    const { TEMPOS } = await import('@/lib/transicao-login/linha-do-tempo');
+    expect([TEMPOS.brasas, TEMPOS.apaga]).toEqual([4.2, 1.6]);
+    const { desenhar } = await cena();
+    const { inicioDasBoasVindas } = await import('@/lib/transicao-login/linha-do-tempo');
+    const aprovada = { tipo: 'aprovada', em: 0 } as const;
+    const pouso = inicioDasBoasVindas(aprovada)!;
+    const faixa = { left: 24, top: 80, width: 1232, height: 400, right: 1256, bottom: 480, x: 24, y: 80 } as DOMRect;
+    const arcosEm = (th: number) => {
+      const { ctx, arcos } = contexto();
+      desenhar(ctx, { t: pouso + th, resposta: aprovada, largura: 1280, altura: 800, faixa, imagem: {} as HTMLImageElement });
+      return arcos.length;
+    };
+    expect(arcosEm(0)).toBeGreaterThan(0);
+    // ainda com força inteira antes dos últimos 1,6 s, e sem nada a partir dos 4,2 s
+    expect(arcosEm(TEMPOS.brasas - TEMPOS.apaga - 0.01)).toBeGreaterThan(0);
+    expect(arcosEm(TEMPOS.brasas)).toBe(0);
+    expect(arcosEm(TEMPOS.brasas + 1)).toBe(0);
+  });
+
+  it('o botão Entrar solta 52 brasas no começo da cena', async () => {
+    const { desenhar, N_BRASAS_DO_BOTAO } = await cena();
+    const arcosEm = (botao: { x: number; y: number; w: number } | null) => {
+      const { ctx, arcos } = contexto();
+      desenhar(ctx, { t: 0.05, resposta: null, largura: 1280, altura: 800, faixa: null, imagem: {} as HTMLImageElement, botao });
+      return arcos.length;
+    };
+    expect(arcosEm({ x: 900, y: 500, w: 300 }) - arcosEm(null)).toBe(N_BRASAS_DO_BOTAO);
+  });
+});

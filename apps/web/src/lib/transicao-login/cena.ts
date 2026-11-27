@@ -408,7 +408,7 @@ function estado(t: number, resposta: Resposta, D0: number): Estado {
   }
   if (t >= z1) {
     s.th = t - z1;
-    s.amb = 1 - ss(T.brasas - 1.6, T.brasas, s.th);
+    s.amb = 1 - ss(T.brasas - T.apaga, T.brasas, s.th);
   }
   return s;
 }
@@ -687,52 +687,105 @@ function agua(ctx: Ctx, s: Estado) {
     ctx.fill();
   }
 }
-/** Brasas e cinza do ambiente (em pixels da tela; servem para a animação e para a faixa das boas-vindas). */
-const N_BRASAS = 44;
-const N_CINZA = 22;
-function brasas(g: Ctx, t: number, W: number, H: number, amp: number) {
+/**
+ * Brasas e cinza do ambiente, versão 2 (6.67; em pixels da tela; servem para a animação e para o quadro da tela inicial). 59 brasas em três profundidades (as pequenas, mais lentas e
+ * apagadas, ao fundo; as grandes, mais rápidas e fortes, na frente) e 44 pontos de cinza. Três em cada quatro brasas esfriam na subida (alaranjada, vermelha, cinza opaca sem
+ * brilho) e apagam antes de sair do quadro; uma em cada quatro (`SEM_CINZA`) apaga ainda alaranjada, só avermelhando um pouco. `fraca` é o retângulo da saudação: ali ficam a um terço da força.
+ */
+export const N_BRASAS = 59;
+export const N_CINZA = 44;
+export const N_BRASAS_DO_BOTAO = 52;
+/** Depois do pouso, mais estas só dentro do quadro: o campo da tela inteira deixa um terço delas no quadro. */
+export const N_BRASAS_DO_QUADRO = 43;
+export const SEM_CINZA = 0.25;
+/** O retângulo em que as brasas ficam fracas (a saudação), em pixels da tela. */
+export type Fraca = { x: number; y: number; w: number; h: number } | null;
+
+/** A brasa `i` (com esta semente) é das que apagam ainda alaranjadas, sem virar cinza? */
+export function semCinza(i: number, semente: number): boolean {
+  return rnd(i + semente, 5) < SEM_CINZA;
+}
+/** Quanto o ponto está dentro do retângulo fraco: 1 no meio, 0 a mais de 24 px dele, e suave na borda. Sem retângulo, 0. */
+export function dentro(x: number, y: number, f: Fraca): number {
+  const m = 24;
+  if (!f) return 0;
+  return ss(f.x - m, f.x, x) * (1 - ss(f.x + f.w, f.x + f.w + m, x)) * ss(f.y - m, f.y, y) * (1 - ss(f.y + f.h, f.y + f.h + m, y));
+}
+/** Onde está a brasa `i` no instante `t`, de que cor e com que força (já com o terço da força sobre a saudação). */
+export function brasaEm(i: number, t: number, W: number, H: number, amp: number, semente: number, fraca: Fraca) {
+  const k = semente;
+  const a = rnd(i + k, 1);
+  const b = rnd(i + k, 2);
+  const c = rnd(i + k, 3);
+  const d = rnd(i + k, 4);
+  const prof = d; // 0 = ao fundo (pequena, lenta, apagada); 1 = na frente
+  const vel = 26 + 118 * prof;
+  const ciclo = (H + 80) / vel;
+  const u = ((t + a * ciclo * 7) / ciclo) % 1;
+  const y = H + 30 - u * (H + 80);
+  const x = (a * 1.1 - 0.05) * W + (14 + 16 * prof) * Math.sin(t * (0.7 + c) + b * DOIS_PI) + u * 46 * (c - 0.35);
+  const r = 0.8 + 2.4 * prof * prof;
+  const esf = ss(0.42, 0.9, u); // quanto já esfriou na subida: 0 saindo do chão, 1 perto do topo
+  // uma em quatro apaga alaranjada, só avermelhando um pouco; as outras vão de alaranjada a vermelha e viram cinza
+  const cinza = semCinza(i, k) ? 0 : esf;
+  const cor = semCinza(i, k) ? 1 - 0.4 * esf : 1 - esf;
+  let al = amp * (0.25 + 0.75 * prof) * (0.6 + 0.4 * Math.sin(t * (6 + 8 * d) + a * 40)) * Math.sqrt(Math.sin(Math.PI * Math.min(1, u * 1.12)));
+  al *= 1 - 0.68 * dentro(x, y, fraca);
+  return { x, y, u, r, prof, vel, cinza, cor, al };
+}
+/** O ponto de cinza `i` (cai devagar) no instante `t`. */
+export function cinzaEm(i: number, t: number, W: number, H: number, amp: number, semente: number, fraca: Fraca) {
+  const k = semente;
+  const a = rnd(i + k, 31);
+  const b = rnd(i + k, 32);
+  const c = rnd(i + k, 33);
+  const vel = 14 + 26 * b;
+  const ciclo = (H + 40) / vel;
+  const u = ((t + a * ciclo * 5) / ciclo) % 1;
+  const y = -20 + u * (H + 40);
+  const x = a * W + 34 * Math.sin(t * (0.4 + 0.5 * c) + b * DOIS_PI);
+  const al = amp * 0.26 * Math.sin(Math.PI * u) * (1 - 0.68 * dentro(x, y, fraca));
+  return { x, y, r: 0.8 + 1.1 * c, al };
+}
+export function brasas(g: Ctx, t: number, W: number, H: number, amp: number, fraca: Fraca = null, semente = 0, n = N_BRASAS) {
   if (amp <= 0.004) return;
-  g.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < N_BRASAS; i++) {
-    const a = rnd(i, 1);
-    const b = rnd(i, 2);
-    const c = rnd(i, 3);
-    const d = rnd(i, 4);
-    const vel = 36 + 90 * b;
-    const ciclo = (H + 80) / vel;
-    const u = ((t + a * ciclo * 7) / ciclo) % 1;
-    const y = H + 30 - u * (H + 80);
-    const x = (a * 1.1 - 0.05) * W + 20 * Math.sin(t * (0.7 + c) + d * DOIS_PI) + u * 46 * (c - 0.35);
-    const r = 0.9 + 2.1 * d * d;
-    const al = amp * (0.3 + 0.7 * c) * (0.55 + 0.45 * Math.sin(t * (6 + 8 * d) + a * 40)) * Math.sqrt(Math.sin(Math.PI * u));
-    g.fillStyle = `rgba(255,150,60,${al * 0.16})`;
-    g.beginPath();
-    g.arc(x, y, r * 3.4, 0, DOIS_PI);
-    g.fill();
-    g.fillStyle = `rgba(255,196,110,${al})`;
-    g.beginPath();
-    g.arc(x, y, r, 0, DOIS_PI);
-    g.fill();
+  for (let i = 0; i < n; i++) {
+    const b = brasaEm(i, t, W, H, amp, semente, fraca);
+    if (b.al <= 0.004) continue;
+    if (b.cinza < 0.98) {
+      // quente: luz somada, de alaranjada a vermelha
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = `rgba(255,150,60,${b.al * 0.16 * (1 - b.cinza)})`;
+      g.beginPath();
+      g.arc(b.x, b.y, b.r * 3.4, 0, DOIS_PI);
+      g.fill();
+      g.fillStyle = `rgba(255,${Math.round(lerp(96, 196, b.cor))},${Math.round(lerp(40, 110, b.cor))},${b.al * (1 - b.cinza)})`;
+      g.beginPath();
+      g.arc(b.x, b.y, b.r, 0, DOIS_PI);
+      g.fill();
+    }
+    if (b.cinza > 0.02) {
+      // fria: cinza opaca, sem brilho, que vai sumindo
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = `rgba(172,166,160,${b.al * b.cinza * 0.8})`;
+      g.beginPath();
+      g.arc(b.x, b.y, b.r * 0.9, 0, DOIS_PI);
+      g.fill();
+    }
   }
   g.globalCompositeOperation = 'source-over';
   for (let i = 0; i < N_CINZA; i++) {
-    const a = rnd(i, 31);
-    const b = rnd(i, 32);
-    const c = rnd(i, 33);
-    const vel = 14 + 26 * b;
-    const ciclo = (H + 40) / vel;
-    const u = ((t + a * ciclo * 5) / ciclo) % 1;
-    const y = -20 + u * (H + 40);
-    const x = a * W + 34 * Math.sin(t * (0.4 + 0.5 * c) + b * DOIS_PI);
-    g.fillStyle = `rgba(190,180,172,${amp * 0.26 * Math.sin(Math.PI * u)})`;
+    const p = cinzaEm(i, t, W, H, amp, semente, fraca);
+    if (p.al <= 0.004) continue;
+    g.fillStyle = `rgba(190,180,172,${p.al})`;
     g.beginPath();
-    g.arc(x, y, 0.8 + 1.1 * c, 0, DOIS_PI);
+    g.arc(p.x, p.y, p.r, 0, DOIS_PI);
     g.fill();
   }
 }
-/** O cartão se desfaz: brasas sobem do botão Entrar. */
+/** O cartão se desfaz: brasas sobem do botão Entrar (52). */
 function estouroBotao(ctx: Ctx, t: number, bt: { x: number; y: number; w: number }) {
-  const n = 26;
+  const n = N_BRASAS_DO_BOTAO;
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < n; i++) {
     const vida = 0.45 + 0.5 * rnd(i, 41);
