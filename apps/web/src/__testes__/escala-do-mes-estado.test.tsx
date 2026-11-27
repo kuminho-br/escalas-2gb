@@ -22,7 +22,7 @@ const card = (motorista: boolean): CardDaGuarnicao => ({
 const faixa = (c: CardDaGuarnicao): FaixaDoDia => ({
   inicio: '08:00', fim: '20:00', noturna: false, turnos: [{ turnoId: 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'A' }], guarnicoes: [c], semPosto: [], removidos: [],
 });
-const dia = (n: number, c: CardDaGuarnicao): DiaDaEscala => ({ data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado: null, faixas: [faixa(c)], obrigatoriasVazias: c.faltam.length });
+const dia = (n: number, c: CardDaGuarnicao): DiaDaEscala => ({ data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado: null, faixas: [faixa(c)], obrigatoriasVazias: c.faltam.length, metasAbaixo: [] });
 const estado = (e: Partial<EstadoDoMes>): EstadoDoMes => ({ estado: 'rascunho', emRetificacao: false, em: null, por: null, ...e });
 const ESCALA = (e: Partial<EstadoDoMes> = {}, extra: Partial<EscalaDoMes> = {}): EscalaDoMes => ({
   escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [dia(1, card(true)), dia(2, card(false))], resumo: { preenchidas: 1, obrigatorias: 2, obrigatoriasVazias: 1 },

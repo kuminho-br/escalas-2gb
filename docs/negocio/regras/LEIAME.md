@@ -57,5 +57,5 @@ Todo o sistema serve a duas metas; cada regra existe para atingir uma delas ou a
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-49 | Meta 1: ativar as guarnições da meta de ativação de cada dia (RN-108, RN-109). | Confirmada | Funciona (Efetivo por dia mostra quantas foram ativadas) | Ambas |
-| RN-50 | Meta 2: escalar as cotas recebidas, internas e externas (RN-33, RN-34). | Confirmada | Em parte: as cotas restantes aparecem; a distribuição automática é da fase 8 | Ambas |
+| RN-50 | Meta 2: escalar as cotas recebidas (RN-33). | Confirmada | Em parte: as cotas restantes aparecem; a distribuição automática é da fase 8 | Ambas |
 | RN-51 | Para cada cota, o sistema mostra quanto foi recebido, quanto foi escalado e quanto resta (RN-114), e a quantidade por militar, como faz hoje a planilha de cotas. | Confirmada | Em parte: recebido e restante funcionam; a quantidade por militar, não | Suporte |

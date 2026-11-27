@@ -1,6 +1,6 @@
 # Regras — cotas, voluntariado e permutas
 
-Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114, RN-122 a RN-124).
+Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114, RN-122 a RN-126).
 
 Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; voluntariado revisto na segunda conferência, em 25/11/2026 (fase 7). O dia vermelho (RN-117) foi para [escala-dos-oficiais.md](escala-dos-oficiais.md). Índice e colunas: [LEIAME](LEIAME.md).
 
@@ -11,13 +11,15 @@ A SB recebe cotas de PJES e diárias e é obrigada a executá-las. Cota é o lim
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-33 | A SB recebe cotas de PJES e diárias, serviços extras além da carga normal, e é obrigada a executá-las. A cota diz quanto serviço extra há num mês, numa SB; não caracteriza o serviço. | Confirmada | Funciona (tela Cotas) | Ambas |
-| RN-34 | Cotas externas são serviços que os militares precisam tirar, mas que não entram na cota original da SB. | Confirmada | Funciona | Ambas |
-| RN-35 | Cada cota tem mês, SB, serviço (PJES ou diária), quantidade e origem (interna ou externa). A origem é da cota, não do serviço. A cota aponta direto para o serviço; cota de serviço desativado é recusada. | Confirmada | Funciona | Base |
+| RN-34 | ~~Cotas externas são serviços que os militares precisam tirar, mas que não entram na cota original da SB.~~ Sem efeito desde 27/11/2026: a cota perdeu a origem (RN-35). | Sem efeito | — | — |
+| RN-35 | Cada cota tem mês, SB, serviço (PJES ou diária), quantidade e prioridade; há uma só por serviço e mês. A cota aponta direto para o serviço; cota de serviço desativado é recusada. Desde 27/11/2026 a cota não tem origem (interna ou externa): na migração, a interna e a externa do mesmo serviço e mês viraram uma, com a soma e a menor prioridade. A cota pode ter dias (RN-125). | Confirmada | Funciona (6.72) | Base |
 | RN-82 | Cada vaga preenchida (1 militar em 1 turno do serviço) consome 1 cota. | Confirmada | Funciona (na conta das cotas restantes) | Base |
-| RN-114 | Cota restante = quantidade da cota do mês − alocações do mês naquele serviço, somando as origens interna e externa. Aparece como "JES: restam 26 de 40" na Escala do mês (cotas dos serviços da escala) e no Efetivo por dia (cotas da seção). | Confirmada | Funciona | Suporte |
+| RN-114 | Cota restante = quantidade da cota do mês − alocações do mês naquele serviço, (uma cota só por serviço). Aparece como "JES: restam 26 de 40" na Escala do mês (cotas dos serviços da escala) e no Efetivo por dia (cotas da seção). | Confirmada | Funciona | Suporte |
 | RN-36 | O militar só tira uma diária por dia, contando pela data de início do turno. | Confirmada | Funciona | Ambas |
 | RN-37 | Duas diárias em dias diferentes podem ser emendadas (ex.: 16h–00h do dia D + 00h–08h do dia D+1): é a dobradinha, e vale para Pronto e Adm. | Confirmada | Funciona (não é barrada) | Ambas |
-| RN-89 | Cumprir as cotas internas vale mais que as externas: quando não dá para atender todas, o sistema preenche primeiro as internas. | Confirmada | Fase 8 | Automação |
+| RN-89 | ~~Cumprir as cotas internas vale mais que as externas.~~ Sem efeito desde 27/11/2026: não há mais origem. Entre as cotas de serviços diferentes vale a prioridade de cada uma. | Sem efeito | — | — |
+| RN-125 | A cota pode ter dias, uma lista opcional: o dia obrigatório (meta mínima de 1) ou o dia com meta (mínimo N, e um máximo opcional que fica só no banco e na regra, sem tela). O resto do total do mês vale nos outros dias. A soma das metas não passa do total, o dia é do mês da cota e o máximo não é menor que a meta. Dia com menos escalados que a meta aparece como aviso na Escala do mês ("JES: 1 de 3 neste dia.") e não impede fechar a escala. | Confirmada | Funciona (6.72): tela Cotas › Dias da cota | Suporte |
+| RN-126 | A cota esgotada bloqueia escalar mais um militar naquele serviço, à mão e em qualquer caminho que passe por escalar (não impede fechar a escala; remover nunca é bloqueado). Recusam: o total do mês acabou; o dia atingiu o máximo; o que resta está reservado para a meta de outros dias. O escalante não cria cota do nada: o caminho é aumentar a cota na tela Cotas. Cota reduzida abaixo do que já foi escalado não desfaz nada. Só PJES e diária dependem da cota (Pronto, Saldo e Expediente não); "Adicionar serviço" na Grade só mostra o PJES ou a diária que tem cota no mês e que aceita o dia. | Confirmada | Funciona (6.72) | Suporte |
 
 ## Voluntariado
 
