@@ -14,6 +14,8 @@
   --color-linha: #D8DDE4;
   --color-alerta: #B3261E;
   --color-pendencia: #8A5A00;
+  /* o traço do afastado na Grade (6.70): o âmbar de "atenção, sem bloquear" do sistema */
+  --color-afastado: #A06C0A;
   --color-pendencia-fundo: #FCF1D6;
   /* o contorno de campo, de botão secundário e da vaga opcional (3,5:1 sobre branco) e o único cinza de painel: mouse em cima, fim de semana, etiqueta neutra */
   --color-encaixe: #7D8A9C;
@@ -151,6 +153,28 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+}
+
+/* O traço do afastado na Grade (6.70): tracejado âmbar no meio da célula, 3 px, traço de 62% e intervalo de 38% num período de um quarto da largura do dia: assim ele emenda sem quebra
+   de uma célula para a outra (a largura do dia varia, o período acompanha). Fica por trás dos quadrados de serviço. As pontas (começa e termina) cortam 5 px com `clip-path`,
+   sem mexer no período do padrão. */
+.afastado-traco {
+  position: absolute;
+  inset-inline: -1px;
+  top: 58%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(90deg, var(--color-afastado) 0 62%, transparent 62%) 0 0 / 25% 100% repeat-x;
+  pointer-events: none;
+}
+.afastado-traco[data-comeca] {
+  clip-path: inset(0 0 0 6px);
+}
+.afastado-traco[data-termina] {
+  clip-path: inset(0 6px 0 0);
+}
+.afastado-traco[data-comeca][data-termina] {
+  clip-path: inset(0 6px);
 }
 
 /* A sombra da "Tabela com rolagem" (lib/tabela-com-rolagem.ts, 6.70): ao rolar para os lados, uma sombra leve nasce do lado das partes presas. Só CSS sobre os atributos do

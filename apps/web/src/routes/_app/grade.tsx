@@ -105,6 +105,8 @@ function GradeGeral() {
         <div className={cn('grid items-start gap-4', escolhida && 'lg:grid-cols-[minmax(0,1fr)_380px]')}>
           {/* no celular o painel do dia cobre a tela: a grade atrás fica inerte (nem o leitor de tela nem o teclado chegam nela) */}
           <div data-grade inert={celular && !!escolhida} className="min-w-0 overflow-hidden rounded-xl border border-linha bg-superficie">
+            {/* a legenda fica numa linha acima da tabela, onde se olha (6.70) */}
+            <LegendaDaGrade grupos={grupos} />
             <TabelaDaGrade
               grade={grade}
               grupos={grupos}
@@ -115,7 +117,6 @@ function GradeGeral() {
               recolhidas={procura ? new Set() : recolhidas}
               aoAlternar={alternarRecolhida}
             />
-            <LegendaDaGrade grupos={grupos} />
           </div>
           {escolhida && (
             <PainelDoDia

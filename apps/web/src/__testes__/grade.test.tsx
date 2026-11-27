@@ -292,8 +292,9 @@ describe('grade geral: a tabela', () => {
     const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     await waitFor(() => expect(c).toHaveAttribute('data-escolhida'));
     expect(c).toHaveAttribute('data-choque');
-    expect(c).toHaveClass('ring-alerta', 'bg-vinho/15');
-    expect(c).not.toHaveClass('ring-vinho');
+    // o contorno é um pseudo-elemento sobre a célula (6.70: o traço do afastado nunca o esconde)
+    expect(c).toHaveClass('after:ring-alerta', 'bg-vinho/15');
+    expect(c).not.toHaveClass('after:ring-vinho');
   });
 
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
@@ -301,7 +302,7 @@ describe('grade geral: a tabela', () => {
     abrir(`/?mes=${MES}`);
     const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     expect(c).toHaveAttribute('data-choque');
-    expect(c).toHaveClass('ring-alerta');
+    expect(c).toHaveClass('after:ring-alerta');
     const exp = celula('ADM', 2, 'expediente');
     expect(exp).toBeInTheDocument();
     expect(within(exp).queryByText(/^[A-C]$/)).toBeNull();
@@ -310,18 +311,20 @@ describe('grade geral: a tabela', () => {
 });
 
 describe('grade geral: a legenda', () => {
-  it('traz só os serviços que aparecem, o expediente e o choque', async () => {
+  it('traz só os serviços que aparecem, o expediente e o choque, e vem ACIMA da tabela', async () => {
     api();
     abrir(`/?mes=${MES}`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Pronto', 'Expediente do ADM', 'Choque de horário']);
+    expect(legenda.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // cada serviço leva o quadradinho com a letra do turno (6.70), e no fim a dica de rolar para os lados
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'APronto', 'Expediente do ADM', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 
   it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
     api();
     abrir(`/?mes=${MES}&equipe=eq-bravo`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES']);
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 });
 

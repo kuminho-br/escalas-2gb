@@ -1,6 +1,7 @@
 import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } from 'contratos';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
+import { afastadoNoMesTodo, afastamentoDoDia } from '@/lib/afastamento-na-grade';
 import { hoje } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
 import { CABECALHO_PRESO, COLUNA_PRESA_ESQUERDA, useSombraDaRolagem } from '@/lib/tabela-com-rolagem';
@@ -98,7 +99,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                   data-coluna={d.data}
                   data-coluna-marcada={escolhida?.dia === d.data ? '' : undefined}
                   title={d.feriado ?? undefined}
-                  className={cn('sticky top-0 z-20 min-w-12 bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
+                  className={cn('sticky top-0 z-20 min-w-12 px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', vinho ? 'bg-passa' : 'bg-superficie', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
                 >
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
@@ -133,9 +134,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
               </tr>
               {(recolhidas.has(g.chave) ? [] : g.linhas).map((l) => {
                 const linhaMarcada = escolhida?.militarId === l.militarId;
+                // afastado em todos os dias do mês mostrado: o nome em tom apagado (quem dá para escalar é quem não está assim)
+                const mesTodo = afastadoNoMesTodo(l.afastamentos, grade.dias.map((x) => x.data));
                 return (
                 <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
-                  <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
+                  <th scope="row" data-afastado-o-mes-todo={mesTodo ? '' : undefined} className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
                     {/* o posto, o nome e a matrícula são um botão: abre a ficha do militar. A matrícula fica à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-1.5">
                       {aoAbrirFicha ? (
@@ -148,7 +151,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                         >
                           <span className="flex items-baseline gap-1.5 whitespace-nowrap">
                             <span className="text-sm text-apagado">{l.posto}</span>
-                            <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                            <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
                           </span>
                           <span className="text-xs text-apagado">{l.matricula}</span>
                         </button>
@@ -156,7 +159,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                         <div className="col-start-1 row-span-2 grid justify-items-start text-left">
                           <span className="flex items-baseline gap-1.5 whitespace-nowrap">
                             <span className="text-sm text-apagado">{l.posto}</span>
-                            <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                            <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
                           </span>
                           <span className="text-xs text-apagado">{l.matricula}</span>
                         </div>
@@ -171,9 +174,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                       <td
                         key={d.data}
                         data-fim-de-semana={fds ? '' : undefined}
+                        data-feriado={d.feriado ? '' : undefined}
                         data-coluna={d.data}
                         data-coluna-marcada={colunaMarcada ? '' : undefined}
-                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
+                        // a coluna inteira do fim de semana e do feriado fica com um fundo levemente mais escuro (a marcada de vinho vence)
+                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', (fds || d.feriado) && 'bg-passa', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
                       >
                         <CelulaDaGrade
                           linha={l}
@@ -183,6 +188,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                           choque={l.choques.includes(d.data)}
                           escolhida={escolhida?.militarId === l.militarId && escolhida.dia === d.data}
                           aoEscolher={() => aoEscolher(l.militarId, d.data)}
+                          afastado={afastamentoDoDia(l.afastamentos, d.data)}
                         />
                       </td>
                     );
