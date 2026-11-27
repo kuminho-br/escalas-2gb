@@ -124,11 +124,11 @@ function GradeGeral() {
       {cheia && (
         <section aria-label="Barra da tela cheia" className="flex min-w-0 items-center gap-3">
           <span className="flex shrink-0 items-center overflow-hidden rounded-controle border border-encaixe bg-superficie">
-            <Button type="button" variant="discreto" size="icon" className="rounded-none" aria-label="Mês anterior" onClick={() => void navigate({ search: (s) => ({ ...s, mes: somarMeses(mes, -1), militar: undefined, dia: undefined }) })}>
+            <Button type="button" variant="discreto" size="icon" className="rounded-none max-md:size-9" aria-label="Mês anterior" onClick={() => void navigate({ search: (s) => ({ ...s, mes: somarMeses(mes, -1), militar: undefined, dia: undefined }) })}>
               <ChevronLeft aria-hidden />
             </Button>
-            <span className="min-w-24 px-2 text-center font-cond text-nome font-semibold">{mesCurto(mes)}</span>
-            <Button type="button" variant="discreto" size="icon" className="rounded-none" aria-label="Próximo mês" onClick={() => void navigate({ search: (s) => ({ ...s, mes: somarMeses(mes, 1), militar: undefined, dia: undefined }) })}>
+            <span className="min-w-24 px-2 text-center font-cond text-nome font-semibold max-md:min-w-0 max-md:px-0.5">{mesCurto(mes)}</span>
+            <Button type="button" variant="discreto" size="icon" className="rounded-none max-md:size-9" aria-label="Próximo mês" onClick={() => void navigate({ search: (s) => ({ ...s, mes: somarMeses(mes, 1), militar: undefined, dia: undefined }) })}>
               <ChevronRight aria-hidden />
             </Button>
           </span>
@@ -136,7 +136,7 @@ function GradeGeral() {
             {grade && equipes.length ? grade.grupos.filter((g) => equipes.includes(g.chave)).map(nomeDoGrupo).join(', ') : 'Todas as equipes'}
             {procura ? `, "${texto.trim()}"` : ''}
           </span>
-          <Button type="button" variant="secundario" className="shrink-0" onClick={alternarCheia}><Minimize2 aria-hidden />Recolher grade</Button>
+          <Button type="button" variant="secundario" className="shrink-0 max-md:px-2.5" onClick={alternarCheia}><Minimize2 aria-hidden />Recolher grade</Button>
         </section>
       )}
       {!cheia && <div className="flex flex-wrap items-end gap-3">

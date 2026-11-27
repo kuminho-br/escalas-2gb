@@ -85,6 +85,8 @@ describe('a tela cheia no celular', () => {
     expect(botao.textContent).toContain('997001-1');
     expect(classes(within(botao).getByText('997001-1'))).toContain('max-md:hidden');
     expect(classes(within(botao).getByText('SD').parentElement!)).toContain('max-md:flex-col');
+    // o posto e o nome ocupam a altura toda da célula (sem a matrícula e sem a barra do saldo, que não cabem em 112 px): nada fica cortado
+    expect(classes(within(botao).getByText('SD').parentElement!)).toContain('max-md:row-span-2');
     // cabem seis dias: cada coluna com 44 px
     expect(classes(screen.getByRole('columnheader', { name: /^Dia 10,/ }))).toContain('max-md:min-w-11');
     expect(classes(document.querySelector('[data-rolagem="grade"]')!)).toContain('max-md:scroll-pl-28');

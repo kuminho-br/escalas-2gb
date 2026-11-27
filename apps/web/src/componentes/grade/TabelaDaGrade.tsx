@@ -164,22 +164,22 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                         onClick={() => aoAbrirFicha(l.militarId)}
                         className={cn('group/nome grid h-11 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left outline-none hover:bg-vinho/8 focus-visible:bg-vinho/8 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:-outline-offset-4', cheia && 'max-md:h-12 max-md:pr-1 max-md:pl-2')}
                       >
-                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 overflow-hidden whitespace-nowrap', cheia && 'max-md:flex-col max-md:items-start max-md:gap-0')}>
+                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 overflow-hidden whitespace-nowrap', cheia && 'max-md:row-span-2 max-md:flex-col max-md:items-start max-md:justify-center max-md:gap-0')}>
                           <span className="text-sm text-apagado">{l.posto}</span>
                           <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
                         </span>
                         <span className={cn('col-start-1 row-start-2 text-xs text-apagado', cheia && 'max-md:hidden')}>{l.matricula}</span>
                         <IdCard aria-hidden data-icone-da-ficha className="col-start-2 row-start-1 size-4 justify-self-end text-vinho opacity-0 transition-opacity group-hover/nome:opacity-100 group-focus-visible/nome:opacity-100" />
-                        {l.saldos && <span className="col-start-2 row-start-2 self-center"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                        {l.saldos && <span className={cn('col-start-2 row-start-2 self-center', cheia && 'max-md:hidden')}><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
                       </button>
                     ) : (
                       <div className={cn('grid h-11 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-center gap-x-1.5 pr-3 pl-4 text-left', cheia && 'max-md:h-12 max-md:pr-1 max-md:pl-2')}>
-                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 whitespace-nowrap', cheia && 'max-md:flex-col max-md:items-start max-md:gap-0')}>
+                        <span className={cn('col-start-1 row-start-1 flex items-baseline gap-1.5 whitespace-nowrap', cheia && 'max-md:row-span-2 max-md:flex-col max-md:items-start max-md:justify-center max-md:gap-0')}>
                           <span className="text-sm text-apagado">{l.posto}</span>
                           <strong className={cn('text-[15px] leading-tight font-semibold', mesTodo && 'text-apagado')}>{l.nomeGuerra}</strong>
                         </span>
                         <span className={cn('col-start-1 row-start-2 text-xs text-apagado', cheia && 'max-md:hidden')}>{l.matricula}</span>
-                        {l.saldos && <span className="col-start-2 row-start-2 self-center"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
+                        {l.saldos && <span className={cn('col-start-2 row-start-2 self-center', cheia && 'max-md:hidden')}><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
                       </div>
                     )}
                   </th>
