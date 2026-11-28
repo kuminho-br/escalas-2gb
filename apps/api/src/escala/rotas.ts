@@ -343,6 +343,8 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       const tocar = async (t: Consulta): Promise<Tocado[]> => {
         const a = await tocadoDaAlocacao(t, id);
         if ('comAlocacaoId' in troca) return [...a, ...(await tocadoDaAlocacao(t, troca.comAlocacaoId))];
+        // mudar de função fica no mesmo turno: só a própria alocação é tocada
+        if ('paraVaga' in troca) return a;
         return [...a, ...a.map((x) => ({ ...x, turnoId: troca.turnoId }))];
       };
       const escalas = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), tocar, troca.justificativa, () => trocar(tx, id, troca, c.get('usuarioId'))));

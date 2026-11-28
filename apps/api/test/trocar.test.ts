@@ -11,6 +11,7 @@ let api: ApiDeTeste;
 let outraSecao: string;
 let escala: string;
 let abt: string;
+let asu: string;
 let motorista: string;
 let combatente: string;
 const servico: Record<string, { id: string; a: string; b?: string }> = {};
@@ -64,6 +65,16 @@ beforeAll(async () => {
     itens: [{ guarnicaoId: abt, inicio: '08:00', fim: '20:00' }, { guarnicaoId: abt, inicio: '20:00', fim: '08:00' }],
   });
   expect(v.status).toBe(200);
+  // 6.74: uma segunda guarnição só na faixa 08–20, com uma vaga de combatente (para a aba "Por outra função")
+  const g2 = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
+    nome: 'ASU', vigencia: '2026-12',
+    versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: combatente, minimo: 1, maximo: 1, cnhExigida: null }] },
+  });
+  asu = (await g2.json()).id;
+  const v2 = await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/vinculos/2026-12`, {
+    itens: [{ guarnicaoId: abt, inicio: '08:00', fim: '20:00' }, { guarnicaoId: abt, inicio: '20:00', fim: '08:00' }, { guarnicaoId: asu, inicio: '08:00', fim: '20:00' }],
+  });
+  expect(v2.status).toBe(200);
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
@@ -363,5 +374,98 @@ describe('a frase da recusa da troca (revisão final da 6.17)', () => {
   it('diz quem não pode ir para a vaga de quem, o motivo e o que fazer, sem ponto duplo quando o motivo já termina com ponto', () => {
     expect(fraseDaRecusaDaTroca('SD A', 'SD B', 'Choque de horário')).toBe('SD A não pode ir para a vaga de SD B: Choque de horário. Escolha outro serviço para trocar.');
     expect(fraseDaRecusaDaTroca('SD A', 'SD B', 'Este militar já está escalado neste turno.')).toBe('SD A não pode ir para a vaga de SD B: Este militar já está escalado neste turno. Escolha outro serviço para trocar.');
+  });
+});
+
+describe('mudar de função, no mesmo turno (6.74)', () => {
+  const vagaDe = (nome: string, data: string) => de(nome, data).then((l) => l[0]!);
+  const paraVaga = (guarnicaoId: string, funcaoId: string) => ({ paraVaga: { guarnicaoId, funcaoId }, justificativa: 'teste' });
+
+  it('as opções trazem as vagas livres do mesmo turno onde ele cabe: sem a vaga atual, sem a função completa e sem a de motorista que a CNH dele não cobre', async () => {
+    const d = dia(23);
+    // SEMCNH (CNH B) é combatente do ABT; o motorista do ABT já está ocupado por E1 (CNH E); o ASU tem a vaga de combatente livre
+    const id = await alocar('SEMCNH', 'Pronto', 'a', d, { funcao: combatente });
+    await alocar('E1', 'Pronto', 'a', d, { funcao: motorista });
+    const o = await lerTrocas(id);
+    // o combatente do ABT (a vaga dele) fica de fora, o motorista está completo (e exige CNH D); sobra o combatente do ASU
+    expect(o.vagas).toEqual([{ guarnicaoId: asu, guarnicao: 'ASU', funcaoId: combatente, funcao: 'Combatente' }]);
+    // quem tem a CNH e a vaga de motorista livre a vê
+    const livre = await alocar('E2', 'Pronto', 'a', dia(24), { funcao: combatente });
+    expect((await lerTrocas(livre)).vagas.map((v) => `${v.funcao} do ${v.guarnicao}`)).toEqual(['Motorista do ABT', 'Combatente do ASU']);
+  });
+
+  it('mudar de vaga move a mesma alocação: mesmo id e turno, guarnição e função novas, e a contagem do serviço no mês não muda', async () => {
+    const d = dia(25);
+    const id = await alocar('A1', 'Pronto', 'a', d, { funcao: combatente });
+    const antes = (await api.banco.query<{ n: number }>("select count(*)::int as n from alocacao where servico_id = $1 and data >= '2026-12-01' and data < '2027-01-01'", [servico.Pronto!.id])).rows[0]!.n;
+    const r = await trocar(id, paraVaga(asu, combatente));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ escalas: [{ escalaId: escala, mes: '2026-12' }] });
+    expect(await de('A1', d)).toEqual([{ id, turno_id: servico.Pronto!.a, guarnicao_id: asu, funcao_id: combatente, servico_id: servico.Pronto!.id }]);
+    const depois = (await api.banco.query<{ n: number }>("select count(*)::int as n from alocacao where servico_id = $1 and data >= '2026-12-01' and data < '2027-01-01'", [servico.Pronto!.id])).rows[0]!.n;
+    expect(depois).toBe(antes);
+    expect(await remocoes('A1', d)).toBe(0);
+  });
+
+  it('a alocação sem guarnição (pré-escala) também vai para uma vaga', async () => {
+    const d = dia(26);
+    const id = await alocar('A2', 'Pronto', 'a', d);
+    expect((await lerTrocas(id)).vagas.length).toBeGreaterThan(0);
+    expect((await trocar(id, paraVaga(abt, combatente))).status).toBe(200);
+    expect(await de('A2', d)).toEqual([expect.objectContaining({ id, guarnicao_id: abt, funcao_id: combatente })]);
+  });
+
+  it('a vaga que ficou completa entre abrir e confirmar é 409 com a frase da função completa, e nada muda', async () => {
+    const d = dia(27);
+    const id = await alocar('A3', 'Pronto', 'a', d, { funcao: combatente });
+    await alocar('B1', 'Pronto', 'a', d, { funcao: motorista });
+    // a vaga do ASU estava livre; outro escalante a ocupou
+    await api.banco.query('insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem) values ($1, $2, $3, $4, $5::date, $6, $7, $8)', [militar.B2, escala, servico.Pronto!.id, servico.Pronto!.a, d, asu, combatente, 'manual']);
+    const r = await trocar(id, paraVaga(asu, combatente));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('A função Combatente já está completa nesta guarnição.');
+    expect(await de('A3', d)).toEqual([expect.objectContaining({ id, guarnicao_id: abt, funcao_id: combatente })]);
+  });
+
+  it('a vaga de motorista para quem não tem a CNH é 409 com o motivo, mesmo se o pedido vier assim', async () => {
+    const d = dia(28);
+    const id = await alocar('SEMCNH2', 'Pronto', 'a', d, { funcao: combatente });
+    const r = await trocar(id, paraVaga(abt, motorista));
+    expect(r.status).toBe(409);
+    expect(await de('SEMCNH2', d)).toEqual([expect.objectContaining({ id, funcao_id: combatente })]);
+  });
+
+  it('quem tem acúmulo na alocação é recusado, com a frase fixa', async () => {
+    const d = dia(29);
+    const id = await alocar('C1', 'Pronto', 'a', d, { funcao: combatente });
+    await api.banco.query('insert into alocacao_acumulo (alocacao_id, guarnicao_id, funcao_id) values ($1, $2, $3)', [id, abt, motorista]);
+    expect((await lerTrocas(id)).vagas).toEqual([]);
+    const r = await trocar(id, paraVaga(asu, combatente));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Tire o acúmulo antes de mudar de função.');
+  });
+
+  it('não confere cota: um PJES num mês sem cota cadastrada muda de vaga (200)', async () => {
+    const d = dia(30);
+    const id = await alocar('C2', 'JES', 'a', d, { funcao: combatente });
+    const r = await trocar(id, paraVaga(asu, combatente));
+    expect(r.status).toBe(200);
+    expect(await de('C2', d)).toEqual([expect.objectContaining({ id, guarnicao_id: asu })]);
+  });
+
+  it('o expediente lançado (alocação sem escala): as vagas vêm vazias, e mudar de vaga é recusado', async () => {
+    const d = dia(31);
+    const expediente = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Expediente', tipo: 'ordinario', cor: '#8A94A1' });
+    const turno = await inserir(api.banco, 'turno', { servico_id: expediente, letra: 'A', inicio: '08:00', fim: '16:00' });
+    const id = await inserir(api.banco, 'alocacao', { militar_id: militar.D1, escala_id: null, servico_id: expediente, turno_id: turno, data: d, origem: 'pre_escala' });
+    expect((await lerTrocas(id)).vagas).toEqual([]);
+    expect((await trocar(id, paraVaga(asu, combatente))).status).toBe(409);
+  });
+
+  it('a vaga atual não aparece na lista, e pedir a mesma vaga é 409', async () => {
+    const d = dia(2);
+    const id = await alocar('D2', 'Pronto', 'a', d, { funcao: combatente });
+    expect((await lerTrocas(id)).vagas.some((v) => v.guarnicaoId === abt && v.funcaoId === combatente)).toBe(false);
+    expect((await trocar(id, paraVaga(abt, combatente))).status).toBe(409);
   });
 });

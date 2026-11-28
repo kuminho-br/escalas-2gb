@@ -230,6 +230,36 @@ export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo)
   return { escalaId: a.escala_id, mes };
 }
 
+export const MSG_TIRE_O_ACUMULO = 'Tire o acúmulo antes de mudar de função.';
+
+/**
+ * Muda o militar de uma alocação para outra vaga (guarnição e função) do MESMO turno e da mesma escala (6.74): a mesma alocação, só com a vaga nova. Não passa por `escalar`:
+ * o total do serviço não muda, então não confere cota nem choque. Recusa (409) o expediente lançado (sem escala), quem tem acúmulo, a vaga que não existe nesta faixa,
+ * a que exige CNH que ele não tem e a função completa.
+ */
+export async function mudarDeVaga(tx: Consulta, alocacaoId: string, vaga: { guarnicaoId: string; funcaoId: string }): Promise<{ escalaId: string; mes: string }> {
+  const a = (
+    await tx.query<{ escala_id: string | null; data: string; guarnicao_id: string | null; funcao_id: string | null; motorista: boolean; cnh: string[]; inicio: string; fim: string }>(
+      `select a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, m.motorista, m.cnh, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+         from alocacao a join turno t on t.id = a.turno_id join militar m on m.id = a.militar_id where a.id = $1 for update of a`,
+      [alocacaoId],
+    )
+  ).rows[0];
+  if (!a || !a.escala_id) throw new Recusa(NAO_DA_PARA_DESFAZER);
+  if ((await tx.query('select 1 from alocacao_acumulo where alocacao_id = $1 limit 1', [alocacaoId])).rows.length > 0) throw new Recusa(MSG_TIRE_O_ACUMULO);
+  const mes = a.data.slice(0, 7);
+  const alvo = await conferirVaga(tx, a.escala_id, mes, a, vaga.guarnicaoId, vaga.funcaoId);
+  if (a.guarnicao_id === vaga.guarnicaoId && a.funcao_id === vaga.funcaoId) throw new Recusa(`Este militar já ocupa uma vaga de ${alvo.funcao} nesta guarnição.`);
+  if (alvo.cnhExigida) {
+    const motivo = motivoDaCnh(a, alvo.cnhExigida);
+    if (motivo) throw new Recusa(motivo);
+  }
+  await travaDaFaixa(tx, a.escala_id, a.data, a);
+  if ((await ocupantesDaFuncao(tx, a.escala_id, a.data, a, vaga.guarnicaoId, vaga.funcaoId)) >= alvo.maximo) throw new Recusa(`A função ${alvo.funcao} já está completa nesta guarnição.`);
+  await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [alocacaoId, vaga.guarnicaoId, vaga.funcaoId]);
+  return { escalaId: a.escala_id, mes };
+}
+
 /** Tira só a vaga acumulada: o militar continua na vaga original e não há remoção. Devolve a escala e o mês. */
 export async function tirarAcumulo(tx: Consulta, acumuloId: string): Promise<{ escalaId: string; mes: string }> {
   const a = (
