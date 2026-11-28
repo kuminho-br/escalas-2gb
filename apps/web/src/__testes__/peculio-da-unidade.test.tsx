@@ -141,7 +141,7 @@ describe('a lista com divisória e o lugar dos aniversários (6.50)', () => {
     simularApi({
       '/api/eu': { status: 200, corpo: COMUM },
       'GET /api/consulta/unidades': { status: 200, corpo: [] },
-      'GET /api/consulta/militares': { status: 200, corpo: { militares: [linha, { ...linha, id: 'm2', nomeGuerra: 'BARRETO' }], haMais: false } },
+      'POST /api/consulta/militares/buscar': { status: 200, corpo: { militares: [linha, { ...linha, id: 'm2', nomeGuerra: 'BARRETO' }], haMais: false, naoEncontradas: [] } },
     });
     abrir('/peculio/pesquisar?texto=andrade');
     const lista = await screen.findByRole('list', { name: 'Militares encontrados' });

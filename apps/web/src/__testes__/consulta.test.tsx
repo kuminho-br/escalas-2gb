@@ -15,7 +15,7 @@ const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaConsulta> =
 const UNIDADES: UnidadeDaConsulta[] = [
   { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: 'u-cbmpe' }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: 'u-gb' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop' },
 ];
-const BUSCA = 'GET /api/consulta/militares';
+const BUSCA = 'POST /api/consulta/militares/buscar';
 
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
@@ -24,21 +24,23 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
     // quem não tem nível de acesso sobre o militar recebe 403 na ficha completa, e a tela mostra a de consulta (6.50)
     'GET /api/militares/m1': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
     'GET /api/militares/m9': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
-    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, lotacaoCaminho: null, quadro: null, nomeCompleto: null })], haMais: false } },
+    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, lotacaoCaminho: null, quadro: null, nomeCompleto: null })], haMais: false, naoEncontradas: [] } },
     ...extra,
   });
 }
-/** Os endereços (com a busca) que a tela pediu à rota da busca. */
+/** Os corpos dos pedidos que a tela fez à rota da busca. */
 const pedidos = (f: ReturnType<typeof simularApi>) =>
-  f.mock.calls.map(([e]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : (e as Request).url)).filter((u) => u.startsWith('/api/consulta/militares?')).map((u) => new URL(u, 'http://x').searchParams);
-const campoDaBusca = () => screen.findByLabelText('Nome, nome de guerra ou matrícula');
+  f.mock.calls
+    .filter(([e, init]) => new URL(String(typeof e === 'string' ? e : e instanceof URL ? e.href : (e as Request).url), 'http://x').pathname === '/api/consulta/militares/buscar' && (init?.method ?? 'GET').toUpperCase() === 'POST')
+    .map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+const campoDaBusca = () => screen.findByLabelText('Matrícula ou nome de guerra');
 
 describe('a consulta de militares', () => {
   it('o militar comum abre a consulta; antes de buscar, a tela orienta e nada é pedido', async () => {
     const f = api();
     abrir('/peculio/pesquisar');
     expect(await screen.findByRole('heading', { level: 1, name: 'Pesquisar militares' })).toBeInTheDocument();
-    expect(screen.getByText(/Busque pelo nome, pelo nome de guerra ou pela matrícula/)).toBeInTheDocument();
+    expect(screen.getByText(/Busque pela matrícula ou pelo nome de guerra/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buscar' })).toBeInTheDocument();
     await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
     expect(pedidos(f)).toHaveLength(0);
@@ -72,7 +74,7 @@ describe('a consulta de militares', () => {
   it('(pool 52 g) a lista da pesquisa e a ficha de consulta dizem a unidade pelo caminho, e o caminho longo corta com reticências sem espremer o nome (h)', async () => {
     const longo = '2º GB / 1ª SB / 1ª Seção de Operações Aéreas e de Salvamento';
     api({
-      [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE', { lotacaoCaminho: longo })], haMais: false } },
+      [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE', { lotacaoCaminho: longo })], haMais: false, naoEncontradas: [] } },
       'GET /api/consulta/militares/m1': { status: 200, corpo: { ...linha('m1', 'ANDRADE', { lotacaoCaminho: '2º GB / 1ª SB' }), podeAbrirFichaCompleta: false } },
     });
     abrir('/peculio/pesquisar');
@@ -84,7 +86,8 @@ describe('a consulta de militares', () => {
     expect(placa.className).toMatch(/truncate/);
     expect(placa.className).toMatch(/min-w-0/);
     expect(placa).toHaveAttribute('title', longo);
-    expect(within(item).getByText('ANDRADE').className).toMatch(/shrink-0/);
+    // o trecho achado ("andr") fica marcado dentro do nome; o nome em si não encolhe
+    expect(within(item).getByText('andr', { exact: false, selector: 'mark' }).parentElement!.className).toMatch(/shrink-0/);
     expect(within(item).getByText('SD').className).toMatch(/shrink-0/);
     // a ficha de consulta
     await userEvent.click(within(item).getByRole('link', { name: /ANDRADE/ }));
@@ -109,7 +112,7 @@ describe('a consulta de militares', () => {
     // quem está sem lotação hoje aparece mesmo assim, e a linha diz isso
     expect(itens[1]).toHaveTextContent('3º SGT');
     expect(itens[1]).toHaveTextContent('Sem lotação');
-    expect([...pedidos(f)[0]!.entries()]).toEqual([['texto', 'andr']]);
+    expect(pedidos(f)[0]).toEqual({ texto: 'andr' });
     // a lista não mostra nenhum dado além da identificação
     expect(lista.textContent).not.toMatch(/CPF|nascimento|endereço|telefone/i);
   });
@@ -121,7 +124,7 @@ describe('a consulta de militares', () => {
     await escolherNaArvore(screen.getByLabelText('Lotados em'), 'DivOp, em 2º GB');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     await screen.findByRole('list', { name: 'Militares encontrados' });
-    expect([...pedidos(f)[0]!.entries()]).toEqual([['unidadeId', 'u-divop']]);
+    expect(pedidos(f)[0]).toEqual({ unidades: [{ id: 'u-divop', comAsDeBaixo: true }] });
   });
 
   it('texto curto e nenhuma unidade: mostra a mensagem fixa e não pede nada à API', async () => {
@@ -134,23 +137,23 @@ describe('a consulta de militares', () => {
     await expect(campoDaBusca()).resolves.toHaveAccessibleDescription(MENSAGEM_CURTA);
     expect(pedidos(f)).toHaveLength(0);
     // com 3 letras a mensagem some e a busca roda
-    await userEvent.type(screen.getByLabelText('Nome, nome de guerra ou matrícula'), 'd');
+    await userEvent.type(screen.getByLabelText('Matrícula ou nome de guerra'), 'd');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     await screen.findByRole('list', { name: 'Militares encontrados' });
     expect(screen.queryByText(MENSAGEM_CURTA)).toBeNull();
   });
 
   it('com mais de 50, o aviso "Há mais militares. Refine a busca." aparece acima da lista', async () => {
-    api({ [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE')], haMais: true } } });
+    api({ [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE')], haMais: true, naoEncontradas: [] } } });
     abrir('/peculio/pesquisar?texto=andrade');
     expect(await screen.findByRole('status')).toHaveTextContent(AVISO_MAIS);
     expect(screen.getByRole('list', { name: 'Militares encontrados' })).toBeInTheDocument();
   });
 
   it('sem o aviso quando não há mais; sem resultado, a tela orienta', async () => {
-    api({ [BUSCA]: { status: 200, corpo: { militares: [], haMais: false } } });
+    api({ [BUSCA]: { status: 200, corpo: { militares: [], haMais: false, naoEncontradas: [] } } });
     abrir('/peculio/pesquisar?texto=zzz');
-    expect(await screen.findByText(/Nenhum militar encontrado\. Confira o nome ou a matrícula/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nenhum militar encontrado\. Confira o texto e os critérios em uso/)).toBeInTheDocument();
     expect(screen.queryByText(AVISO_MAIS)).toBeNull();
   });
 
@@ -158,8 +161,8 @@ describe('a consulta de militares', () => {
     const f = api();
     abrir('/peculio/pesquisar?texto=andrade&unidade=u-divop');
     await screen.findByRole('list', { name: 'Militares encontrados' });
-    expect([...pedidos(f)[0]!.entries()]).toEqual([['texto', 'andrade'], ['unidadeId', 'u-divop']]);
-    expect(screen.getByLabelText('Nome, nome de guerra ou matrícula')).toHaveValue('andrade');
+    expect(pedidos(f)[0]).toEqual({ texto: 'andrade', unidades: [{ id: 'u-divop', comAsDeBaixo: true }] });
+    expect(screen.getByLabelText('Matrícula ou nome de guerra')).toHaveValue('andrade');
     await waitFor(() => expect(screen.getByLabelText('Lotados em')).toHaveTextContent('2º GB / DivOp'));
   });
 
@@ -167,7 +170,7 @@ describe('a consulta de militares', () => {
     const f = api();
     abrir('/peculio/pesquisar?texto=ab');
     await screen.findByRole('heading', { level: 1, name: 'Pesquisar militares' });
-    expect(screen.getByText(/Busque pelo nome/)).toBeInTheDocument();
+    expect(screen.getByText(/Busque pela matrícula/)).toBeInTheDocument();
     expect(pedidos(f)).toHaveLength(0);
   });
 

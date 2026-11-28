@@ -96,3 +96,18 @@ export async function responderConfirmacao(verbo: string) {
   const dialogo = await screen.findByRole('dialog');
   await userEvent.click(within(dialogo).getByRole('button', { name: verbo }));
 }
+
+/**
+ * Abre o painel "Critérios de pesquisa" (se estiver fechado) e vai para a aba (6.63). O botão pode estar com a marca âmbar da quantidade em uso, por isso o nome casa
+ * pelo começo.
+ */
+export async function abrirCriterios(aba: string | RegExp) {
+  const botao = await screen.findByRole('button', { name: /^Critérios de pesquisa/ });
+  if (botao.getAttribute('aria-expanded') !== 'true') await userEvent.click(botao);
+  await userEvent.click(await screen.findByRole('tab', { name: aba }));
+}
+
+/** O "Buscar" da barra (com o painel dos critérios aberto há outro "Buscar", embaixo dele). */
+export async function clicarBuscar() {
+  await userEvent.click((await screen.findAllByRole('button', { name: 'Buscar' }))[0]!);
+}

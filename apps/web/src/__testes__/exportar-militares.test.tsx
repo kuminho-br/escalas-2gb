@@ -41,7 +41,7 @@ const corpoExportado = (f: ReturnType<typeof simularApi>) => {
   return c ? JSON.parse(String(c[1]!.body)) : undefined;
 };
 const buscar = async (texto = 'abc') => {
-  await userEvent.type(await screen.findByLabelText('Nome, nome de guerra ou matrícula'), texto);
+  await userEvent.type(await screen.findByLabelText('Matrícula ou nome de guerra'), texto);
   await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
   await screen.findByRole('list', { name: 'Militares encontrados' });
 };
@@ -68,13 +68,15 @@ afterEach(() => {
 });
 
 describe('o botão Exportar', () => {
-  it('quem tem nível de acesso o vê quando há resultado de busca; sem busca nem seleção, não', async () => {
+  it('quem tem nível de acesso o vê sempre, ao lado do título; sem busca nem seleção fica desabilitado, com a dica, e com resultado de busca habilita', async () => {
     api();
     abrir('/peculio/pesquisar');
-    await screen.findByLabelText('Nome, nome de guerra ou matrícula');
-    expect(screen.queryByRole('button', { name: 'Exportar' })).toBeNull();
+    await screen.findByLabelText('Matrícula ou nome de guerra');
+    const antes = await screen.findByRole('button', { name: 'Exportar' });
+    expect(antes).toBeDisabled();
+    expect(antes).toHaveAttribute('title', 'Faça uma busca ou selecione militares para exportar.');
     await buscar();
-    expect(await screen.findByRole('button', { name: 'Exportar' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Exportar' })).toBeEnabled();
   });
 
   it('o militar comum (sem nível de acesso) nunca o vê', async () => {
@@ -140,10 +142,11 @@ describe('a janela "Exportar para Excel"', () => {
 
   it('sem busca feita (os filtros foram limpos), só a seleção: a janela não pergunta, e sai a seleção', async () => {
     const f = api();
-    abrir('/peculio/pesquisar');
+    const router = abrir('/peculio/pesquisar');
     await buscar();
     await selecionarEstes();
-    await userEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+    // a busca sai de cena (a pessoa volta à tela sem busca); a seleção continua
+    await router.navigate({ to: '/peculio/pesquisar', search: {} });
     await waitFor(() => expect(screen.queryByRole('list', { name: 'Militares encontrados' })).toBeNull());
     const j = await abrirJanela();
     expect(j.queryByText('O que sai')).toBeNull();

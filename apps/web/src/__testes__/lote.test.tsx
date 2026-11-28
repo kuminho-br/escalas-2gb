@@ -2,7 +2,7 @@ import type { LinhaDaBusca, PreviaDoLote, ResultadoDaBusca } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { abrir, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, abrirCriterios, clicarBuscar, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.52, Task 3: o painel "Atualizar em lote" sobre a seleção da pesquisa. Dados fictícios (D7).
 const NIVEL = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }] };
@@ -40,7 +40,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
 }
 const corpos = (f: ReturnType<typeof simularApi>, fim: string) => f.mock.calls.filter(([e, i]) => String(e).endsWith(fim) && i?.method === 'POST').map(([, i]) => JSON.parse(String(i!.body)));
 async function selecionarTodos() {
-  await userEvent.type(await screen.findByLabelText('Nome, nome de guerra ou matrícula'), 'abc');
+  await userEvent.type(await screen.findByLabelText('Matrícula ou nome de guerra'), 'abc');
   await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Selecionar estes 2' }));
   await screen.findByRole('heading', { name: 'Selecionados (2)' });
@@ -51,13 +51,13 @@ const abrirPainel = async () => {
 };
 
 describe('o painel Atualizar em lote (6.52)', () => {
-  it('o botão está no painel dos selecionados, e só aparece com alguém selecionado', async () => {
+  it('o botão está no painel dos selecionados, que fica à vista mesmo vazio; sem ninguém ele não se aplica, e com alguém habilita', async () => {
     api();
     abrir('/peculio/pesquisar');
-    await userEvent.type(await screen.findByLabelText('Nome, nome de guerra ou matrícula'), 'abc');
+    await userEvent.type(await screen.findByLabelText('Matrícula ou nome de guerra'), 'abc');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     await screen.findByRole('list', { name: 'Militares encontrados' });
-    expect(screen.queryByRole('button', { name: 'Atualizar em lote' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Atualizar em lote' })).toBeDisabled();
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar SD ANDRADE' }));
     expect(await screen.findByRole('button', { name: 'Atualizar em lote' })).toBeEnabled();
   });
@@ -166,8 +166,9 @@ describe('o painel Atualizar em lote (6.52)', () => {
     });
     abrir('/peculio/pesquisar');
     await selecionarTodos();
-    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
-    expect(painel.getAllByText('1ª SB')).toHaveLength(2);
+    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('aside')!);
+    // o painel começa agrupado por unidade: a lotação está no título do grupo, e as duas linhas ficam nele
+    expect(within(painel.getByRole('region', { name: '1ª SB' })).getAllByRole('listitem')).toHaveLength(2);
     const p = await abrirPainel();
     await userEvent.click(p.getByRole('checkbox', { name: 'Voluntário JES' }));
     await userEvent.click(p.getByRole('button', { name: 'Continuar' }));
@@ -177,16 +178,16 @@ describe('o painel Atualizar em lote (6.52)', () => {
     await p.findByText('2 militares alterados');
     await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    const depois = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
-    await waitFor(() => expect(depois.getByText('2ª SB')).toBeInTheDocument());
+    const depois = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('aside')!);
+    await waitFor(() => expect(depois.getByRole('region', { name: '2ª SB' })).toBeInTheDocument());
     expect(depois.getByRole('button', { name: 'Tirar SD ANDRADE' })).toBeInTheDocument();
     expect(depois.getByRole('button', { name: 'Tirar SD BARRETO' })).toBeInTheDocument();
     // o lote trocou pelos ids (e só os campos marcados), e a leitura nova pediu os mesmos militares, pelas matrículas de cada um
     expect(corpos(f, '/lote/aplicar')[0]).toMatchObject({ militarIds: ['m1', 'm2'], campos: { voluntarioJes: true } });
     expect(pedidos).toEqual([{ matriculas: ['990001-1', '990002-2'] }]);
     // cada linha ficou com a lotação do seu militar: o m1 mudou, o m2 não
-    expect(within(depois.getByRole('button', { name: 'Tirar SD ANDRADE' }).closest('li')!).getByText('2ª SB')).toBeInTheDocument();
-    expect(within(depois.getByRole('button', { name: 'Tirar SD BARRETO' }).closest('li')!).getByText('1ª SB')).toBeInTheDocument();
+    expect(within(depois.getByRole('region', { name: '2ª SB' })).getByRole('button', { name: 'Tirar SD ANDRADE' })).toBeInTheDocument();
+    expect(within(depois.getByRole('region', { name: '1ª SB' })).getByRole('button', { name: 'Tirar SD BARRETO' })).toBeInTheDocument();
   });
 
   it('(pool 52 a) se a releitura dos selecionados falha, o painel avisa que a lotação mostrada pode estar desatualizada, em vez de calar', async () => {
@@ -210,7 +211,7 @@ describe('o painel Atualizar em lote (6.52)', () => {
     await p.findByText('2 militares alterados');
     await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('section')!);
+    const painel = within(screen.getByRole('heading', { name: 'Selecionados (2)' }).closest('aside')!);
     expect(await painel.findByText('Não foi possível ler de novo os dados dos selecionados: a lotação mostrada pode estar desatualizada.')).toBeInTheDocument();
     // limpar a seleção leva o aviso junto
     await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
@@ -226,7 +227,7 @@ describe('o painel Atualizar em lote (6.52)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.getByRole('heading', { name: 'Selecionados (2)' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
-    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Selecionados (0)' })).toBeInTheDocument();
   });
 
   it('Review Focus 4: o botão fica travado enquanto grava, e o clique duplo manda um pedido só', async () => {
@@ -345,17 +346,17 @@ describe('a pesquisa e a seleção sobrevivem a abrir uma ficha (6.51, item a)',
     await selecionarTodos();
     await router.navigate({ to: '/' });
     await router.navigate({ to: '/peculio/pesquisar' });
-    await screen.findByLabelText('Nome, nome de guerra ou matrícula');
-    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
+    await screen.findByLabelText('Matrícula ou nome de guerra');
+    expect(await screen.findByRole('heading', { name: 'Selecionados (0)' })).toBeInTheDocument();
   });
 
   it('uma unidade marcada sem "e as de baixo" não ganha as de baixo ao voltar da ficha (item b)', async () => {
     const f = api({ 'GET /api/consulta/unidades': { status: 200, corpo: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, maeId: 'u-gb' }] } });
     abrir('/peculio/pesquisar');
-    await userEvent.click(await screen.findByRole('button', { name: 'Pela árvore' }));
+    await abrirCriterios('Pela árvore');
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar 2º GB' }));
     await userEvent.click(screen.getByRole('checkbox', { name: '2º GB: e as de baixo' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await clicarBuscar();
     await screen.findByRole('list', { name: 'Militares encontrados' });
     const link = screen.getAllByRole('link', { name: /ANDRADE/ })[0]!;
     expect(link.getAttribute('href')).not.toContain('unidade=');
