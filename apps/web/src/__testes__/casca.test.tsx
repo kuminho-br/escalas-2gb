@@ -11,6 +11,9 @@ async function clicarSair() {
   await userEvent.click(await screen.findByRole('menuitem', { name: 'Sair' }));
 }
 
+/** Os itens que são degraus (fora o botão "Ver todas as unidades", 6.73). */
+const doDegrau = (li: HTMLElement) => !li.hasAttribute('data-todas-as-unidades');
+
 describe('sair', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -315,8 +318,8 @@ describe('unidade de trabalho (fase 6)', () => {
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] } });
     abrir('/militares');
     const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
-    expect(within(degraus).getAllByRole('listitem').map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
-    expect(within(degraus).getAllByRole('listitem').at(-1)!.querySelector('[aria-current="location"]')).not.toBeNull();
+    expect(within(degraus).getAllByRole('listitem').filter(doDegrau).map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
+    expect(within(degraus).getAllByRole('listitem').filter(doDegrau).at(-1)!.querySelector('[aria-current="location"]')).not.toBeNull();
     await userEvent.click(within(degraus).getByRole('button', { name: '1ª SB' }));
     const lista = await screen.findByRole('listbox', { name: 'Unidades dentro de 2º GB' });
     expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['1ª SB', '2ª SB']);
@@ -333,8 +336,8 @@ describe('unidade de trabalho (fase 6)', () => {
     simularApi({ '/api/eu': { status: 200, corpo: duasSecoes }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] }, 'GET /api/consulta/unidades': { status: 200, corpo: arvoreInteira } });
     abrir('/militares');
     const degraus = await screen.findByRole('navigation', { name: 'Unidade de trabalho' });
-    await waitFor(() => expect(within(degraus).getAllByRole('listitem').map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', '2º GB', '1ª SB']));
-    // o 2º GB é passagem e tem uma opção só: texto, sem botão; a 3ª SB, que a pessoa não alcança, não aparece
+    await waitFor(() => expect(within(degraus).getAllByRole('listitem').filter(doDegrau).map((li) => li.textContent!.replace(/^›/, ''))).toEqual(['CBMPE', '2º GB', '1ª SB']));
+    // o 2º GB é passagem (sem acesso) e tem uma opção só: texto, sem botão; a 3ª SB, que a pessoa não alcança, não aparece
     expect(within(degraus).queryByRole('button', { name: '2º GB' })).toBeNull();
     await userEvent.click(within(degraus).getByRole('button', { name: '1ª SB' }));
     expect(within(await screen.findByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['1ª SB', '2ª SB']);

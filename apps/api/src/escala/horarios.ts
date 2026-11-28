@@ -5,8 +5,6 @@ import type { Consulta } from '../banco/banco.ts';
 
 export type Tipo = 'ordinario' | 'pjes' | 'diaria';
 export const NOME_DO_TIPO: Record<Tipo, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
-/** Expediente do Adm (08h às 16h), implícito nos dias úteis; vale o turno A do serviço Expediente se a seção o tiver cadastrado. */
-export const EXPEDIENTE = { servico: 'Expediente', turno: 'A', ini: 480, fim: 960 };
 
 export type HorariosDeChoque = {
   horarios: Horarios;
@@ -26,7 +24,6 @@ export async function horariosDaUnidade(c: Consulta, unidadeId: string): Promise
     )
   ).rows;
   const horarios = montarHorarios(doUnidade.map((t) => ({ servico: t.nome, turno: t.letra, inicio: t.inicio, fim: t.fim }))).porChave;
-  horarios[`${EXPEDIENTE.servico}|${EXPEDIENTE.turno}`] ??= { ini: EXPEDIENTE.ini, fim: EXPEDIENTE.fim, dur: EXPEDIENTE.fim - EXPEDIENTE.ini };
   const tipos = Object.fromEntries(doUnidade.map((t) => [t.nome, NOME_DO_TIPO[t.tipo]]));
   const tiramDoExpediente = [...new Set(doUnidade.filter((t) => t.tira_do_expediente).map((t) => t.nome))];
   return { horarios, tipos, tiramDoExpediente };

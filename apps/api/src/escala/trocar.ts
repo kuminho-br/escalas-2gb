@@ -125,7 +125,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     if (!turno || turno.inicio !== a.inicio || turno.fim !== a.fim) throw new Recusa('Este turno não é da faixa desta vaga.');
     await remover(tx, a.id, usuarioId);
     try {
-      await escalar(tx, a.escala_id, { militarId: troca.militarId, data: a.data, turnoId: troca.turnoId, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id });
+      await escalar(tx, a.escala_id, { militarId: troca.militarId, data: a.data, turnoId: troca.turnoId, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id }, { cotaJaContada: true });
     } catch (e) {
       if (!(e instanceof Recusa)) throw e;
       // o novo não pode ocupar a vaga: a recusa diz quem é (a linha dele fica marcada) e, se é por horário, o serviço que ele já tem
@@ -157,7 +157,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
   /** O militar de `quem` entra na vaga de `daVaga` pelas regras de "escalar"; a recusa diz quem não pode ir para a vaga de quem. */
   const entrarNaVaga = async (quem: Aloc, daVaga: Aloc) => {
     try {
-      await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id });
+      await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id }, { cotaJaContada: true });
     } catch (e) {
       if (!(e instanceof Recusa)) throw e;
       // por horário (o militar já tem outro serviço que cobre o da vaga): o texto nomeia o serviço, o da permuta quando as duas alocações são ordinárias; nas outras recusas, o de antes

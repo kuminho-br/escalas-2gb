@@ -6,6 +6,7 @@ import {
   type EscalaDoMes,
   type FaixaDoDia,
   type FuncaoNoCard,
+  type MetaAbaixo,
   type OcupanteDaVaga,
 } from 'contratos';
 import { diaDaSemana, diasDoMes } from 'dominio';
@@ -13,6 +14,7 @@ import { GESTAO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
+import { diasDasCotas, escaladosDosServicos } from '../cadastros/cota-do-servico.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -168,6 +170,25 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
   const feriados = new Map<string, string>();
   for (const f of await feriadosDoAno(c, escala.unidade_id, Number(mes.slice(0, 4)))) if (!feriados.has(f.data)) feriados.set(f.data, f.descricao);
 
+  // 6.72: as metas dos dias da cota (dos serviços desta escala) que ainda não foram cumpridas: a contagem é a do serviço no mês, em todas as escalas da unidade
+  const metasAbaixoPorDia = new Map<string, MetaAbaixo[]>();
+  if (servicos.length) {
+    const cotas = (
+      await c.query<{ id: string; servico_id: string; servico: string }>(
+        'select c.id, c.servico_id, s.nome as servico from cota c join servico s on s.id = c.servico_id where c.unidade_id = $1 and c.mes = $2::date and c.servico_id = any($3::uuid[]) order by s.nome',
+        [escala.unidade_id, inicioDoMes, servicos.map((s) => s.id)],
+      )
+    ).rows;
+    const diasDasCotasDoMes = await diasDasCotas(c, cotas.map((x) => x.id));
+    const escalados = await escaladosDosServicos(c, escala.unidade_id, cotas.map((x) => x.servico_id), mes);
+    for (const cota of cotas) {
+      for (const d of diasDasCotasDoMes.get(cota.id) ?? []) {
+        const feitos = escalados.get(cota.servico_id)?.porDia[d.data] ?? 0;
+        if (feitos < d.minimo) metasAbaixoPorDia.set(d.data, [...(metasAbaixoPorDia.get(d.data) ?? []), { servico: cota.servico, minimo: d.minimo, escalados: feitos }]);
+      }
+    }
+  }
+
   let obrigatorias = 0;
   let preenchidas = 0;
   let obrigatoriasVazias = 0;
@@ -202,7 +223,7 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
       };
     });
     obrigatoriasVazias += vaziasDoDia;
-    return { data, diaDaSemana: diaDaSemana(data), feriado: feriados.get(data) ?? null, faixas: faixasDoDia, obrigatoriasVazias: vaziasDoDia };
+    return { data, diaDaSemana: diaDaSemana(data), feriado: feriados.get(data) ?? null, faixas: faixasDoDia, obrigatoriasVazias: vaziasDoDia, metasAbaixo: metasAbaixoPorDia.get(data) ?? [] };
   });
   const estado = await estadoDoMes(c, escalaId, mes);
   // quem pede é do nível de gestão da unidade: publica, republica e altera o passado

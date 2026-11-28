@@ -6,7 +6,6 @@ import {
   detectarChoques,
   diaDaSemana,
   diasDoMes,
-  normalizar,
   intervaloDoTurno,
   type AlocChoque,
   type Militar,
@@ -14,7 +13,7 @@ import {
 import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { somarDias } from '../datas.ts';
-import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from '../escala/horarios.ts';
+import { alocacoesDaJanela, horariosDaUnidade, somarOutrasUnidades, type Tipo } from '../escala/horarios.ts';
 import { cotasDeSaldo } from '../escala/cota-de-saldo.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
@@ -119,18 +118,13 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   // 6.37: o choque olha todas as unidades. Os serviços das outras unidades não aparecem na grade (só os da seção), mas entram na conta dos choques
   const deOutras = (await alocacoesDaJanela(c, ids, antes, depois, unidadeId)).filter((a) => a.outra);
   somarOutrasUnidades(regras, deOutras);
-  const tiram = new Set(regras.tiramDoExpediente.map(normalizar));
   // a cota de saldo à vista (6.38): a linha do Adm mostra quantos Saldos ele tem no mês, de quanto é a cota
   const cotas = await cotasDeSaldo(c, unidadeId, ids, mes);
 
-  const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
-  const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
 
   /** `soDoPeriodo`: o militar tem mais de um período no mês (mudou de equipe ou de jornada); cada linha vale só nos dias do seu período. */
   function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null; ativo: boolean }[] | null, soDoPeriodo = false): LinhaDaGrade {
     const cobre = (d: string) => !!lotacao?.some((x) => x.desde <= d && (x.ate === null || x.ate >= d));
-    // o expediente só vale nos dias de um período em que ele pode ser escalado (não nos da Reserva, por exemplo)
-    const podeNoDia = (d: string) => !!lotacao?.some((x) => x.ativo && x.desde <= d && (x.ate === null || x.ate >= d));
     const dentro = (d: string) => !soDoPeriodo || !lotacao || cobre(d);
     const dele = alocacoes.filter((a) => a.militarId === p.id && dentro(a.data));
     const duracao = (a: Alocacao) => {
@@ -140,38 +134,20 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     const blocos: Record<string, BlocoDaGrade[]> = {};
     for (const a of dele.filter((x) => doMes(x.data, mes))) {
       (blocos[a.data] ??= []).push({
-        alocacaoId: a.id, servico: { id: a.servicoId, nome: a.nome, cor: a.cor, tipo: a.tipo }, letra: a.letra, inicio: a.inicio, fim: a.fim, expediente: false,
+        alocacaoId: a.id, servico: { id: a.servicoId, nome: a.nome, cor: a.cor, tipo: a.tipo }, letra: a.letra, inicio: a.inicio, fim: a.fim,
       });
     }
 
-    // o expediente do Adm: implícito nos dias úteis em que ele está lotado e não está afastado; um Saldo que o cobre ou um serviço
-    // Expediente de verdade o substituem
-    const expediente: AlocChoque[] = [];
-    if (jornada === 'adm' && lotacao) {
-      for (let n = -1; n <= dias.length; n++) {
-        const d = somarDias(primeiro, n);
-        if (!util(d) || !podeNoDia(d) || afastado(p.id, d)) continue;
-        expediente.push({ mat: p.id, dia: d, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true });
-        const doDia = dele.filter((a) => a.data === d);
-        const substituido = [...doDia, ...deOutras.filter((a) => a.militarId === p.id && a.data === d).map((a) => ({ nome: a.servico, letra: a.letra }))].some((a) => {
-          if (a.nome === EXPEDIENTE.servico) return true;
-          const h = horarios[`${a.nome}|${a.letra}`];
-          return tiram.has(normalizar(a.nome)) && !!h && h.ini < EXPEDIENTE.fim && EXPEDIENTE.ini < h.ini + h.dur;
-        });
-        if (doMes(d, mes) && !substituido) {
-          (blocos[d] ??= []).push({ alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true });
-        }
-      }
-    }
-    for (const lista of Object.values(blocos)) lista.sort((x, y) => x.inicio.localeCompare(y.inicio) || Number(y.expediente) - Number(x.expediente));
+    // 6.71: o expediente é só o serviço Expediente lançado pela pré-escala (já vem em `dele`, como um serviço comum); a Grade não calcula mais o expediente do Adm
+    for (const lista of Object.values(blocos)) lista.sort((x, y) => x.inicio.localeCompare(y.inicio));
 
-    // choques: do motor, com o expediente implícito (que choca com qualquer serviço, de qualquer unidade); as células dos dois lados dentro do mês são marcadas
+    // choques: do motor, entre os serviços de qualquer unidade; as células dos dois lados dentro do mês são marcadas
     const existentes: AlocChoque[] = [
       ...dele.map((a) => ({ mat: p.id, dia: a.data, turno: a.letra, servico: a.nome })),
       ...deOutras.filter((a) => a.militarId === p.id && dentro(a.data)).map((a) => ({ mat: p.id, dia: a.data, turno: a.letra, servico: a.servico })),
     ];
     const marcados = new Set<string>();
-    for (const x of detectarChoques([...existentes, ...expediente], horarios, { mes, tiramDoExpediente: regras.tiramDoExpediente }).choques) {
+    for (const x of detectarChoques(existentes, horarios, { mes, tiramDoExpediente: regras.tiramDoExpediente }).choques) {
       for (const lado of [x.a.dia, x.b.dia]) if (doMes(lado, mes)) marcados.add(lado);
     }
 

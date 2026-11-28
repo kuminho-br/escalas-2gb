@@ -10,7 +10,7 @@ const MES = '2026-12';
 const DIA = `${MES}-10`;
 const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 1).padStart(2, '0')}`, diaDaSemana: (2 + i) % 7, feriado: null }));
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
-const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
+const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00' };
 const CABO: LinhaDaGrade = {
   militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
 };
@@ -209,7 +209,8 @@ describe('grade geral: adicionar serviço neste dia', () => {
     const { p } = await abrirAdicionar(COM_ABAS);
     const lista = within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h');
     expect(textos(lista)).toEqual(['ABT · Motorista', 'ABT · Combatente', 'Resgate · Chefe', 'Sem guarnição']);
-    expect(within(lista).getByRole('option', { name: 'ABT · Motorista' })).toHaveProperty('selected', true);
+    // 6.73: ao abrir, a vaga marcada é "Sem guarnição", em todo turno que a tem
+    expect(within(lista).getByRole('option', { name: 'Sem guarnição' })).toHaveProperty('selected', true);
     // numa escala de uma guarnição só, a lista mostra só a função
     await userEvent.click(within(p).getByRole('tab', { name: 'Operações (1)' }));
     expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);

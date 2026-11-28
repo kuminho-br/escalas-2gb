@@ -155,16 +155,16 @@
   }
 }
 
-/* O traço do afastado na Grade (6.70): tracejado âmbar no meio da célula, 3 px, traço de 62% e intervalo de 38% num período de um quarto da largura do dia: assim ele emenda sem quebra
-   de uma célula para a outra (a largura do dia varia, o período acompanha). Fica por trás dos quadrados de serviço. As pontas (começa e termina) cortam 5 px com `clip-path`,
-   sem mexer no período do padrão. */
+/* O traço do afastado na Grade (6.70): tracejado âmbar no meio da célula, 3 px. Desde a 6.73 o padrão é em pixels fixos (traço de 6 px, vão de 4 px), não em % da célula: a largura do dia
+   varia entre as linhas, e com % o traço saía de tamanhos diferentes. Fica por trás dos quadrados de serviço. As pontas (começa e termina) cortam 6 px com `clip-path`, sem mexer
+   no período do padrão. */
 .afastado-traco {
   position: absolute;
   inset-inline: -1px;
   top: 58%;
   height: 3px;
   margin-top: -1.5px;
-  background: linear-gradient(90deg, var(--color-afastado) 0 62%, transparent 62%) 0 0 / 25% 100% repeat-x;
+  background: linear-gradient(90deg, var(--color-afastado) 0 6px, transparent 6px 10px) 0 0 / 10px 3px repeat-x;
   pointer-events: none;
 }
 .afastado-traco[data-comeca] {

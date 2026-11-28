@@ -39,6 +39,9 @@ const alocar = (nome: string, servicoNome: string, letra: 'a' | 'b', data: strin
     militar_id: militar[nome], escala_id: escala, servico_id: servico[servicoNome]!.id, turno_id: servico[servicoNome]![letra]!, data,
     guarnicao_id: vaga?.guarnicao ?? null, funcao_id: vaga?.funcao ?? null, origem: 'manual',
   });
+// 6.71: o expediente do Adm é só o serviço Expediente lançado pela pré-escala (sem escala)
+const lancarExpediente = (nome: string, data: string) =>
+  inserir(api.banco, 'alocacao', { militar_id: militar[nome], escala_id: null, servico_id: servico.Expediente!.id, turno_id: servico.Expediente!.a, data, origem: 'pre_escala' });
 const faixa = (nome: string, data: string, inicio: number, fim: number) =>
   inserir(api.banco, 'disponibilidade', { militar_id: militar[nome], data, inicio_min: inicio, fim_min: fim, origem: 'manual' });
 
@@ -51,6 +54,9 @@ beforeAll(async () => {
   await servicoComTurnos('JES', 'pjes', [['A', '08:00', '20:00']]);
   await servicoComTurnos('Saldo', 'ordinario', [['A', '08:00', '20:00']]);
   await servicoComTurnos('Bioma', 'diaria', [['A', '08:00', '16:00']]);
+  await servicoComTurnos('Expediente', 'ordinario', [['A', '08:00', '16:00']]);
+  // 6.72: "Adicionar serviço" só mostra o serviço PJES ou diária que tem cota no mês
+  for (const nome of ['JES', 'Bioma']) await inserir(api.banco, 'cota', { mes: `${MES}-01`, unidade_id: api.ids.secao, servico_id: servico[nome]!.id, quantidade: 50, prioridade: 1 });
   const g = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
     nome: 'ABT', vigencia: MES,
     versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: motorista, minimo: 1, maximo: 1, cnhExigida: 'D' }, { funcaoId: combatente, minimo: 1, maximo: 2, cnhExigida: null }] },
@@ -126,12 +132,15 @@ describe('o dia do militar', () => {
   });
 });
 
-describe('o expediente do Adm no painel do dia (6.37)', () => {
+describe('o expediente do Adm no painel do dia (6.37 e 6.71)', () => {
   const util = `${MES}-15`; // terça
-  it('o JES no horário do expediente é choque com ele, em frase; o Saldo já gravado sobre o expediente não é (Review Focus 2)', async () => {
+  it('sem expediente lançado, o JES num dia útil não é choque; com ele lançado, é um choque de horário comum, em frase (Review Focus 1)', async () => {
     await alocar('ADM', 'JES', 'a', util);
+    expect((await ler('ADM', util)).choques).toEqual([]);
+    await lancarExpediente('ADM', util);
     const comJes = await ler('ADM', util);
-    expect(comJes.choques).toEqual([expect.stringMatching(/^Choque com o expediente (.*): JES A /)]);
+    expect(comJes.choques).toEqual([expect.stringMatching(/^Choque de horário: Expediente A \(.*\) com JES A \(/)]);
+    expect(comJes.servicos.map((s) => s.servico.nome).sort()).toEqual(['Expediente', 'JES']);
     await api.banco.query('delete from alocacao where militar_id = $1 and data = $2::date', [militar.ADM, util]);
     await alocar('ADM', 'Saldo', 'a', util);
     expect((await ler('ADM', util)).choques).toEqual([]);
@@ -141,6 +150,7 @@ describe('o expediente do Adm no painel do dia (6.37)', () => {
 describe('uma diária na mesma faixa do Pronto (achado da revisão final da 4.4)', () => {
   it('o Pronto e o JES continuam do Ordinário e a diária vira opção própria, nas Operações', async () => {
     await servicoComTurnos('Diária 12h', 'diaria', [['A', '08:00', '20:00']]);
+    await inserir(api.banco, 'cota', { mes: `${MES}-01`, unidade_id: api.ids.secao, servico_id: servico['Diária 12h']!.id, quantidade: 50, prioridade: 2 });
     const todos = [servico.Pronto!.id, servico.JES!.id, servico.Saldo!.id, servico.Bioma!.id, servico['Diária 12h']!.id];
     expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: todos })).status).toBe(200);
     try {
@@ -220,19 +230,21 @@ describe('Adicionar serviço neste dia', () => {
     expect(o.servicos[0]).toMatchObject({ servicoId: servico.Pronto!.id, turnoId: servico.Pronto!.a });
   });
 
-  it('o Saldo só aparece para o Adm, e vem antes do Pronto (num dia sem expediente: 6.37, o expediente choca com qualquer serviço)', async () => {
+  it('o Saldo só aparece para o Adm, na ordem de escala do cadastro (Pronto antes do Saldo: o Saldo não vem mais primeiro, 6.71)', async () => {
     const sabado = `${MES}-12`;
     const adm = await ler('ADM', sabado);
-    expect(opcoes(adm, '08:00-20:00')[0]![1]).toEqual(expect.arrayContaining(['Saldo']));
-    expect((opcoes(adm, '08:00-20:00')[0]![1] as string[])[0]).toBe('Saldo');
+    expect(opcoes(adm, '08:00-20:00')[0]![1]).toEqual(['Pronto', 'Saldo']);
     const outro = await ler('CNHB');
     expect(outro.opcoes.flatMap((o) => o.servicos.map((s) => s.nome))).not.toContain('Saldo');
   });
 
-  it('6.37: num dia útil o Adm não recebe o Pronto, o Saldo nem o JES das 08h às 20h como opção: o expediente ocupa o dia (o Saldo se resolve na 6.38); o turno da noite continua', async () => {
-    const adm = await ler('ADM');
-    expect(opcoes(adm, '08:00-20:00')).toEqual([]);
-    expect(adm.opcoes.some((o) => `${o.inicio}-${o.fim}` === '20:00-08:00')).toBe(true);
+  it('6.71: num dia útil sem expediente lançado o Adm recebe o Pronto e o Saldo; com o expediente lançado, não recebe o das 08h às 20h (o Saldo se resolve na 6.38) e o turno da noite continua', async () => {
+    const sem = await ler('ADM', `${MES}-16`);
+    expect(opcoes(sem, '08:00-20:00').map((o) => o[1])).toEqual([['Pronto', 'Saldo'], ['Pronto', 'Saldo']]);
+    await lancarExpediente('ADM', `${MES}-17`);
+    const com = await ler('ADM', `${MES}-17`);
+    expect(opcoes(com, '08:00-20:00')).toEqual([]);
+    expect(com.opcoes.some((o) => `${o.inicio}-${o.fim}` === '20:00-08:00')).toBe(true);
   });
 });
 

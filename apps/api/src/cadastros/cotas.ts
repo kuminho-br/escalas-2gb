@@ -1,6 +1,6 @@
-// Cotas das operações: por mês e por serviço (PJES ou diária), com origem interna ou externa e prioridade.
-// A chave natural é (mês, unidade, serviço, origem): a tabela não a impõe, então a API confere.
-import { CopiaDeCotas, EdicaoCota, mesParaData, mesPorExtenso, NovaCota, Mes, type Cota, type ResultadoDaCopiaDeCotas } from 'contratos';
+// Cotas das operações: por mês e por serviço (PJES ou diária), com prioridade e, opcionalmente, os dias (meta e máximo; 6.72).
+// A chave é (mês, unidade, serviço): o índice único do banco a impõe, e a API confere antes para dar a frase.
+import { CopiaDeCotas, DiasDaCota, EdicaoCota, mesParaData, mesPorExtenso, NovaCota, Mes, type Cota, type ResultadoDaCopiaDeCotas } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import { exigirLeituraDaEscala } from '../visao/leitura.ts';
@@ -8,33 +8,27 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { distribuidasPorCota } from './cotas-regras.ts';
+import { diasDasCotas, escaladosDosServicos } from './cota-do-servico.ts';
 
 type Ctx = Context<AmbienteApi>;
 const MSG_SERVICO = 'Use um serviço cadastrado nesta seção.';
 
-type LinhaCota = Omit<Cota, 'distribuidas'>;
+type LinhaCota = Omit<Cota, 'distribuidas' | 'dias'>;
 
-/** Cotas do mês da unidade, por prioridade, com as alocações distribuídas repartidas entre elas. */
+/** Cotas do mês da unidade, por prioridade, com os dias e as alocações já feitas no serviço (as do mês, em escalas da unidade). */
 export async function cotasDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Cota[]> {
   const { rows } = await c.query<LinhaCota>(
-    `select c.id, to_char(c.mes, 'YYYY-MM') as mes, c.servico_id as "servicoId", c.quantidade, c.origem, c.prioridade,
+    `select c.id, to_char(c.mes, 'YYYY-MM') as mes, c.servico_id as "servicoId", c.quantidade, c.prioridade,
             s.nome as servico, s.cor
        from cota c join servico s on s.id = c.servico_id
       where c.unidade_id = $1 and c.mes = $2::date
-      order by c.prioridade, s.nome, c.origem`,
+      order by c.prioridade, s.nome`,
     [unidadeId, mesParaData(mes)],
   );
   if (!rows.length) return [];
-  const contagem = await c.query<{ servicoId: string; n: number }>(
-    `select a.servico_id as "servicoId", count(*)::int as n
-       from alocacao a join escala e on e.id = a.escala_id
-      where e.unidade_id = $1 and a.data >= $2::date and a.data < ($2::date + interval '1 month') and a.servico_id = any($3)
-      group by a.servico_id`,
-    [unidadeId, mesParaData(mes), [...new Set(rows.map((r) => r.servicoId))]],
-  );
-  const reparto = distribuidasPorCota(rows, new Map(contagem.rows.map((x) => [x.servicoId, x.n])));
-  return rows.map((r) => ({ ...r, distribuidas: reparto.get(r.id) ?? 0 }));
+  const escalados = await escaladosDosServicos(c, unidadeId, [...new Set(rows.map((r) => r.servicoId))], mes);
+  const dias = await diasDasCotas(c, rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, distribuidas: escalados.get(r.servicoId)?.total ?? 0, dias: dias.get(r.id) ?? [] }));
 }
 
 async function cotaPorId(c: Consulta, unidadeId: string, id: string): Promise<Cota> {
@@ -56,17 +50,21 @@ async function servicoDesativado(c: Consulta, servicoId: string): Promise<string
 
 const msgServicoDesativado = (nome: string) => ({ servicoId: `O serviço ${nome} está desativado. Reative-o na tela de Turnos ou escolha outro.` });
 
-/** A cota do mês com o mesmo serviço e origem (fora a `exceto`), se houver. */
-async function cotaIgual(c: Consulta, unidadeId: string, mes: string, servicoId: string, origem: string, exceto?: string): Promise<{ servico: string } | null> {
+/** A cota do mês com o mesmo serviço (fora a `exceto`), se houver. */
+async function cotaIgual(c: Consulta, unidadeId: string, mes: string, servicoId: string, exceto?: string): Promise<{ servico: string } | null> {
   const { rows } = await c.query<{ id: string; servico: string }>(
     `select c.id, s.nome as servico from cota c join servico s on s.id = c.servico_id
-      where c.unidade_id = $1 and c.mes = $2::date and c.servico_id = $3 and c.origem = $4`,
-    [unidadeId, mesParaData(mes), servicoId, origem],
+      where c.unidade_id = $1 and c.mes = $2::date and c.servico_id = $3`,
+    [unidadeId, mesParaData(mes), servicoId],
   );
   return rows.find((x) => x.id !== exceto) ?? null;
 }
 
-const MSG_COTA_REPETIDA = { '23505': 'Já existe uma cota deste serviço e origem neste mês.' };
+const MSG_COTA_REPETIDA = { '23505': 'Já existe uma cota deste serviço neste mês.' };
+const MSG_SOMA_DAS_METAS = 'A soma das metas dos dias passa da cota do mês.';
+const MSG_DIA_FORA_DO_MES = 'O dia precisa ser do mês da cota.';
+const MSG_MAXIMO_MENOR = 'O máximo não pode ser menor que a meta.';
+const MSG_DIA_REPETIDO = 'Cada dia só pode aparecer uma vez na lista.';
 
 export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
@@ -101,14 +99,14 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     if (fora) return c.json({ erro: 'Confira os campos destacados.', campos: fora }, 400);
     const desativado = await servicoDesativado(dep.banco, d.servicoId);
     if (desativado) return c.json({ erro: 'Confira os campos destacados.', campos: msgServicoDesativado(desativado) }, 400);
-    const igual = await cotaIgual(dep.banco, u, d.mes, d.servicoId, d.origem);
-    if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} (${d.origem}) em ${mesPorExtenso(d.mes)}.` }, 409);
+    const igual = await cotaIgual(dep.banco, u, d.mes, d.servicoId);
+    if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} em ${mesPorExtenso(d.mes)}.` }, 409);
     try {
       const cota = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
           await tx.query<{ id: string }>(
-            'insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade) values ($1::date, $2, $3, $4, $5, $6) returning id',
-            [mesParaData(d.mes), u, d.servicoId, d.quantidade, d.origem, d.prioridade],
+            'insert into cota (mes, unidade_id, servico_id, quantidade, prioridade) values ($1::date, $2, $3, $4, $5) returning id',
+            [mesParaData(d.mes), u, d.servicoId, d.quantidade, d.prioridade],
           )
         ).rows[0]!.id;
         return cotaPorId(tx, u, id);
@@ -135,26 +133,53 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       const desativado = d.servicoId === doServico ? null : await servicoDesativado(dep.banco, d.servicoId);
       if (desativado) return c.json({ erro: 'Confira os campos destacados.', campos: msgServicoDesativado(desativado) }, 400);
     }
-    if (d.servicoId || d.origem) {
-      const atual = (
-        await dep.banco.query<{ mes: string; servico_id: string; origem: string }>("select to_char(mes, 'YYYY-MM') as mes, servico_id, origem from cota where id = $1", [id])
-      ).rows[0]!;
-      const igual = await cotaIgual(dep.banco, acesso.unidadeId, atual.mes, d.servicoId ?? atual.servico_id, d.origem ?? atual.origem, id);
-      if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} (${d.origem ?? atual.origem}) em ${mesPorExtenso(atual.mes)}.` }, 409);
+    if (d.servicoId) {
+      const atual = (await dep.banco.query<{ mes: string }>("select to_char(mes, 'YYYY-MM') as mes from cota where id = $1", [id])).rows[0]!;
+      const igual = await cotaIgual(dep.banco, acesso.unidadeId, atual.mes, d.servicoId, id);
+      if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} em ${mesPorExtenso(atual.mes)}.` }, 409);
+    }
+    // 6.72: baixar a quantidade abaixo da soma das metas dos dias deixaria as metas impossíveis de cumprir
+    if (d.quantidade !== undefined) {
+      const metas = (await dep.banco.query<{ soma: number }>('select coalesce(sum(minimo), 0)::int as soma from cota_dia where cota_id = $1', [id])).rows[0]!.soma;
+      if (metas > d.quantidade) return c.json({ erro: MSG_SOMA_DAS_METAS, campos: { quantidade: MSG_SOMA_DAS_METAS } }, 400);
     }
     try {
       const cota = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query(
-          `update cota set servico_id = coalesce($2::uuid, servico_id), quantidade = coalesce($3::int, quantidade), origem = coalesce($4::text, origem),
-                           prioridade = coalesce($5::int, prioridade)
+          `update cota set servico_id = coalesce($2::uuid, servico_id), quantidade = coalesce($3::int, quantidade), prioridade = coalesce($4::int, prioridade)
             where id = $1`,
-          [id, d.servicoId ?? null, d.quantidade ?? null, d.origem ?? null, d.prioridade ?? null],
+          [id, d.servicoId ?? null, d.quantidade ?? null, d.prioridade ?? null],
         );
         return cotaPorId(tx, acesso.unidadeId, id);
       });
       return c.json(cota);
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_COTA_REPETIDA);
+    }
+  });
+
+  /** Trocar os dias da cota (6.72): a lista nova substitui a inteira. Os dias são do mês da cota, a soma das metas cabe no total e o máximo não é menor que a meta. */
+  r.put('/cotas/:id/dias', async (c) => {
+    const id = c.req.param('id');
+    const acesso = await daCota(c, id);
+    if ('resposta' in acesso) return acesso.resposta;
+    const corpo = await lerCorpo(c, DiasDaCota);
+    if (!corpo.ok) return corpo.resposta;
+    const { dias } = corpo.dados;
+    const cota = (await dep.banco.query<{ mes: string; quantidade: number }>("select to_char(mes, 'YYYY-MM') as mes, quantidade from cota where id = $1", [id])).rows[0]!;
+    if (dias.some((x) => x.data.slice(0, 7) !== cota.mes)) return c.json({ erro: MSG_DIA_FORA_DO_MES }, 400);
+    if (new Set(dias.map((x) => x.data)).size !== dias.length) return c.json({ erro: MSG_DIA_REPETIDO }, 400);
+    if (dias.some((x) => x.maximo !== null && x.maximo < x.minimo)) return c.json({ erro: MSG_MAXIMO_MENOR }, 400);
+    if (dias.reduce((soma, x) => soma + x.minimo, 0) > cota.quantidade) return c.json({ erro: MSG_SOMA_DAS_METAS }, 400);
+    try {
+      const feita = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        await tx.query('delete from cota_dia where cota_id = $1', [id]);
+        for (const x of dias) await tx.query('insert into cota_dia (cota_id, data, minimo, maximo) values ($1, $2::date, $3, $4)', [id, x.data, x.minimo, x.maximo]);
+        return cotaPorId(tx, acesso.unidadeId, id);
+      });
+      return c.json(feita);
+    } catch (e) {
+      return respostaDoErroDoBanco(c, e);
     }
   });
 
@@ -175,13 +200,13 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     const { de, para } = corpo.dados;
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx): Promise<ResultadoDaCopiaDeCotas> => {
-        // as do mês de origem de serviço ativo, menos as que o destino já tem (mesmo serviço e origem)
+        // as do mês de origem de serviço ativo, menos as que o destino já tem (mesmo serviço); os dias não vão: são datas do mês de origem
         const feito = await tx.query(
-          `insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade)
-           select $3::date, o.unidade_id, o.servico_id, o.quantidade, o.origem, o.prioridade
+          `insert into cota (mes, unidade_id, servico_id, quantidade, prioridade)
+           select $3::date, o.unidade_id, o.servico_id, o.quantidade, o.prioridade
              from cota o join servico s on s.id = o.servico_id and s.ativo
             where o.unidade_id = $1 and o.mes = $2::date
-              and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)
+              and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id)
            on conflict do nothing
            returning id`,
           [u, mesParaData(de), mesParaData(para)],
@@ -191,7 +216,7 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
           `select count(*)::int as n
              from cota o join servico s on s.id = o.servico_id and not s.ativo
             where o.unidade_id = $1 and o.mes = $2::date
-              and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)`,
+              and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id)`,
           [u, mesParaData(de), mesParaData(para)],
         );
         return { copiados: feito.rows.length, puladas: puladas.rows[0]!.n };

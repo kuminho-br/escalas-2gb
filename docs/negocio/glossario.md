@@ -101,8 +101,8 @@ Os termos do domínio na linguagem do sistema novo. Quem cuida: DOCUMENTAÇÃO. 
 
 | Termo | Definição | Situação |
 |---|---|---|
-| Cota | Quantas vezes se pode escalar militares num serviço extra (PJES ou diária) num mês; a unidade é obrigada a executá-la. Cada vaga preenchida consome uma (RN-33, RN-82). Não confundir com a cota de saldo. | Em uso |
-| Origem da cota | Interna ou externa. A externa os militares tiram, mas não conta na cota da unidade (RN-34, RN-35). | Em uso |
+| Cota | Quantas vezes se pode escalar militares num serviço extra (PJES ou diária) num mês; a unidade é obrigada a executá-la. Cada vaga preenchida consome uma (RN-33, RN-82); acabada, bloqueia escalar mais naquele serviço (RN-126). Há uma só por serviço e mês, sem origem. Não confundir com a cota de saldo. | Em uso |
+| Dias da cota | A lista opcional de dias de uma cota, cada um com a meta (o mínimo de militares) e, no banco, um máximo. O resto do total vale nos outros dias (RN-125). | Em uso |
 | Cota restante | Quantidade do mês menos as alocações no serviço ("JES: restam 26 de 40") (RN-114). | Em uso |
 | Voluntariado | Em que faixas de horário de cada dia o militar aceita tirar JES e diárias, por mês. É do militar e vale em todas as seções que o escalam (RN-105, RN-124). | Em uso |
 | Bloco do dia | Faixa de horário pronta para marcar, vinda dos turnos dos serviços que pedem voluntariado (RN-107). | Em uso |

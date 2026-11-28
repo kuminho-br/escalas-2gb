@@ -55,7 +55,7 @@ describe('dicaDoAfastamento', () => {
   });
 });
 
-const bloco = (cor: string, letra: string, nome = 'Pronto'): BlocoDaGrade => ({ alocacaoId: `a-${nome}-${letra}`, servico: { id: `s-${nome}`, nome, cor, tipo: 'ordinario' }, letra, inicio: '08:00', fim: '20:00', expediente: false });
+const bloco = (cor: string, letra: string, nome = 'Pronto'): BlocoDaGrade => ({ alocacaoId: `a-${nome}-${letra}`, servico: { id: `s-${nome}`, nome, cor, tipo: 'ordinario' }, letra, inicio: '08:00', fim: '20:00' });
 const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
   militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '997001-1', jornada: 'pronto', dias: {}, choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
@@ -168,13 +168,13 @@ describe('o afastado na tabela', () => {
 });
 
 describe('o fim de semana e o feriado', () => {
-  it('a coluna inteira ganha o fundo mais escuro (nas células do corpo e no cabeçalho), e o feriado leva o ponto vinho', () => {
+  it('a coluna do fim de semana e do feriado não tem fundo (6.73), e o feriado leva o ponto vinho', () => {
     tabela();
     // dia 5 é sábado (2026-12-05); dia 6, domingo; dia 8, feriado numa terça
     for (const n of [5, 6, 8]) {
       const celulaDoCorpo = linhaDe('LIVRE').querySelector<HTMLElement>(`td[data-coluna="${d(n)}"]`)!;
-      expect(celulaDoCorpo.className, `dia ${n}`).toContain('bg-passa');
-      expect(document.querySelector(`th[data-coluna="${d(n)}"]`)!.className, `cabeçalho do dia ${n}`).toContain('bg-passa');
+      expect(celulaDoCorpo.className, `dia ${n}`).not.toContain('bg-passa');
+      expect(document.querySelector(`th[data-coluna="${d(n)}"]`)!.className, `cabeçalho do dia ${n}`).not.toContain('bg-passa');
     }
     expect(linhaDe('LIVRE').querySelector(`td[data-coluna="${d(8)}"]`)).toHaveAttribute('data-feriado');
     expect(linhaDe('LIVRE').querySelector(`td[data-coluna="${d(5)}"]`)).toHaveAttribute('data-fim-de-semana');

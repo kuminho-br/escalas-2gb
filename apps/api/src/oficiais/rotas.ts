@@ -9,6 +9,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { remover } from '../escala/alocacoes.ts';
 import { choqueDoLancamento } from '../escala/choque-do-lancamento.ts';
 import { escolherEscala, lancamentosDoMes, lerEscala, lerSaldo, linhaDoMes, servicosDaRodada, turnosDoServico, type LinhaDoMes } from './leitura.ts';
 import { afastamentosDoMes, copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto } from './participantes.ts';
@@ -461,7 +462,13 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       // o choque de horário vale aqui como em toda escala (6.37): o serviço em outro lugar no mesmo horário, ou o expediente do Adm. O Saldo (que pode tirar do expediente)
       // pede a decisão do escalante: a recusa diz `resolvivel` e o pedido volta com `resolverChoque`
       if (!atual || atual.militarId !== militarId) {
-        const choque = await choqueDoLancamento(tx, { unidadeId: rod.unidadeId, militarId, data: dia, turnoId: turno.id, tirarDoExpediente: !!resolverChoque, usuarioId: c.get('usuarioId'), hoje: hojeRecife() });
+        const confere = () => choqueDoLancamento(tx, { unidadeId: rod.unidadeId, militarId, data: dia, turnoId: turno.id, tirarDoExpediente: !!resolverChoque, usuarioId: c.get('usuarioId'), hoje: hojeRecife() });
+        let choque = await confere();
+        // 6.71: o expediente que a pré-escala lançou sai (pela remoção devolvível) quando o escalante decidiu pôr o Saldo por cima dele; depois se confere de novo
+        if (choque?.expedienteLancadoId && choque.podeResolver && resolverChoque) {
+          await remover(tx, choque.expedienteLancadoId, c.get('usuarioId'));
+          choque = await confere();
+        }
         if (choque) throw new Recusa(409, choque.motivo, choque.podeResolver ? { resolvivel: 'expediente' } : undefined);
       }
       let foraDaOrdem: string | undefined;

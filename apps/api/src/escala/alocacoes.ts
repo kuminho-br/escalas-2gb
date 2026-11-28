@@ -4,6 +4,7 @@ import type { DesfazerResolucao, NovaAlocacao, NovoAcumulo, ResolverChoque } fro
 import { motivoDaCnh } from 'dominio';
 import { CADASTRO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -68,11 +69,12 @@ const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { ini
   tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);
 
 /** Escala o militar na vaga e devolve o mês da alocação. */
-export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean } = {}): Promise<string> {
+export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean; /** a troca e o "Desfazer" tiram e põem de volta: o total do serviço não muda, então a cota não é conferida (6.72) */ cotaJaContada?: boolean } = {}): Promise<string> {
   const turno = (
-    await tx.query<{ servico_id: string; inicio: string; fim: string }>(
-      `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-         from turno t join escala_servico es on es.servico_id = t.servico_id and es.escala_id = $1 where t.id = $2`,
+    await tx.query<{ servico_id: string; inicio: string; fim: string; servico: string; tipo: string; unidade_id: string }>(
+      `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, s.tipo, e.unidade_id
+         from turno t join escala_servico es on es.servico_id = t.servico_id and es.escala_id = $1
+         join servico s on s.id = t.servico_id join escala e on e.id = es.escala_id where t.id = $2`,
       [escalaId, d.turnoId],
     )
   ).rows[0];
@@ -100,6 +102,13 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
   if (mover) {
     await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [mover.id, d.guarnicaoId, d.funcaoId]);
     return mes;
+  }
+  // 6.72: a cota esgotada bloqueia escalar mais um militar em PJES ou diária (a alocação movida acima já está contada); remover nunca é bloqueado
+  if (turno.tipo !== 'ordinario' && !opcoes.cotaJaContada) {
+    // trava o serviço no mês: dois escalantes ao mesmo tempo (dias ou faixas diferentes) não leem a mesma contagem e passam da cota
+    await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`cota|${turno.unidade_id}|${turno.servico_id}|${mes}`]);
+    const recusa = await recusaDaCota(tx, { unidadeId: turno.unidade_id, servicoId: turno.servico_id, nomeDoServico: turno.servico, data: d.data });
+    if (recusa) throw new Recusa(recusa);
   }
   try {
     await tx.query(
@@ -165,7 +174,7 @@ export async function devolverRemocao(tx: Consulta, remocaoId: string): Promise<
     return { escalaId: null, mes: r.data.slice(0, 7) };
   }
   try {
-    await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id });
+    await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id }, { cotaJaContada: true });
   } catch (e) {
     throw e instanceof Recusa ? new Recusa(NAO_DA_PARA_DESFAZER) : e;
   }
@@ -257,7 +266,7 @@ export async function escalarResolvendo(
     const lotacao = (await tx.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and desde <= $2::date and (ate is null or ate >= $2::date) limit 1', [d.militarId, d.data])).rows[0];
     // o pedido só muda o que acontece quando o serviço pode tirar do expediente; o motivo "De expediente" de quem não pode continua valendo
     if (turnoDaVaga.tira && lotacao && !(await temPapel(tx, usuarioId, lotacao.unidade_id, CADASTRO, hoje))) throw new Proibida(MSG_SEM_PODER_NA_LOTACAO);
-    // o expediente que a pré-escala lançou (6.40) sai antes, pela remoção devolvível; o expediente calculado some sozinho sob o serviço
+    // o expediente que a pré-escala lançou (6.40) sai antes, pela remoção devolvível (6.71: ele é o único expediente que existe)
     let remocaoId: string | null = null;
     const lancado = turnoDaVaga.tira ? (await doTurno())?.conflito?.expedienteLancado : undefined;
     if (lancado) remocaoId = (await remover(tx, lancado.id, usuarioId)).remocaoId;

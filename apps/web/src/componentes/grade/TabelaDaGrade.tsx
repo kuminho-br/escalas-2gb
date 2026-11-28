@@ -106,7 +106,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                   data-coluna={d.data}
                   data-coluna-marcada={escolhida?.dia === d.data ? '' : undefined}
                   title={d.feriado ?? undefined}
-                  className={cn('sticky top-0 z-20 min-w-12 px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', vinho ? 'bg-passa' : 'bg-superficie', cheia && 'max-md:min-w-11', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
+                  className={cn('sticky top-0 z-20 min-w-12 px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', 'bg-superficie', cheia && 'max-md:min-w-11', FRONTEIRA_DO_CABECALHO, escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
                 >
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
@@ -193,8 +193,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                         data-feriado={d.feriado ? '' : undefined}
                         data-coluna={d.data}
                         data-coluna-marcada={colunaMarcada ? '' : undefined}
-                        // a coluna inteira do fim de semana e do feriado fica com um fundo levemente mais escuro (a marcada de vinho vence)
-                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', (fds || d.feriado) && 'bg-passa', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
+                        // 6.73: a coluna do fim de semana e do feriado não tem fundo (o dia vai só no cabeçalho); a marcada de vinho aparece
+                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
                       >
                         <CelulaDaGrade
                           linha={l}

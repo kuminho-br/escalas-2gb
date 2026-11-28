@@ -29,7 +29,7 @@ const card: CardDaGuarnicao = {
   funcoes: [{ funcaoId: 'f1', funcao: 'Motorista', minimo: 1, maximo: 1, cnhExigida: null, ocupantes: [ocupante('MOTOR')] }],
 };
 const faixa: FaixaDoDia = { inicio: '08:00', fim: '20:00', noturna: false, turnos: [{ turnoId: 't1', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'A' }], guarnicoes: [card], semPosto: [], removidos: [] };
-const dia: DiaDaEscala = { data: `${MES}-01`, diaDaSemana: 1, feriado: null, faixas: [faixa], obrigatoriasVazias: 0 };
+const dia: DiaDaEscala = { data: `${MES}-01`, diaDaSemana: 1, feriado: null, faixas: [faixa], obrigatoriasVazias: 0, metasAbaixo: [] };
 const ESCALA: EscalaDoMes = {
   escalaId: 'e3', nome: 'Ordinário da DivOp', mes: MES, dias: [dia], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 },
   estado: { estado: 'publicada', emRetificacao: false, em: '2026-11-20T15:00:00.000Z', por: null }, podePublicar: false, podeAlterarPassado: false,

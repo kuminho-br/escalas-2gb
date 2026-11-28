@@ -2,16 +2,16 @@
 // entrar ("Adicionar serviço neste dia"), em todas as escalas ativas da seção.
 import type { OpcaoDeServico, PainelDoDia, ServicoNoDia } from 'contratos';
 import { textoFaixa, tipoDoServicoFixo } from 'contratos';
-import { cnhParaEscala, detectarChoques, diaDaSemana, unirFaixas, type AlocChoque, type Choque } from 'dominio';
+import { cnhParaEscala, detectarChoques, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
-import { feriadosDoAno } from '../cadastros/feriados.ts';
+import { cotaDoServico, recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
 import { ocupantesDaFuncao } from '../escala/alocacoes.ts';
 import { avaliarFaixa, SEM_VOLUNTARIADO } from '../escala/elegibilidade.ts';
-import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type HorariosDeChoque } from '../escala/horarios.ts';
+import { alocacoesDaJanela, horariosDaUnidade, somarOutrasUnidades, type HorariosDeChoque } from '../escala/horarios.ts';
 
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const diaMes = (d: string) => `${d.slice(8)}/${d.slice(5, 7)}`;
@@ -99,7 +99,7 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
     acumulaCom: acumulos.filter((x) => x.alocacao_id === a.id).map((x) => `${x.funcao} ${x.guarnicao}`),
   }));
 
-  const choques = await frasesDeChoque(c, unidadeId, militarId, jornada, data, await horariosDaUnidade(c, unidadeId));
+  const choques = await frasesDeChoque(c, unidadeId, militarId, data, await horariosDaUnidade(c, unidadeId));
 
   // o afastado também tem opções: dá para escalar mesmo assim (o painel mostra o aviso e manda `mesmoAfastado`); nada é bloqueado
   const opcoes = await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m), !!afastamento);
@@ -110,49 +110,39 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
   };
 }
 
-/** Os choques que tocam o dia, como frases. Usa as alocações do dia anterior ao seguinte e o expediente implícito do Adm. */
+/** Os choques que tocam o dia, como frases. Usa as alocações do dia anterior ao seguinte, em todas as unidades; o expediente é só o lançado pela pré-escala (6.71). */
 async function frasesDeChoque(
-  c: Consulta, unidadeId: string, militarId: string, jornada: 'pronto' | 'adm', data: string, regras: HorariosDeChoque,
+  c: Consulta, unidadeId: string, militarId: string, data: string, regras: HorariosDeChoque,
 ): Promise<string[]> {
   const { horarios } = regras;
   // 6.37: o choque olha todas as unidades (o serviço de outra seção leva a sigla: "Pronto (2ª SB)")
   const janela = await alocacoesDaJanela(c, [militarId], somarDias(data, -1), somarDias(data, 1), unidadeId);
   somarOutrasUnidades(regras, janela);
   const existentes: AlocChoque[] = janela.map((a) => ({ mat: militarId, dia: a.data, turno: a.letra, servico: a.servico }));
-  const expediente: AlocChoque[] = [];
-  if (jornada === 'adm') {
-    const feriados = new Set<string>();
-    for (const ano of new Set([somarDias(data, -1), somarDias(data, 1)].map((d) => Number(d.slice(0, 4))))) for (const f of await feriadosDoAno(c, unidadeId, ano)) feriados.add(f.data);
-    const afastados = (
-      await c.query<{ inicio: string; fim: string }>(
-        "select to_char(inicio, 'YYYY-MM-DD') as inicio, to_char(fim, 'YYYY-MM-DD') as fim from afastamento where militar_id = $1 and inicio <= $3::date and fim >= $2::date",
-        [militarId, somarDias(data, -1), somarDias(data, 1)],
-      )
-    ).rows;
-    for (const n of [-1, 0, 1]) {
-      const d = somarDias(data, n);
-      if (diaDaSemana(d) < 1 || diaDaSemana(d) > 5 || feriados.has(d) || afastados.some((a) => a.inicio <= d && a.fim >= d)) continue;
-      expediente.push({ mat: militarId, dia: d, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true });
-    }
-  }
   const faixa = (servico: string, turno: string) => {
     const h = horarios[`${servico}|${turno}`];
     return h ? textoFaixa(hhmm(h.ini % 1440), hhmm((h.ini + h.dur) % 1440)) : '';
   };
   const lado = (l: Choque['a']) => `${l.servico} ${l.turno} (${faixa(l.servico, l.turno)})${l.dia === data ? '' : ` do dia ${diaMes(l.dia)}`}`;
-  return detectarChoques([...existentes, ...expediente], horarios, { tiramDoExpediente: regras.tiramDoExpediente })
+  return detectarChoques(existentes, horarios, { tiramDoExpediente: regras.tiramDoExpediente })
     .choques.filter((x) => x.a.dia === data || x.b.dia === data)
     .map((x) => {
-      if (x.tipo === 'expediente') return `Choque com o expediente (${faixa(EXPEDIENTE.servico, EXPEDIENTE.turno)}): ${lado(x.a.implicito ? x.b : x.a)}`;
       if (x.tipo === 'emenda') return `Emenda proibida: ${lado(x.a)} termina quando ${lado(x.b)} começa`;
       return `Choque de horário: ${lado(x.a)} com ${lado(x.b)}`;
     });
+}
+
+/** O serviço PJES ou diária tem cota neste mês e ela aceita mais um neste dia (o total não acabou, o máximo do dia não bateu e o resto não está reservado)? */
+async function cotaAceitaNoDia(c: Consulta, unidadeId: string, servicoId: string, nome: string, data: string): Promise<boolean> {
+  if (!(await cotaDoServico(c, unidadeId, servicoId, data.slice(0, 7)))) return false;
+  return (await recusaDaCota(c, { unidadeId, servicoId, nomeDoServico: nome, data })) === null;
 }
 
 /** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que vale para a escala, e "Sem guarnição"). */
 async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[], ignorarAfastamento = false): Promise<OpcaoDeServico[]> {
   const escalas = (await c.query<{ id: string; nome: string }>("select id, nome from escala where unidade_id = $1 and ativa and distribuicao = 'pre_escala' order by nome", [unidadeId])).rows;
   const resultado: OpcaoDeServico[] = [];
+  const cotaAceita = new Map<string, boolean>();
   for (const e of escalas) {
     const faixas = (
       await c.query<{ inicio: string; fim: string }>(
@@ -166,9 +156,18 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
       const { avaliados } = await avaliarFaixa(c, { escalaId: e.id, data, inicio: f.inicio, fim: f.fim, guarnicaoId: null, funcaoId: null, ignorarAfastamento }, militarId);
       const a = avaliados[0];
       if (!a || a.militarMotivo) continue;
-      const possiveis = a.porTurno
-        .filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO)
-        .map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
+      // 6.72: serviço PJES ou diária só aparece se o mês tem cota dele que aceita este dia; Pronto, Saldo e Expediente (ordinários) não dependem da cota
+      const livres = a.porTurno.filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO);
+      const comCota = [];
+      for (const t of livres) {
+        if (t.turno.tipo === 'ordinario') {
+          comCota.push(t);
+          continue;
+        }
+        if (!cotaAceita.has(t.turno.servicoId)) cotaAceita.set(t.turno.servicoId, await cotaAceitaNoDia(c, unidadeId, t.turno.servicoId, t.turno.nome, data));
+        if (cotaAceita.get(t.turno.servicoId)) comCota.push(t);
+      }
+      const possiveis = comCota.map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
       if (!possiveis.length) continue;
       // as vagas da faixa em que ele entra: guarnição e função com lugar e com a CNH que ele tem
       const guarnicaoIds = (vinculo?.itens ?? []).filter((i) => i.inicio.slice(0, 5) === f.inicio && i.fim.slice(0, 5) === f.fim).map((i) => i.guarnicaoId);

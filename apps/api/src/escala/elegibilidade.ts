@@ -7,8 +7,6 @@ import {
   motivoDaCnh,
   compararAntiguidade,
   detectarChoques,
-  diaDaSemana,
-  ehSaldo,
   exigeVoluntarioJes,
   turnoCoberto,
   unirFaixas,
@@ -22,11 +20,10 @@ import { CADASTRO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { parametroEmVigor } from '../cadastros/configuracoes.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
-import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
-import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade, type HorariosDeChoque, somarOutrasUnidades, type Tipo } from './horarios.ts';
+import { alocacoesDaJanela, type AlocacaoDaJanela, horariosDaUnidade, type HorariosDeChoque, somarOutrasUnidades, type Tipo } from './horarios.ts';
 import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { nomeDaVaga } from './vagas.ts';
 
@@ -134,11 +131,6 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     );
     for (const r of rows) disponibilidade.set(`${r.militar_id}|${r.data}`, [...(disponibilidade.get(`${r.militar_id}|${r.data}`) ?? []), { inicio: r.inicio_min, fim: r.fim_min }]);
   }
-  const feriados = new Set<string>();
-  for (const ano of new Set([somarDias(v.data, -1), somarDias(v.data, 1)].map((d) => Number(d.slice(0, 4))))) {
-    for (const f of await feriadosDoAno(c, unidadeId, ano)) feriados.add(f.data);
-  }
-  const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
   // flexibilidade do voluntariado (horas cheias que podem faltar nas pontas do turno), em vigor no mês da vaga; só afrouxa o voluntariado
   const flexibilidadeMin = Number(await parametroEmVigor(c, unidadeId, 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', v.data.slice(0, 7))) * 60;
 
@@ -166,15 +158,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     if (mesmoHorario.length && !movivel) return pronto(JA_ESCALADO);
     noTurno = movivel ? mesmoHorario[0] : undefined;
     const existentes: AlocChoque[] = dele.filter((a) => !movivel || !mesmoHorario.includes(a)).map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.servico }));
-    const expediente: AlocChoque[] =
-      m.jornada === 'adm'
-        ? [-1, 0, 1].map((n) => somarDias(v.data, n)).filter(util).map((dia) => ({ mat: m.id, dia, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true }))
-        : [];
-    // o Adm entra pelo Saldo (cobre turno do Pronto): o serviço proposto é o Saldo, quando a faixa o tem
-    const ordemDosTurnos = m.jornada === 'adm' ? [...turnos].sort((a, b) => Number(ehSaldo(b.nome)) - Number(ehSaldo(a.nome))) : turnos;
+    // 6.71: o expediente é só o serviço Expediente lançado pela pré-escala (ele já vem em `existentes`); a API não monta mais o expediente calculado
     return pronto(
       null,
-      ordemDosTurnos.map((turno) => {
+      turnos.map((turno) => {
         let motivo: string | null = null;
         let conflito: Conflito | undefined;
         // o externo (6.36) é candidato em qualquer serviço lançado à mão, com as regras de todos
@@ -182,7 +169,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do ADM';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
-          const choque = choqueDoTurno({ militarId: m.id, data: v.data, turno, existentes, expediente, regras, porChave, poePorCima: !!v.tirarDoExpediente && turno.tira });
+          const choque = choqueDoTurno({ militarId: m.id, data: v.data, turno, existentes, regras, porChave, poePorCima: !!v.tirarDoExpediente && turno.tira });
           if (choque) {
             motivo = choque.motivo;
             conflito = choque.conflito;
@@ -201,19 +188,19 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 }
 
 /**
- * O choque de um serviço novo com o que o militar já tem (em todas as unidades) e com o expediente do Adm (6.37). A candidata entra no motor com outro nome: o serviço
+ * O choque de um serviço novo com o que o militar já tem (em todas as unidades), o expediente lançado pela pré-escala incluído (6.37, 6.71). A candidata entra no motor com outro nome: o serviço
  * que pode tirar o militar do expediente, lançado agora, continua sendo choque; só o que já está gravado tira o expediente do dia. Com `poePorCima` (o escalante decidiu,
  * 6.38, e o serviço pode), a candidata entra com o nome de verdade e tira o expediente. Quem confere o choque (a escala do mês, a dos oficiais) usa esta função.
  */
 export function choqueDoTurno(d: {
-  militarId: string; data: string; turno: { nome: string; letra: 'A' | 'B' | 'C' }; existentes: AlocChoque[]; expediente: AlocChoque[];
+  militarId: string; data: string; turno: { nome: string; letra: 'A' | 'B' | 'C' }; existentes: AlocChoque[];
   regras: HorariosDeChoque; porChave: Map<string, AlocacaoDaJanela>; poePorCima: boolean;
 }): { motivo: string; conflito: Conflito } | null {
   const { turno, regras } = d;
   const candidata: AlocChoque = { mat: d.militarId, dia: d.data, turno: turno.letra, servico: d.poePorCima ? turno.nome : `${turno.nome}${NOVA}` };
   regras.horarios[`${candidata.servico}|${turno.letra}`] = regras.horarios[`${turno.nome}|${turno.letra}`]!;
   const chave = chaveAloc(candidata);
-  const { choques } = detectarChoques([...d.existentes, ...d.expediente, candidata], regras.horarios, { tiramDoExpediente: regras.tiramDoExpediente });
+  const { choques } = detectarChoques([...d.existentes, candidata], regras.horarios, { tiramDoExpediente: regras.tiramDoExpediente });
   const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
   if (!dela.length) return null;
   const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);

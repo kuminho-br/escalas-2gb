@@ -100,6 +100,12 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoTroca
       <div data-barra-do-dia aria-hidden className="w-1.5 self-stretch rounded-full bg-linha" />
       {/* os turnos do dia lado a lado, numa grade de ~20rem (adendo de 19/11 depois da 2.4): no celular, um embaixo do outro */}
       <div data-faixas-do-dia className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
+        {/* 6.72: o serviço com meta neste dia que ainda tem menos escalados do que o mínimo; só avisa, não impede fechar a escala */}
+        {dia.metasAbaixo.length > 0 && (
+          <ul aria-label={`Metas do dia ${n}`} className="col-span-full grid gap-0.5 rounded-md bg-pendencia-fundo px-2.5 py-1.5 text-sm text-pendencia">
+            {dia.metasAbaixo.map((m) => <li key={m.servico}>{m.servico}: {m.escalados} de {m.minimo} neste dia.</li>)}
+          </ul>
+        )}
         {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} aoTrocar={aoTrocar} />)}
         <Removidos dia={dia} aoDesfazer={aoDesfazer} />
       </div>

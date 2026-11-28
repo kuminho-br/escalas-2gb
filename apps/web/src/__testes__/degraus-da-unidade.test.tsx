@@ -45,7 +45,8 @@ afterEach(() => {
 
 const nav = async () => screen.findByRole('navigation', { name: 'Unidade de trabalho' });
 /** Os degraus da tela: o texto de cada um, em ordem (o botão ou o texto fixo). */
-const degraus = (n: HTMLElement) => within(n).getAllByRole('listitem').map((li) => li.textContent!.replace(/^›/, '').replace(/Só consulta/g, '').trim());
+const itensDosDegraus = (n: HTMLElement) => within(n).getAllByRole('listitem').filter((li) => !li.hasAttribute('data-todas-as-unidades'));
+const degraus = (n: HTMLElement) => itensDosDegraus(n).map((li) => li.textContent!.replace(/^›/, '').replace(/Só consulta/g, '').trim());
 const botao = (n: HTMLElement, nome: string | RegExp) => within(n).getByRole('button', { name: nome });
 const opcoes = () => within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent!.replace(/\s+/g, ' ').trim());
 
@@ -57,9 +58,10 @@ describe('os degraus', () => {
     const n = await nav();
     await waitFor(() => expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']));
     const botoes = within(n).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent);
-    expect(botoes.filter((b) => !b!.startsWith('Unidade de trabalho:'))).toEqual(['1ª SB']);
+    // 6.73: o 2º GB, de uma opção só mas com acesso, também é botão; os de cima (sem acesso) seguem texto
+    expect(botoes.filter((b) => !b!.startsWith('Unidade de trabalho:') && b !== 'Ver todas as unidades')).toEqual(['2º GB', '1ª SB']);
     // o último degrau é o atual
-    expect(within(n).getAllByRole('listitem').at(-1)!.querySelector('[aria-current="location"]')).not.toBeNull();
+    expect(itensDosDegraus(n).at(-1)!.querySelector('[aria-current="location"]')).not.toBeNull();
   });
 
   it('o degrau abre só as unidades de dentro do degrau de cima, com a atual marcada, e escolher uma irmã guarda, leva à lista da tela e avisa', async () => {
@@ -264,9 +266,10 @@ describe('os degraus', () => {
     // com a lista da corporação ainda no ar, só há a árvore da pessoa (2º GB e as seções): CBMPE, DGO e DInter/1 vêm do caminho da unidade, só para leitura
     await waitFor(() => expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']));
     expect(within(n).queryByRole('button', { name: 'CBMPE' })).toBeNull();
-    expect(within(n).getAllByRole('button').filter((b) => b.hasAttribute('data-degrau')).map((b) => b.textContent)).toEqual(['1ª SB']);
+    // 6.73: o 2º GB (uma opção só, com acesso) também é botão
+    expect(within(n).getAllByRole('button').filter((b) => b.hasAttribute('data-degrau')).map((b) => b.textContent)).toEqual(['2º GB', '1ª SB']);
     chegou();
-    await waitFor(() => expect(within(n).getAllByRole('listitem').length).toBe(5));
+    await waitFor(() => expect(itensDosDegraus(n).length).toBe(5));
     expect(degraus(n)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
   });
 });
@@ -278,6 +281,70 @@ describe('o cabeçalho com uma unidade só', () => {
     const leitura = await screen.findByRole('navigation', { name: 'Unidade' });
     expect(within(leitura).queryByRole('button')).toBeNull();
     expect(screen.queryByRole('navigation', { name: 'Unidade de trabalho' })).toBeNull();
+  });
+});
+
+describe('o nível de uma opção só e a árvore inteira (6.73)', () => {
+  it('o nível de uma opção só é botão quando a pessoa tem acesso a ele: clicar faz dele a unidade de trabalho e abre o nível de baixo; sem acesso, continua texto', async () => {
+    guardarUnidade('u-1sb');
+    api(GESTOR);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    for (const semAcesso of ['CBMPE', 'DGO', 'DInter/1']) expect(within(n).queryByRole('button', { name: semAcesso })).toBeNull();
+    await userEvent.click(botao(n, '2º GB'));
+    await waitFor(() => expect(lerUnidadeGuardada()).toBe('u-gb'));
+    expect(await screen.findByRole('status')).toHaveTextContent('Unidade de trabalho: CBMPE / DGO / DInter/1 / 2º GB');
+    expect(screen.getByRole('listbox', { name: 'Unidades dentro de 2º GB' })).toBeInTheDocument();
+  });
+
+  it('com alteração pendente, a pessoa desiste e a unidade fica como estava', async () => {
+    guardarUnidade('u-1sb');
+    pendencia.pode = false;
+    api(GESTOR);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    await userEvent.click(botao(n, '2º GB'));
+    expect(lerUnidadeGuardada()).toBe('u-1sb');
+  });
+
+  it('"Ver todas as unidades" abre a árvore inteira, e escolher nela troca a unidade de trabalho', async () => {
+    guardarUnidade('u-1sb');
+    api(GESTOR);
+    const router = abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    await userEvent.click(botao(n, 'Ver todas as unidades'));
+    const arvore = await screen.findByRole('tree', { name: 'Unidade de trabalho' });
+    await userEvent.click(within(arvore).getByRole('treeitem', { name: /^2ª SB/ }));
+    await waitFor(() => expect(lerUnidadeGuardada()).toBe('u-2sb'));
+    expect(router.state.location.pathname).toBe('/militares');
+    await waitFor(() => expect(screen.queryByRole('tree')).toBeNull());
+  });
+
+  it('a árvore traz, num grupo à parte, as unidades só de consulta', async () => {
+    guardarUnidade('u-1sb');
+    api(COM_CONSULTA);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    await userEvent.click(botao(n, 'Ver todas as unidades'));
+    expect(await screen.findByRole('tree', { name: 'Só consulta' })).toBeInTheDocument();
+    expect(screen.getByRole('tree', { name: 'Unidade de trabalho' })).toBeInTheDocument();
+  });
+
+  it('no celular, o botão fica dentro do painel dos degraus (só aparece com o painel aberto)', async () => {
+    guardarUnidade('u-1sb');
+    api(GESTOR);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    const lista = within(n).getByRole('list');
+    expect(lista).toContainElement(botao(n, 'Ver todas as unidades'));
+    expect(lista.className).toContain('max-md:hidden');
+    await userEvent.click(botao(n, /^Unidade de trabalho:/));
+    expect(lista.className).not.toContain('max-md:hidden');
   });
 });
 

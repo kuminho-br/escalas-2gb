@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import type { UnidadeDeTrabalho } from 'contratos';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { No } from '@/lib/arvore-de-unidades';
 import { degrausDoCaminho, proximoNivel } from '@/lib/degraus';
 import { cn } from '@/lib/utils';
@@ -11,13 +11,13 @@ const DEGRAU = 'flex h-8 items-center gap-1 rounded-controle border border-linha
 
 /**
  * A unidade de trabalho em degraus (6.61): um botão por nível do caminho, separados por "›". Cada degrau abre só as unidades de dentro do degrau de cima; escolhida uma, o
- * próximo nível abre sozinho, até a pessoa parar numa unidade sua ou chegar à folha. Um nível com uma opção só é texto. A "passagem" (a unidade acima das da pessoa, que só serve
+ * próximo nível abre sozinho, até a pessoa parar numa unidade sua ou chegar à folha. Um nível com uma opção só é texto, ou um botão que escolhe essa unidade quando a pessoa tem acesso a ela (6.73). A "passagem" (a unidade acima das da pessoa, que só serve
  * para descer) nunca vira a unidade de trabalho: parado nela, o próximo degrau é obrigatório, e fechar ali volta à unidade de antes. No celular só a unidade atual cabe: tocar
  * nela abre os degraus num painel, um embaixo do outro.
  *
  * `aoEscolher` guarda a unidade e leva à lista da tela (a escolha de sempre do Topo); devolve false se a pessoa desistiu (alteração pendente), e aí nada muda.
  */
-export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEscolher }: { arvore: No[]; unidade: UnidadeDeTrabalho; soConsulta: boolean; acessoDe: (id: string) => Acesso | undefined; aoEscolher: (id: string, soConsulta: boolean) => boolean }) {
+export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEscolher, todasAsUnidades }: { arvore: No[]; unidade: UnidadeDeTrabalho; soConsulta: boolean; acessoDe: (id: string) => Acesso | undefined; aoEscolher: (id: string, soConsulta: boolean) => boolean; /** o botão da árvore inteira (6.73): fica no fim dos degraus e, no celular, dentro do painel */ todasAsUnidades?: ReactNode }) {
   const base = degrausDoCaminho(arvore, unidade.id).map((d) => d.no);
   // o caminho a meio, enquanto a pessoa desce (pode terminar numa passagem); fora disso vale o da unidade de trabalho
   const [parcial, setParcial] = useState<No[] | null>(null);
@@ -204,6 +204,17 @@ export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEsco
                   <span>{n.sigla}</span>
                   <ChevronDown aria-hidden className="size-3.5" />
                 </button>
+              ) : acessoDe(n.id) && (n.id !== unidade.id || n.filhos.length > 0) ? (
+                // 6.73: o nível de uma opção só (CBMPE, DGO) é um botão quando a pessoa tem acesso a ele: faz dele a unidade de trabalho e abre o nível de baixo
+                <button
+                  type="button"
+                  data-degrau={i}
+                  aria-current={folha ? 'location' : undefined}
+                  onClick={() => escolherOpcao(i, n)}
+                  className={cn(DEGRAU, 'pr-2.5', folha && 'border-encaixe font-semibold text-tinta')}
+                >
+                  {n.sigla}
+                </button>
               ) : (
                 <span aria-current={folha ? 'location' : undefined} className={cn('px-1 text-apagado max-md:text-apoio', folha && 'font-semibold text-tinta')}>{n.sigla}</span>
               )}
@@ -228,6 +239,7 @@ export function DegrausDaUnidade({ arvore, unidade, soConsulta, acessoDe, aoEsco
             {aberto === caminho.length && lista(caminho.length)}
           </li>
         )}
+        {todasAsUnidades && <li data-todas-as-unidades className="flex items-center max-md:mt-1">{todasAsUnidades}</li>}
       </ol>
       <p role="status" className="sr-only">{aviso}</p>
     </nav>

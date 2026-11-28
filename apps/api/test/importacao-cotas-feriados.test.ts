@@ -2,12 +2,13 @@ import { mesPorExtenso, type Cota, type Feriado } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { IMPORTADORES } from '../src/importacao/registro.ts';
 import { formulario, planilha } from './planilha-teste.ts';
 
 // Serviços, escalas, cotas e feriados não são dados pessoais (D7); os nomes seguem a sandbox.
 let api: ApiDeTeste;
 let outraSecao: string;
-const CAB_C = ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'ORIGEM', 'PRIORIDADE'];
+const CAB_C = ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'PRIORIDADE'];
 const CAB_F = ['DATA', 'DESCRIÇÃO'];
 type Celula = string | number | Date | null;
 const MES = '2027-03';
@@ -50,30 +51,30 @@ afterAll(async () => {
 describe('importação de cotas', () => {
   it('cota pela operação acha o serviço da diária (pelo atributo operação e pelo nome)', async () => {
     const linhas = [
-      [MES, '1ª SB', 'Guardiões do Bioma', '', 8, 'interna', 1],
-      [MES, '1ª SB', 'PE Seguro', '', 12, 'externa', 2],
+      [MES, '1ª SB', 'Guardiões do Bioma', '', 8, 1],
+      [MES, '1ª SB', 'PE Seguro', '', 12, 2],
     ];
     const previa = await importarCotas(linhas);
     expect(previa.problemas).toEqual([]);
     expect(previa.novos).toEqual([
-      { chave: `${MES}|Bioma|interna`, descricao: `Bioma (interna) em ${mesPorExtenso(MES)}: 8` },
-      { chave: `${MES}|PE Seguro|externa`, descricao: `PE Seguro (externa) em ${mesPorExtenso(MES)}: 12` },
+      { chave: `${MES}|Bioma`, descricao: `Bioma em ${mesPorExtenso(MES)}: 8` },
+      { chave: `${MES}|PE Seguro`, descricao: `PE Seguro em ${mesPorExtenso(MES)}: 12` },
     ]);
     expect((await importarCotas(linhas, true)).gravados).toBe(2);
-    expect((await cotas(MES)).map((c) => [c.servico, c.origem, c.quantidade, c.prioridade])).toEqual([
-      ['Bioma', 'interna', 8, 1],
-      ['PE Seguro', 'externa', 12, 2],
+    expect((await cotas(MES)).map((c) => [c.servico, c.quantidade, c.prioridade])).toEqual([
+      ['Bioma', 8, 1],
+      ['PE Seguro', 12, 2],
     ]);
   });
 
   it('a operação pode ser o nome de uma escala com um serviço só', async () => {
-    const previa = await importarCotas([['2027-04', '', 'Plantão PE', '', 5, '', 1]]);
+    const previa = await importarCotas([['2027-04', '', 'Plantão PE', '', 5, 1]]);
     expect(previa.problemas).toEqual([]);
     expect(previa.novos[0].descricao).toContain('PE Seguro');
   });
 
   it('escala com vários serviços sem a coluna SERVIÇO vira problema com a solução do protótipo', async () => {
-    const previa = await importarCotas([['2027-04', '', 'Operação Mista', '', 5, '', 1]]);
+    const previa = await importarCotas([['2027-04', '', 'Operação Mista', '', 5, 1]]);
     expect(previa.problemas).toEqual([
       {
         aba: 'COTAS', linha: 2,
@@ -84,13 +85,13 @@ describe('importação de cotas', () => {
   });
 
   it('a coluna SERVIÇO vale mais que a OPERAÇÃO', async () => {
-    const previa = await importarCotas([['2027-04', '', 'Operação Mista', 'JES', 30, 'interna', 1]]);
+    const previa = await importarCotas([['2027-04', '', 'Operação Mista', 'JES', 30, 1]]);
     expect(previa.problemas).toEqual([]);
     expect(previa.novos[0].descricao).toContain('JES');
   });
 
   it('cota de outra seção vira problema', async () => {
-    const previa = await importarCotas([[MES, '2ª SB', 'PE Seguro', 'PE Seguro', 3, 'interna', 1]]);
+    const previa = await importarCotas([[MES, '2ª SB', 'PE Seguro', 'PE Seguro', 3, 1]]);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 2, mensagem: 'Cota de outra seção: 2ª SB', solucao: 'Importe só as linhas da 1ª SB, ou tire esta linha.' },
     ]);
@@ -99,9 +100,9 @@ describe('importação de cotas', () => {
 
   it('serviço ordinário e serviço que não existe viram problemas com a solução', async () => {
     const previa = await importarCotas([
-      [MES, '', '', 'Pronto', 3, 'interna', 1],
-      [MES, '', '', 'Fantasma', 3, 'interna', 1],
-      [MES, '', 'Sem Nada Disso', '', 3, 'interna', 1],
+      [MES, '', '', 'Pronto', 3, 1],
+      [MES, '', '', 'Fantasma', 3, 1],
+      [MES, '', 'Sem Nada Disso', '', 3, 1],
     ]);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 2, mensagem: 'O serviço Pronto é ordinário: cota só existe para serviço PJES ou diária', solucao: 'Use um serviço PJES ou diária na coluna SERVIÇO.' },
@@ -110,35 +111,34 @@ describe('importação de cotas', () => {
     ]);
   });
 
-  it('origem vazia vira interna; externa e interna são reconhecidas; outro texto é problema', async () => {
-    const previa = await importarCotas([
-      [MES, '', '', 'JES', 1, '', 1],
-      ['2027-05', '', '', 'JES', 1, 'Externa', 1],
-      ['2027-06', '', '', 'JES', 1, 'interna', 1],
-      ['2027-07', '', '', 'JES', 1, 'talvez', 1],
-    ]);
-    expect(previa.problemas).toEqual([{ aba: 'COTAS', linha: 5, mensagem: 'Origem "talvez" de JES', solucao: 'Use INTERNA ou EXTERNA na coluna ORIGEM.' }]);
-    expect(previa.novos.map((n: { descricao: string }) => n.descricao.match(/\((\w+)\)/)![1])).toEqual(['interna', 'externa', 'interna']);
+  it('a planilha sem a coluna ORIGEM importa (a cota perdeu a origem, 6.72)', async () => {
+    const previa = await importarCotas([[MES, '', '', 'JES', 1, 1]]);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual([`${MES}|JES`]);
+  });
+
+  it('o modelo de planilha das cotas não tem mais a coluna ORIGEM', () => {
+    expect(IMPORTADORES.cotas!.modelo.abas[0]!.colunas.map((c) => c.rotulo)).toEqual(['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'PRIORIDADE']);
   });
 
   it('quantidade inválida é problema; zero é ignorado com aviso', async () => {
     const previa = await importarCotas([
-      [MES, '', '', 'JES', 'abc', '', 1],
-      [MES, '', '', 'JES', '2,5', '', 1],
-      [MES, '', '', 'JES', -3, '', 1],
-      [MES, '', '', 'JES', 0, '', 1],
+      [MES, '', '', 'JES', 'abc', 1],
+      [MES, '', '', 'JES', '2,5', 1],
+      [MES, '', '', 'JES', -3, 1],
+      [MES, '', '', 'JES', 0, 1],
     ]);
     expect(previa.problemas.map((p: { linha: number }) => p.linha)).toEqual([2, 3, 4]);
     expect(previa.problemas[0]).toEqual({ aba: 'COTAS', linha: 2, mensagem: 'Quantidade "abc" de JES', solucao: 'Use um número inteiro de 1 a 10000 na coluna QUANTIDADE.' });
-    expect(previa.avisos).toContain('JES (interna) em março de 2027 tem quantidade 0: a linha foi ignorada.');
+    expect(previa.avisos).toContain('JES em março de 2027 tem quantidade 0: a linha foi ignorada.');
     expect(previa.novos).toEqual([]);
   });
 
   it('linha sem serviço nem operação, e prioridade fora do limite, viram problemas', async () => {
     const previa = await importarCotas([
-      [MES, '', '', '', 3, '', 1],
-      [MES, '', '', 'JES', 3, '', 'alta'],
-      [MES, '', '', 'JES', 3, '', 5000],
+      [MES, '', '', '', 3, 1],
+      [MES, '', '', 'JES', 3, 'alta'],
+      [MES, '', '', 'JES', 3, 5000],
     ]);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 2, mensagem: 'Cota sem serviço nem operação', solucao: 'Preencha a coluna SERVIÇO (ou OPERAÇÃO).' },
@@ -151,26 +151,26 @@ describe('importação de cotas', () => {
     const previa = await importarCotas([
       ['2027-08', '', '', 'JES', 4, '', ''],
       ['2027-08', '', '', 'Bioma', 4, '', ''],
-      ['2027-08', '', '', 'PE Seguro', 4, '', 9],
+      ['2027-08', '', '', 'PE Seguro', 4, 9],
     ]);
     expect(previa.problemas).toEqual([]);
     await importarCotas([
       ['2027-08', '', '', 'JES', 4, '', ''],
       ['2027-08', '', '', 'Bioma', 4, '', ''],
-      ['2027-08', '', '', 'PE Seguro', 4, '', 9],
+      ['2027-08', '', '', 'PE Seguro', 4, 9],
     ], true);
     expect((await cotas('2027-08')).map((c) => [c.servico, c.prioridade])).toEqual([['JES', 1], ['Bioma', 2], ['PE Seguro', 9]]);
   });
 
   it('o mês aceita aaaa-mm, mm/aaaa e a data que o Planilhas faz; outro texto é problema', async () => {
     const previa = await importarCotas([
-      ['2027-09', '', '', 'JES', 1, '', 1],
-      ['10/2027', '', '', 'JES', 1, '', 1],
-      [new Date(Date.UTC(2027, 10, 1)), '', '', 'JES', 1, '', 1],
-      ['setembro', '', '', 'JES', 1, '', 1],
-      ['', '', '', 'JES', 1, '', 1],
+      ['2027-09', '', '', 'JES', 1, 1],
+      ['10/2027', '', '', 'JES', 1, 1],
+      [new Date(Date.UTC(2027, 10, 1)), '', '', 'JES', 1, 1],
+      ['setembro', '', '', 'JES', 1, 1],
+      ['', '', '', 'JES', 1, 1],
     ]);
-    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual(['2027-09|JES|interna', '2027-10|JES|interna', '2027-11|JES|interna']);
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual(['2027-09|JES', '2027-10|JES', '2027-11|JES']);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 5, mensagem: 'Mês "setembro" de JES', solucao: 'Use aaaa-mm ou mm/aaaa na coluna MÊS.' },
       { aba: 'COTAS', linha: 6, mensagem: 'Mês vazio em JES', solucao: 'Preencha o mês na coluna MÊS.' },
@@ -179,18 +179,18 @@ describe('importação de cotas', () => {
 
   // [foco 3] o ano 0000 passava e dava erro 500 já na prévia
   it('mês do ano 0000 vira problema, nunca erro do banco', async () => {
-    const previa = await importarCotas([['0000-05', '', '', 'JES', 1, '', 1]]);
+    const previa = await importarCotas([['0000-05', '', '', 'JES', 1, 1]]);
     expect(previa.problemas).toEqual([{ aba: 'COTAS', linha: 2, mensagem: 'Mês "0000-05" de JES', solucao: 'Use aaaa-mm ou mm/aaaa na coluna MÊS.' }]);
   });
 
-  it('linha repetida do mesmo serviço e origem no mês vira problema (vale a primeira)', async () => {
+  it('linha repetida do mesmo serviço no mês vira problema (vale a primeira)', async () => {
     const previa = await importarCotas([
-      ['2027-12', '', '', 'JES', 5, 'interna', 1],
-      ['2027-12', '', '', 'JES', 6, 'interna', 2],
+      ['2027-12', '', '', 'JES', 5, 1],
+      ['2027-12', '', '', 'JES', 6, 2],
     ]);
     expect(previa.novos).toHaveLength(1);
     expect(previa.problemas).toEqual([
-      { aba: 'COTAS', linha: 3, mensagem: 'Cota repetida: JES (interna) em dezembro de 2027', solucao: 'Apague a linha repetida e mantenha só a certa.' },
+      { aba: 'COTAS', linha: 3, mensagem: 'Cota repetida: JES em dezembro de 2027', solucao: 'Apague a linha repetida e mantenha só a certa.' },
     ]);
   });
 
@@ -207,18 +207,18 @@ describe('importação de cotas', () => {
 
   it('mudar a quantidade e a prioridade aparece como alterado e atualiza', async () => {
     const mes = '2028-01';
-    await importarCotas([[mes, '', '', 'JES', 10, '', 2]], true);
-    const previa = await importarCotas([[mes, '', '', 'JES', 14, '', 1]]);
+    await importarCotas([[mes, '', '', 'JES', 10, 2]], true);
+    const previa = await importarCotas([[mes, '', '', 'JES', 14, 1]]);
     expect(previa.alterados).toEqual([
-      { chave: `${mes}|JES|interna`, descricao: `JES (interna) em ${mesPorExtenso(mes)}`, mudancas: ['quantidade: 10 → 14', 'prioridade: 2 → 1'] },
+      { chave: `${mes}|JES`, descricao: `JES em ${mesPorExtenso(mes)}`, mudancas: ['quantidade: 10 → 14', 'prioridade: 2 → 1'] },
     ]);
-    await importarCotas([[mes, '', '', 'JES', 14, '', 1]], true);
+    await importarCotas([[mes, '', '', 'JES', 14, 1]], true);
     expect((await cotas(mes))[0]).toMatchObject({ quantidade: 14, prioridade: 1 });
   });
 
   // [foco 1]
   it('importar duas vezes não grava nada (nem auditoria)', async () => {
-    const linhas = [['2028-03', '', '', 'Bioma', 7, '', 1], ['2028-03', '', '', 'JES', 9, 'externa', 2]];
+    const linhas = [['2028-03', '', '', 'Bioma', 7, 1], ['2028-03', '', '', 'JES', 9, 2]];
     await importarCotas(linhas, true);
     const antes = await auditoria();
     const previa = await importarCotas(linhas);
@@ -237,7 +237,7 @@ describe('importação de cotas', () => {
   });
 
   it('mês no formato do protótipo (m/aaaa) é lido', async () => {
-    const previa = await importarCotas([['3/2027', '', '', 'JES', 7, 'interna', 1]]);
+    const previa = await importarCotas([['3/2027', '', '', 'JES', 7, 1]]);
     expect(previa.problemas).toEqual([]);
     expect(previa.novos).toHaveLength(1);
   });
@@ -245,7 +245,7 @@ describe('importação de cotas', () => {
   it('cota de serviço desativado vira problema', async () => {
     await servico('Operação Velha', 'pjes');
     await api.banco.query("update servico set ativo = false where unidade_id = $1 and nome = 'Operação Velha'", [api.ids.secao]);
-    const previa = await importarCotas([[MES, '', '', 'Operação Velha', 3, 'interna', 1]]);
+    const previa = await importarCotas([[MES, '', '', 'Operação Velha', 3, 1]]);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 2, mensagem: 'Serviço Operação Velha está desativado', solucao: 'Reative o serviço na tela de Turnos ou use outro.' },
     ]);

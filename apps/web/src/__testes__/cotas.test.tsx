@@ -9,11 +9,11 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responde
 const mes = mesAtual();
 const anterior = somarMeses(mes, -1);
 const cota = (c: Partial<Cota>): Cota => ({
-  id: 'c1', mes, servicoId: 'sv-jes', quantidade: 30, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12, ...c,
+  id: 'c1', mes, servicoId: 'sv-jes', quantidade: 30, prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12, dias: [], ...c,
 });
 const COTAS: Cota[] = [
   cota({}),
-  cota({ id: 'c2', servicoId: 'sv-pe', servico: 'PE Seguro', cor: '#3C5F9C', quantidade: 10, origem: 'externa', prioridade: 2, distribuidas: 13 }),
+  cota({ id: 'c2', servicoId: 'sv-pe', servico: 'PE Seguro', cor: '#3C5F9C', quantidade: 10, prioridade: 2, distribuidas: 13 }),
 ];
 const servico = (s: Partial<Servico>): Servico => ({ id: 'x', nome: 'X', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#000000', tiraDoExpediente: false, ativo: true, fixo: false, turnos: [], ...s });
 const SERVICOS = [
@@ -36,14 +36,15 @@ const linhaDe = async (nome: string) => (await screen.findByText(nome)).closest(
 afterEach(() => vi.restoreAllMocks());
 
 describe('cotas', () => {
-  it('lista as cotas do mês com serviço, origem e prioridade', async () => {
+  it('lista as cotas do mês com serviço e prioridade, sem a coluna Origem (6.72)', async () => {
     api();
     abrir('/cotas');
     const jes = await linhaDe('JES');
-    expect(within(jes).getByText('Interna')).toBeInTheDocument();
     expect(within(jes).getByText('1')).toBeInTheDocument();
-    const pe = await linhaDe('PE Seguro');
-    expect(within(pe).getByText('Externa')).toBeInTheDocument();
+    await linhaDe('PE Seguro');
+    expect(screen.queryByRole('columnheader', { name: 'Origem' })).toBeNull();
+    expect(screen.queryByText('Interna')).toBeNull();
+    expect(screen.queryByText('Externa')).toBeNull();
     expect(screen.queryByText('não conta para a meta')).toBeNull();
   });
 
@@ -143,7 +144,7 @@ describe('cotas', () => {
     expect(await screen.findByText('Nenhuma cota copiada: 1 de serviço desativado ficou de fora. Reative o serviço na tela de Turnos para copiá-la.')).toBeInTheDocument();
   });
 
-  it('adicionar cota envia o mês, o serviço, a quantidade, a origem e a prioridade', async () => {
+  it('adicionar cota envia o mês, o serviço, a quantidade e a prioridade (sem origem)', async () => {
     const f = api({ 'POST /api/unidades/u-1sb/cotas': { status: 201, corpo: cota({ id: 'c3' }) } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Adicionar cota' }));
@@ -152,9 +153,10 @@ describe('cotas', () => {
     await userEvent.type(within(dialogo).getByLabelText('Quantidade'), '8');
     expect(within(dialogo).getByLabelText('Prioridade')).toHaveValue(3); // a seguinte às que já existem
     expect(within(dialogo).queryByLabelText('Conta para a meta de ativação')).toBeNull();
+    expect(within(dialogo).queryByText('Origem')).toBeNull();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas')).toEqual({ mes, servicoId: 'sv-pe', quantidade: 8, origem: 'interna', prioridade: 3 }),
+      expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas')).toEqual({ mes, servicoId: 'sv-pe', quantidade: 8, prioridade: 3 }),
     );
   });
 
@@ -167,13 +169,13 @@ describe('cotas', () => {
   });
 
   it('a mensagem da API aparece no diálogo', async () => {
-    api({ 'POST /api/unidades/u-1sb/cotas': { status: 409, corpo: { erro: `Já existe uma cota de JES (interna) em ${mesPorExtenso(mes)}.` } } });
+    api({ 'POST /api/unidades/u-1sb/cotas': { status: 409, corpo: { erro: `Já existe uma cota de JES em ${mesPorExtenso(mes)}.` } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Adicionar cota' }));
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Quantidade'), '8');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
-    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Já existe uma cota de JES (interna)');
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent(`Já existe uma cota de JES em ${mesPorExtenso(mes)}.`);
   });
 
   it('a mensagem do campo que a API recusou aparece no diálogo', async () => {
@@ -189,7 +191,7 @@ describe('cotas', () => {
   it('editar a cota envia só o que a tela mostra', async () => {
     const f = api({ 'PATCH /api/cotas/c1': { status: 200, corpo: cota({ quantidade: 40 }) } });
     abrir('/cotas');
-    await userEvent.click(await screen.findByRole('button', { name: 'Editar cota de JES (interna)' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar cota de JES' }));
     const dialogo = await screen.findByRole('dialog');
     const qtd = within(dialogo).getByLabelText('Quantidade');
     expect(qtd).toHaveValue(30);
@@ -197,15 +199,15 @@ describe('cotas', () => {
     await userEvent.type(qtd, '40');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'PATCH /api/cotas/c1')).toEqual({ servicoId: 'sv-jes', quantidade: 40, origem: 'interna', prioridade: 1 }),
+      expect(corpoEnviado(f, 'PATCH /api/cotas/c1')).toEqual({ servicoId: 'sv-jes', quantidade: 40, prioridade: 1 }),
     );
   });
 
   it('remover pergunta antes e apaga a cota', async () => {
     const f = api({ 'DELETE /api/cotas/c1': { status: 204 } });
     abrir('/cotas');
-    await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES (interna)' }));
-    expect(await screen.findByRole('dialog', { name: 'Remover a cota?' })).toHaveTextContent(`Cota de JES (interna) de ${mesPorExtenso(mes)}.`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES' }));
+    expect(await screen.findByRole('dialog', { name: 'Remover a cota?' })).toHaveTextContent(`Cota de JES de ${mesPorExtenso(mes)}.`);
     await responderConfirmacao('Remover');
     await waitFor(() => expect(f.mock.calls.some(([e, i]) => String(e).includes('/api/cotas/c1') && i?.method === 'DELETE')).toBe(true));
   });
@@ -213,7 +215,7 @@ describe('cotas', () => {
   it('desistir da pergunta não apaga', async () => {
     const f = api();
     abrir('/cotas');
-    await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES (interna)' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES' }));
     await responderConfirmacao('Cancelar');
     expect(f.mock.calls.some(([, i]) => i?.method === 'DELETE')).toBe(false);
   });
@@ -259,11 +261,80 @@ describe('cotas', () => {
   });
 });
 
+describe('os dias da cota (6.72)', () => {
+  const COM_DIAS: Cota[] = [cota({ dias: [{ data: `${mes}-05`, minimo: 3, maximo: 6 }] }), COTAS[1]!];
+  const abrirDias = async (cotas: Cota[], extra: Parameters<typeof simularApi>[0] = {}) => {
+    const f = api(extra, cotas);
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Dias da cota de JES' }));
+    return { f, dialogo: await screen.findByRole('dialog', { name: 'Dias da cota de JES' }) };
+  };
+
+  it('a linha diz se vale só o total ou quantos dias têm meta', async () => {
+    api({}, COM_DIAS);
+    abrir('/cotas');
+    expect(within(await linhaDe('JES')).getByText('1 dia com meta')).toBeInTheDocument();
+    expect(within(await linhaDe('PE Seguro')).getByText('Só o total')).toBeInTheDocument();
+  });
+
+  it('"Dias da cota" abre a lista: sem dias, a frase do total; "Adicionar dia" põe uma linha com data e meta', async () => {
+    const { dialogo } = await abrirDias(COTAS);
+    expect(within(dialogo).getByText('Nenhum dia com meta: vale só o total do mês.')).toBeInTheDocument();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Adicionar dia' }));
+    expect(within(dialogo).getByLabelText('Dia 1')).toHaveValue('');
+    expect(within(dialogo).getByLabelText('Meta do dia 1')).toHaveValue(1);
+    expect(within(dialogo).getByText('Metas: 1 de 30')).toBeInTheDocument();
+    expect(within(dialogo).queryByLabelText(/máximo/i)).toBeNull();
+  });
+
+  it('salvar manda a lista toda para a API (o máximo que já estava gravado volta igual) e fecha', async () => {
+    const { f, dialogo } = await abrirDias(COM_DIAS, { 'PUT /api/cotas/c1/dias': { status: 200, corpo: COM_DIAS[0]! } });
+    expect(within(dialogo).getByLabelText('Dia 1')).toHaveValue(`${mes}-05`);
+    expect(within(dialogo).getByLabelText('Meta do dia 1')).toHaveValue(3);
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Adicionar dia' }));
+    fireEvent.change(within(dialogo).getByLabelText('Dia 2'), { target: { value: `${mes}-02` } });
+    fireEvent.change(within(dialogo).getByLabelText('Meta do dia 2'), { target: { value: '2' } });
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    await waitFor(() =>
+      expect(corpoEnviado(f, 'PUT /api/cotas/c1/dias')).toEqual({ dias: [{ data: `${mes}-02`, minimo: 2, maximo: null }, { data: `${mes}-05`, minimo: 3, maximo: 6 }] }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Dias da cota de JES' })).toBeNull());
+  });
+
+  it('tirar o dia tira a linha, e salvar sem nenhum dia limpa a lista', async () => {
+    const { f, dialogo } = await abrirDias(COM_DIAS, { 'PUT /api/cotas/c1/dias': { status: 200, corpo: cota({}) } });
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar o dia 1' }));
+    expect(within(dialogo).queryByLabelText('Dia 1')).toBeNull();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PUT /api/cotas/c1/dias')).toEqual({ dias: [] }));
+  });
+
+  it('a recusa da API fica na janela, com o que foi digitado', async () => {
+    const { dialogo } = await abrirDias(COTAS, { 'PUT /api/cotas/c1/dias': { status: 400, corpo: { erro: 'A soma das metas dos dias passa da cota do mês.' } } });
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Adicionar dia' }));
+    fireEvent.change(within(dialogo).getByLabelText('Dia 1'), { target: { value: `${mes}-07` } });
+    fireEvent.change(within(dialogo).getByLabelText('Meta do dia 1'), { target: { value: '40' } });
+    expect(within(dialogo).getByText('Metas: 40 de 30')).toHaveClass('text-alerta');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('A soma das metas dos dias passa da cota do mês.');
+    expect(within(dialogo).getByLabelText('Dia 1')).toHaveValue(`${mes}-07`);
+    expect(within(dialogo).getByLabelText('Meta do dia 1')).toHaveValue(40);
+  });
+
+  it('o campo de data só aceita dias do mês da cota', async () => {
+    const { dialogo } = await abrirDias(COTAS);
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Adicionar dia' }));
+    const campo = within(dialogo).getByLabelText('Dia 1');
+    expect(campo).toHaveAttribute('min', `${mes}-01`);
+    expect(campo.getAttribute('max')).toMatch(new RegExp(`^${mes}-(28|29|30|31)$`));
+  });
+});
+
 describe('restantesPorServico', () => {
   const jes = (c: Partial<Cota>) => cota({ servicoId: 'sv-jes', servico: 'JES', ...c });
 
-  it('soma a interna e a externa do mesmo serviço numa só', () => {
-    const r = restantesPorServico([jes({ id: 'a', quantidade: 30, distribuidas: 5 }), jes({ id: 'b', origem: 'externa', quantidade: 10, distribuidas: 0 })]);
+  it('junta no mesmo serviço o que vier de mais de uma cota (desde a 6.72 há uma só por serviço)', () => {
+    const r = restantesPorServico([jes({ id: 'a', quantidade: 30, distribuidas: 5 }), jes({ id: 'b', quantidade: 10, distribuidas: 0 })]);
     expect(r).toEqual([{ servicoId: 'sv-jes', servico: 'JES', cor: '#6E56A8', quantidade: 40, usadas: 5 }]);
   });
 

@@ -15,9 +15,10 @@ async function bancoAte0012(): Promise<Banco> {
   await migrar(banco, ate);
   return banco;
 }
+// só até a 0013: a 0053 (6.72) tira a origem e muda a chave da cota, e este teste é da regra que valia entre as duas
 const aplicar0013 = async (banco: Banco) => {
   const ate = mkdtempSync(join(tmpdir(), 'migracoes-'));
-  for (const f of readdirSync(PASTA_MIGRACOES).filter((f) => f.endsWith('.sql'))) copyFileSync(join(PASTA_MIGRACOES, f), join(ate, f));
+  for (const f of readdirSync(PASTA_MIGRACOES).filter((f) => f.endsWith('.sql') && f < '0014')) copyFileSync(join(PASTA_MIGRACOES, f), join(ate, f));
   await migrar(banco, ate);
 };
 async function cenario(banco: Banco) {

@@ -1,15 +1,14 @@
 // Grade geral: o mês de todo o efetivo da seção, agrupado em equipes (uma linha por militar, uma coluna por dia).
 import type { SaldosDoMes } from './escala-do-mes.ts';
 
-/** Um bloco de um dia: um serviço escalado (com a letra do turno) ou o expediente implícito do Adm (sem alocação, sem serviço e sem letra). */
+/** Um bloco de um dia: um serviço escalado, com a letra do turno. O expediente do Adm é o serviço "Expediente" lançado pela pré-escala e vem como qualquer outro (6.71). */
 export type BlocoDaGrade = {
-  alocacaoId: string | null;
-  servico: { id: string; nome: string; cor: string; tipo: 'ordinario' | 'pjes' | 'diaria' } | null;
-  letra: string | null;
+  alocacaoId: string;
+  servico: { id: string; nome: string; cor: string; tipo: 'ordinario' | 'pjes' | 'diaria' };
+  letra: string;
   /** HH:MM */
   inicio: string;
   fim: string;
-  expediente: boolean;
 };
 
 /**
@@ -24,7 +23,7 @@ export type LinhaDaGrade = {
   nomeGuerra: string;
   matricula: string;
   jornada: 'pronto' | 'adm';
-  /** só os dias do mês com bloco; os blocos de cada dia vêm em ordem de início (o expediente antes) */
+  /** só os dias do mês com bloco; os blocos de cada dia vêm em ordem de início */
   dias: Record<string, BlocoDaGrade[]>;
   /** os dias do mês com choque de horário */
   choques: string[];

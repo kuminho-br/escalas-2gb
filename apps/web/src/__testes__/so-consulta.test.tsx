@@ -44,7 +44,7 @@ const GRADE: GradeDoMes = {
     chave: 'eq-alfa', nome: 'Alfa',
     linhas: [{
       militarId: 'm-cabo', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', choques: [], afastamentos: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
-      dias: { [dia(10)]: [{ alocacaoId: 'a1', servico: { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false }] },
+      dias: { [dia(10)]: [{ alocacaoId: 'a1', servico: { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '20:00' }] },
     }],
   }],
 };
@@ -68,10 +68,10 @@ const FAIXA: FaixaDoDia = {
   inicio: '08:00', fim: '20:00', noturna: false, turnos: [{ turnoId: 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'A' }], guarnicoes: [CARD], semPosto: [{ ...ocupante('SOBRA') }],
   removidos: [{ remocaoId: 'r1', militarId: 'm-x', nomeGuerra: 'REMOVIDO', servico: 'Pronto' }],
 };
-const DIA_DA_ESCALA: DiaDaEscala = { data: dia(1), diaDaSemana: 2, feriado: null, faixas: [FAIXA], obrigatoriasVazias: 1 };
+const DIA_DA_ESCALA: DiaDaEscala = { data: dia(1), diaDaSemana: 2, feriado: null, faixas: [FAIXA], obrigatoriasVazias: 1, metasAbaixo: [] };
 const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [DIA_DA_ESCALA], resumo: { preenchidas: 1, obrigatorias: 2, obrigatoriasVazias: 1 }, estado: { estado: 'rascunho', emRetificacao: false, em: null, por: null }, podePublicar: false, podeAlterarPassado: false };
 const ESCALAS: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }];
-const COTAS: Cota[] = [{ id: 'c1', mes: MES, servicoId: 'sv-jes', quantidade: 30, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12 }];
+const COTAS: Cota[] = [{ id: 'c1', mes: MES, servicoId: 'sv-jes', quantidade: 30, prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12, dias: [] }];
 const DIA_DO_EFETIVO = hoje();
 const trecho = (inicio: number, fim: number, ocupado: boolean): TrechoNoEfetivo => ({
   inicio, fim, opcoes: ocupado ? [] : [{ escalaId: 'e1', escala: 'Ordinário', inicio: '08:00', fim: '20:00' }],
@@ -276,7 +276,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     await screen.findByRole('table');
     expect(screen.queryByText(/^Só consulta:/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Adicionar cota' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar cota de JES (interna)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar cota de JES' })).toBeInTheDocument();
   });
 });
 

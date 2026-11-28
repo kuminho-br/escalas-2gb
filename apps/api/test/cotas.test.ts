@@ -15,7 +15,7 @@ const atual = hojeRecife().slice(0, 7);
 const anterior = somarMeses(atual, -1);
 const secao = () => `/api/unidades/${api.ids.secao}`;
 const lista = async (mes: string): Promise<Cota[]> => (await api.pedir('escalante', 'GET', `${secao()}/cotas?mes=${mes}`)).json();
-const corpo = (servicoId: string, extra: Record<string, unknown> = {}) => ({ mes: atual, servicoId, quantidade: 10, origem: 'interna', prioridade: 1, ...extra });
+const corpo = (servicoId: string, extra: Record<string, unknown> = {}) => ({ mes: atual, servicoId, quantidade: 10, prioridade: 1, ...extra });
 async function criar(servicoId: string, extra: Record<string, unknown> = {}): Promise<Cota> {
   const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(servicoId, extra));
   expect(r.status).toBe(201);
@@ -44,7 +44,8 @@ describe('cotas', () => {
     await criar(jes, { prioridade: 1, quantidade: 30 });
     const l = await lista(atual);
     expect(l.map((c) => c.servico)).toEqual(['JES', 'PE Seguro']);
-    expect(l[0]).toMatchObject({ mes: atual, servicoId: jes, quantidade: 30, origem: 'interna', prioridade: 1, cor: '#6E56A8', distribuidas: 0 });
+    expect(l[0]).toMatchObject({ mes: atual, servicoId: jes, quantidade: 30, prioridade: 1, cor: '#6E56A8', distribuidas: 0, dias: [] });
+    expect(l[0]).not.toHaveProperty('origem');
     expect(l[0]).not.toHaveProperty('contaMeta');
     expect(l[1]).toMatchObject({ servico: 'PE Seguro', quantidade: 12, cor: '#3C5F9C' });
   });
@@ -67,11 +68,10 @@ describe('cotas', () => {
     expect(e.status).toBe(409);
   });
 
-  it('a mesma cota (serviço e origem) duas vezes no mês é 409; origem diferente passa', async () => {
+  it('a mesma cota (o mesmo serviço) duas vezes no mês é 409, sem distinguir origem (6.72)', async () => {
     const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { prioridade: 4 }));
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe(`Já existe uma cota de Bioma (interna) em ${mesPorExtenso(atual)}.`);
-    expect((await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { origem: 'externa', prioridade: 4 }))).status).toBe(201);
+    expect((await r.json()).erro).toBe(`Já existe uma cota de Bioma em ${mesPorExtenso(atual)}.`);
   });
 
   it('um cliente antigo que ainda manda contaMeta é atendido, e o campo não volta na leitura', async () => {
@@ -82,19 +82,22 @@ describe('cotas', () => {
     expect(await e.json()).not.toHaveProperty('contaMeta');
   });
 
-  it('editar quantidade, prioridade e origem', async () => {
-    const c = await criar(peSeguro, { origem: 'externa', quantidade: 3, prioridade: 5 });
+  it('editar quantidade e prioridade; trocar para um serviço que já tem cota no mês é 409', async () => {
+    const mes = somarMeses(atual, 4);
+    const c = await criar(peSeguro, { mes, quantidade: 3, prioridade: 5 });
+    await criar(bioma, { mes, quantidade: 3, prioridade: 6 });
     const e = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { quantidade: 8, prioridade: 2 });
     expect(e.status).toBe(200);
-    expect(await e.json()).toMatchObject({ quantidade: 8, prioridade: 2, origem: 'externa', servico: 'PE Seguro' });
-    const igual = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { origem: 'interna' });
-    expect(igual.status).toBe(409); // já existe a PE Seguro interna do mês
+    expect(await e.json()).toMatchObject({ quantidade: 8, prioridade: 2, servico: 'PE Seguro' });
+    const igual = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { servicoId: bioma });
+    expect(igual.status).toBe(409);
+    expect((await igual.json()).erro).toBe(`Já existe uma cota de Bioma em ${mesPorExtenso(mes)}.`);
   });
 
   it('apagar a cota', async () => {
-    const c = await criar(jes, { origem: 'externa', prioridade: 9 });
+    const c = await criar(jes, { mes: somarMeses(atual, 10), prioridade: 9 });
     expect((await api.pedir('escalante', 'DELETE', `/api/cotas/${c.id}`)).status).toBe(204);
-    expect((await lista(atual)).find((x) => x.id === c.id)).toBeUndefined();
+    expect((await lista(somarMeses(atual, 10))).find((x) => x.id === c.id)).toBeUndefined();
   });
 
   it('serviço de outra seção é 400 no campo servicoId', async () => {
@@ -105,7 +108,7 @@ describe('cotas', () => {
 
   it('quantidade e prioridade fora do limite são 400, nunca erro do banco', async () => {
     for (const ruim of [{ quantidade: 0 }, { quantidade: 99999999999 }, { prioridade: 0 }, { prioridade: 5000000000 }, { mes: '2026-13' }, { mes: '0000-05' }]) {
-      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { origem: 'externa', ...ruim }));
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { ...ruim }));
       expect(r.status).toBe(400);
     }
   });
@@ -118,13 +121,13 @@ describe('cotas', () => {
   it('copiar do mês anterior não duplica o que o mês já tem', async () => {
     const dest = somarMeses(atual, 3);
     await criar(jes, { mes: somarMeses(atual, 2), quantidade: 7, prioridade: 1 });
-    await criar(peSeguro, { mes: somarMeses(atual, 2), quantidade: 4, prioridade: 2, origem: 'externa' });
-    await criar(jes, { mes: dest, quantidade: 99, prioridade: 1 }); // já existe a JES interna no destino
+    await criar(peSeguro, { mes: somarMeses(atual, 2), quantidade: 4, prioridade: 2 });
+    await criar(jes, { mes: dest, quantidade: 99, prioridade: 1 }); // já existe a JES no destino
     const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: somarMeses(atual, 2), para: dest });
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ copiados: 1, puladas: 0 });
     const l = await lista(dest);
-    expect(l.map((c) => [c.servico, c.origem, c.quantidade])).toEqual([['JES', 'interna', 99], ['PE Seguro', 'externa', 4]]);
+    expect(l.map((c) => [c.servico, c.quantidade])).toEqual([['JES', 99], ['PE Seguro', 4]]);
     // copiar de novo não duplica
     expect(await (await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: somarMeses(atual, 2), para: dest })).json()).toEqual({ copiados: 0, puladas: 0 });
   });
@@ -132,7 +135,7 @@ describe('cotas', () => {
   it('criar cota de serviço desativado é 400 no campo servicoId', async () => {
     await desativar(bioma);
     try {
-      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { mes: somarMeses(atual, 35), origem: 'externa' }));
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { mes: somarMeses(atual, 35) }));
       expect(r.status).toBe(400);
       expect(await r.json()).toEqual({
         erro: 'Confira os campos destacados.',
@@ -145,8 +148,8 @@ describe('cotas', () => {
 
   it('trocar o serviço da cota para um desativado é 400; mudar só a quantidade de uma cota antiga dele passa', async () => {
     const mes = somarMeses(atual, 30);
-    const antiga = await criar(bioma, { mes, quantidade: 5, origem: 'interna' }); // criada quando o Bioma ainda estava ativo
-    const outra = await criar(jes, { mes, quantidade: 3, origem: 'externa', prioridade: 2 });
+    const antiga = await criar(bioma, { mes, quantidade: 5 }); // criada quando o Bioma ainda estava ativo
+    const outra = await criar(jes, { mes, quantidade: 3, prioridade: 2 });
     await desativar(bioma);
     try {
       const troca = await api.pedir('escalante', 'PATCH', `/api/cotas/${outra.id}`, { servicoId: bioma });
@@ -165,7 +168,7 @@ describe('cotas', () => {
     const antiga = await criar(bioma, { mes, quantidade: 5, prioridade: 1 });
     await desativar(bioma);
     try {
-      const r = await api.pedir('escalante', 'PATCH', `/api/cotas/${antiga.id}`, { servicoId: bioma, quantidade: 12, origem: 'interna', prioridade: 2 });
+      const r = await api.pedir('escalante', 'PATCH', `/api/cotas/${antiga.id}`, { servicoId: bioma, quantidade: 12, prioridade: 2 });
       expect(r.status).toBe(200);
       expect(await r.json()).toMatchObject({ servico: 'Bioma', quantidade: 12, prioridade: 2 });
     } finally {
@@ -192,22 +195,20 @@ describe('cotas', () => {
   it('copiar quando todas são de serviço desativado', async () => {
     const origem = somarMeses(atual, 33);
     const destino = somarMeses(atual, 34);
-    await criar(bioma, { mes: origem, quantidade: 5, origem: 'interna', prioridade: 1 });
-    await criar(bioma, { mes: origem, quantidade: 2, origem: 'externa', prioridade: 2 });
+    await criar(bioma, { mes: origem, quantidade: 5, prioridade: 1 });
     await desativar(bioma);
     try {
       const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: origem, para: destino });
-      expect(await r.json()).toEqual({ copiados: 0, puladas: 2 });
+      expect(await r.json()).toEqual({ copiados: 0, puladas: 1 });
       expect(await lista(destino)).toEqual([]);
     } finally {
       await reativar(bioma);
     }
   });
 
-  it('distribuídas conta as alocações do serviço no mês, em escalas da seção, na ordem das cotas', async () => {
+  it('distribuídas conta as alocações do serviço no mês, em escalas da seção (a cota única do serviço recebe todas, mesmo as que passam dela)', async () => {
     const mes = somarMeses(atual, 5);
-    const interna = await criar(peSeguro, { mes, quantidade: 2, prioridade: 1 });
-    const externa = await criar(peSeguro, { mes, quantidade: 5, prioridade: 2, origem: 'externa' });
+    const cota = await criar(peSeguro, { mes, quantidade: 2, prioridade: 1 });
     const escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Escala PE', titulo: 'ESCALA', militares_doc: 'todos', dias_doc: 'todos' });
     await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [escala, peSeguro]);
     const turno = await inserir(api.banco, 'turno', { servico_id: peSeguro, letra: 'A', inicio: '08:00', fim: '16:00' });
@@ -220,8 +221,7 @@ describe('cotas', () => {
     const fora = await inserir(api.banco, 'militar', { matricula: '991299-9', posto_grad_id: posto, nome_guerra: 'FORA' });
     await inserir(api.banco, 'alocacao', { militar_id: fora, escala_id: escala, servico_id: peSeguro, turno_id: turno, data: `${somarMeses(mes, 1)}-01`, origem: 'manual' });
     const l = await lista(mes);
-    expect(l.find((c) => c.id === interna.id)!.distribuidas).toBe(2);
-    expect(l.find((c) => c.id === externa.id)!.distribuidas).toBe(2);
+    expect(l.find((c) => c.id === cota.id)!.distribuidas).toBe(4);
   });
 
   it('sem papel na unidade: 403 em listar, criar, editar, apagar e copiar', async () => {
@@ -257,7 +257,7 @@ describe('copiar sem o índice único (antes da migração 0013 ser aplicada)', 
       expect(r.status).toBe(200);
       expect(await r.json()).toEqual({ copiados: 1, puladas: 0 });
     } finally {
-      await api.banco.query('create unique index cota_unica on cota (unidade_id, mes, servico_id, origem)');
+      await api.banco.query('create unique index cota_unica on cota (unidade_id, mes, servico_id)');
     }
   });
 });

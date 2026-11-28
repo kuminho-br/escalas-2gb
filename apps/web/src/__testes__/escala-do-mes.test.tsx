@@ -28,7 +28,7 @@ const faixa = (noturna: boolean, c: CardDaGuarnicao, extra: Partial<FaixaDoDia> 
   turnos: [{ turnoId: noturna ? 't-b' : 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: noturna ? 'B' : 'A' }], guarnicoes: [c], semPosto: [], removidos: [], ...extra,
 });
 const dia = (n: number, feriado: string | null, faixas: FaixaDoDia[]): DiaDaEscala => ({
-  data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado, faixas, obrigatoriasVazias: faixas.reduce((s, f) => s + f.guarnicoes.reduce((t, g) => t + g.faltam.length, 0), 0),
+  data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado, faixas, obrigatoriasVazias: faixas.reduce((s, f) => s + f.guarnicoes.reduce((t, g) => t + g.faltam.length, 0), 0), metasAbaixo: [],
 });
 const ESCALA: EscalaDoMes = {
   escalaId: 'e1', nome: 'Ordinário', mes: MES,
@@ -55,6 +55,37 @@ async function agirNaPlaca(escopo: HTMLElement, nome: RegExp | string, acao: str
   await userEvent.click(within(escopo).getByRole('button', { name: nome }));
   await userEvent.click(await screen.findByRole('menuitem', { name: acao }));
 }
+
+describe('o aviso do dia abaixo da meta da cota (6.72)', () => {
+  const COM_META = (extra: Partial<EscalaDoMes> = {}): EscalaDoMes => ({
+    ...ESCALA,
+    dias: ESCALA.dias.map((d, i) => (i === 1 ? { ...d, metasAbaixo: [{ servico: 'JES', minimo: 3, escalados: 1 }, { servico: 'Bioma', minimo: 2, escalados: 0 }] } : d)),
+    ...extra,
+  });
+
+  it('o dia com meta abaixo do mínimo mostra uma linha por serviço: "{serviço}: {escalados} de {mínimo} neste dia."', async () => {
+    api(COM_META());
+    abrir(`/escala-do-mes?mes=${MES}`);
+    const dia2 = await screen.findByRole('region', { name: 'Dia 2' });
+    const avisos = within(dia2).getByRole('list', { name: 'Metas do dia 2' });
+    expect(within(avisos).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['JES: 1 de 3 neste dia.', 'Bioma: 0 de 2 neste dia.']);
+  });
+
+  it('o dia sem meta abaixo do mínimo não traz o aviso', async () => {
+    api(COM_META());
+    abrir(`/escala-do-mes?mes=${MES}`);
+    await screen.findByRole('region', { name: 'Dia 2' });
+    expect(screen.queryByRole('list', { name: 'Metas do dia 1' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Metas do dia 3' })).toBeNull();
+  });
+
+  it('o aviso não bloqueia nada: o botão de publicar continua ativo para quem pode', async () => {
+    api(COM_META({ podePublicar: true }));
+    abrir(`/escala-do-mes?mes=${MES}`);
+    await screen.findByRole('list', { name: 'Metas do dia 2' });
+    expect(screen.getByRole('button', { name: 'Publicar' })).toBeEnabled();
+  });
+});
 
 describe('escala do mês', () => {
   it('o trilho leva a "Escala do mês", que abre a primeira escala ativa no mês atual', async () => {
@@ -1031,7 +1062,7 @@ describe('acumular funções', () => {
 });
 
 describe('cotas restantes na escala do mês', () => {
-  const cota = (c: Partial<Cota>): Cota => ({ id: 'c1', mes: MES, servicoId: 's-jes', quantidade: 40, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 2, ...c });
+  const cota = (c: Partial<Cota>): Cota => ({ id: 'c1', mes: MES, servicoId: 's-jes', quantidade: 40, prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 2, dias: [], ...c });
   const COTAS = [cota({}), cota({ id: 'c2', servicoId: 's-bioma', servico: 'Bioma', cor: '#C08A1E', quantidade: 20, distribuidas: 0 })];
   // a escala tem Pronto e JES nos turnos; o Bioma não faz parte dela
   const comJes = (): EscalaDoMes => {
