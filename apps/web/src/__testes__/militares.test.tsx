@@ -637,9 +637,11 @@ describe('alterar situação', () => {
 
   it('a situação atual é a de hoje: com uma mudança marcada para depois de hoje, vale a anterior', async () => {
     const amanha = new Date(Date.now() + 86_400_000 * 3).toISOString().slice(0, 10);
+    // o dia anterior sai de `Date`: subtrair do texto do dia dá "00" quando a mudança cai no dia 1
+    const vespera = new Date(Date.parse(`${amanha}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
     const ficha = { ...FICHA, rastreio: [
       { id: 'l2', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Bravo', jornada: 'pronto' as const, desde: amanha, quadro: 'QBMG', situacao: 'Ativa', ate: null },
-      { id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto' as const, desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: `${amanha.slice(0, 8)}${String(Number(amanha.slice(8)) - 1).padStart(2, '0')}` },
+      { id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto' as const, desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: vespera },
     ] };
     rotas({ 'GET /api/militares/m1': { status: 200, corpo: ficha } });
     abrir('/militares/m1');
