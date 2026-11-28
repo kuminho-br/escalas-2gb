@@ -1,15 +1,24 @@
-import type { FiltrosDaBusca } from 'contratos';
+import { PROCURAR_EM_PADRAO, type FiltrosDaBusca } from 'contratos';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Marca } from './ArvoreDeMarcar';
 import { EXTRAS_VAZIOS, type Extras } from './FiltrosDaPesquisa';
 import { SelecaoDeMilitares } from './Selecao';
 
+/** Onde o texto da barra procura (6.63): matrícula e nome de guerra ligados, nome completo desligado. Pelo menos um fica ligado. */
+export type ProcurarEm = { matricula: boolean; nomeDeGuerra: boolean; nomeCompleto: boolean };
+export const PROCURAR_EM_INICIAL: ProcurarEm = { ...PROCURAR_EM_PADRAO };
+
+/** Os critérios da pesquisa além do texto da barra e de "Lotados em": o que a pessoa monta nas abas de "Critérios de pesquisa". */
+export type Criterios = { marcas: Marca[]; matriculas: string[]; extras: Extras; procurarEm: ProcurarEm };
+export const CRITERIOS_VAZIOS: Criterios = { marcas: [], matriculas: [], extras: EXTRAS_VAZIOS, procurarEm: PROCURAR_EM_INICIAL };
+
 /**
- * O que a pessoa montou em "Pesquisar militares" (as marcas da árvore, as matrículas do arquivo, "Mais filtros" e a busca em vigor), com a chave do endereço que a produziu.
- * Vive acima das rotas do Pecúlio (6.52): abrir a ficha de um militar e voltar não perde a seleção nem o que estava montado; sair do módulo Pecúlio zera tudo.
+ * O que a pessoa montou em "Pesquisar militares" (os critérios das abas, a busca em vigor e os critérios que valem nela, `valendo`: as etiquetas saem deles), com a chave do endereço
+ * que a produziu. Vive acima das rotas do Pecúlio (6.52): abrir a ficha de um militar e voltar não perde a seleção nem o que estava montado; sair do módulo Pecúlio zera tudo
+ * (cada visita começa no padrão).
  */
-export type EstadoDaPesquisa = { marcas: Marca[]; matriculas: string[]; extras: Extras; aplicados: FiltrosDaBusca | null; chave: string };
-export const ESTADO_VAZIO: EstadoDaPesquisa = { marcas: [], matriculas: [], extras: EXTRAS_VAZIOS, aplicados: null, chave: '|' };
+export type EstadoDaPesquisa = Criterios & { aplicados: FiltrosDaBusca | null; valendo: Criterios; chave: string };
+export const ESTADO_VAZIO: EstadoDaPesquisa = { ...CRITERIOS_VAZIOS, aplicados: null, valendo: CRITERIOS_VAZIOS, chave: '|' };
 
 type Contexto = { estado: EstadoDaPesquisa; mudar: (parte: Partial<EstadoDaPesquisa>) => void; reiniciar: (chave: string) => void };
 const Ctx = createContext<Contexto | null>(null);

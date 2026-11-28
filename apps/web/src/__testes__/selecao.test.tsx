@@ -14,7 +14,7 @@ const resultado = (militares: LinhaDaBusca[], haMais = false): ResultadoDaBusca 
 
 /** Cada "Buscar" recebe a próxima resposta da fila (a última se repete). */
 function api(fila: ResultadoDaBusca[], eu: unknown = NIVEL) {
-  const f = simularApi({ '/api/eu': { status: 200, corpo: eu }, 'GET /api/consulta/unidades': { status: 200, corpo: [] }, 'GET /api/consulta/militares': { status: 200, corpo: { militares: [linha('c1', 'COMUM1')], haMais: false } } });
+  const f = simularApi({ '/api/eu': { status: 200, corpo: eu }, 'GET /api/consulta/unidades': { status: 200, corpo: [] } });
   const padrao = f.getMockImplementation()!;
   let n = 0;
   f.mockImplementation(async (entrada, init) => {
@@ -27,13 +27,14 @@ function api(fila: ResultadoDaBusca[], eu: unknown = NIVEL) {
   return f;
 }
 const buscar = async (texto: string) => {
-  const campo = await screen.findByLabelText('Nome, nome de guerra ou matrícula');
+  const campo = await screen.findByLabelText('Matrícula ou nome de guerra');
   await userEvent.clear(campo);
   await userEvent.type(campo, texto);
   await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
 };
 const marca = (nome: string) => screen.findByRole('checkbox', { name: `Selecionar ${nome}` });
-const painel = () => screen.queryByRole('region', { name: /^Selecionados/ });
+const painel = () => screen.queryByRole('complementary', { name: /^Selecionados/ });
+const semNinguem = () => screen.findByRole('heading', { name: 'Selecionados (0)' });
 
 describe('a seleção na pesquisa (6.51)', () => {
   it('Review Focus 1: a seleção acumula entre buscas, e quem saiu do resultado continua selecionado', async () => {
@@ -53,8 +54,8 @@ describe('a seleção na pesquisa (6.51)', () => {
 
   it('6.62, Review Focus 4: a placa da unidade, na lista e no painel, é o menor caminho que a identifica ("2º GB / 1ª SB" e "3º GB / 1ª SB"), e cai na sigla quando o caminho não vem', async () => {
     api([resultado([
-      linha('m1', 'ANDRADE', { lotacaoCaminho: '2º GB / 1ª SB' }),
-      linha('m2', 'BARRETO', { lotacaoCaminho: '3º GB / 1ª SB' }),
+      linha('m1', 'ANDRADE', { lotacaoCaminho: '2º GB / 1ª SB', unidadeId: 'u-2gb-1sb' }),
+      linha('m2', 'BARRETO', { lotacaoCaminho: '3º GB / 1ª SB', unidadeId: 'u-3gb-1sb' }),
       linha('m3', 'CABRAL', { lotacaoCaminho: null }),
     ])]);
     abrir('/peculio/pesquisar');
@@ -66,7 +67,7 @@ describe('a seleção na pesquisa (6.51)', () => {
     expect(lista.getByText('1ª SB')).toBeInTheDocument();
     await userEvent.click(await marca('SD ANDRADE'));
     await userEvent.click(await marca('SD BARRETO'));
-    const selecionados = within(screen.getByRole('region', { name: /^Selecionados/ }));
+    const selecionados = within(screen.getByRole('complementary', { name: /^Selecionados/ }));
     expect(selecionados.getByText('2º GB / 1ª SB')).toBeInTheDocument();
     expect(selecionados.getByText('3º GB / 1ª SB')).toBeInTheDocument();
   });
@@ -78,7 +79,7 @@ describe('a seleção na pesquisa (6.51)', () => {
     const a = await marca('SD ANDRADE');
     await userEvent.click(a);
     await userEvent.click(a);
-    expect(painel()).toBeNull();
+    await semNinguem();
     await userEvent.click(a);
     await userEvent.click(await marca('SD BARRETO'));
     await screen.findByRole('heading', { name: 'Selecionados (2)' });
@@ -86,7 +87,7 @@ describe('a seleção na pesquisa (6.51)', () => {
     expect(await screen.findByRole('heading', { name: 'Selecionados (1)' })).toBeInTheDocument();
     expect(await marca('SD ANDRADE')).not.toBeChecked();
     await userEvent.click(within(painel()!).getByRole('button', { name: 'Limpar' }));
-    await waitFor(() => expect(painel()).toBeNull());
+    await semNinguem();
     expect(await marca('SD BARRETO')).not.toBeChecked();
   });
 
@@ -149,7 +150,7 @@ describe('a seleção na pesquisa (6.51)', () => {
     await buscar('abc');
     await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Mais de 5000 militares. Afine a busca.');
-    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
+    await semNinguem();
   });
 
   it('quem o usuário não pode alterar aparece sem marca para usar, e fica fora de "Selecionar estes"', async () => {
@@ -172,11 +173,11 @@ describe('a seleção na pesquisa (6.51)', () => {
     await router.navigate({ to: '/peculio/pesquisar' });
     await buscar('abc');
     await marca('SD ANDRADE');
-    expect(painel()).toBeNull();
+    await semNinguem();
   });
 
   it('o militar comum não vê marca, painel nem "Selecionar estes"', async () => {
-    api([], COMUM);
+    api([resultado([linha('c1', 'COMUM1', { podeAlterar: false })])], COMUM);
     abrir('/peculio/pesquisar');
     await buscar('abc');
     await screen.findByRole('list', { name: 'Militares encontrados' });

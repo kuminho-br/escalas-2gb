@@ -1,20 +1,31 @@
-import { LIMITE_DO_LOTE, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
-import { X } from 'lucide-react';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { pedir } from '@/api/cliente';
-import { Button } from '@/componentes/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import { AtualizarEmLote } from './AtualizarEmLote';
+import { LIMITE_DA_EXPORTACAO, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
+import { pedir } from '@/api/cliente';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+
+/** A seleção vai até o que a exportação aceita de uma vez (6.63); acima disso a pessoa vê esta frase, e não o erro da validação. */
+export const LIMITE_DA_SELECAO = LIMITE_DA_EXPORTACAO;
+export const MSG_LIMITE_DA_SELECAO = `Dá para selecionar até ${LIMITE_DA_SELECAO} militares de uma vez.`;
 
 type Contexto = {
   selecionados: LinhaDaBusca[];
+  /** A frase do limite, quando a última inclusão passou dele (nada entrou); some na mudança seguinte da seleção. */
+  aviso: string | null;
   tem: (id: string) => boolean;
   alternar: (linha: LinhaDaBusca) => void;
+  /** Põe as linhas na seleção; passando do limite, não entra nenhuma e o `aviso` diz por quê. */
   incluir: (linhas: LinhaDaBusca[]) => void;
   tirar: (id: string) => void;
   /** Troca os dados dos que já estão na seleção pelos das linhas novas (pelo id); quem não vem nas linhas fica como estava. */
   atualizar: (linhas: LinhaDaBusca[]) => void;
   limpar: () => void;
+  /**
+   * Depois de uma importação ou do lote: lê de novo os dados de quem está na seleção (a seleção continua com os mesmos militares, com o dado novo, a lotação inclusive) e faz a
+   * pesquisa e o Pecúlio buscarem de novo. As fichas já lidas saem do cache: abrir uma delas espera a leitura nova.
+   */
+  reler: () => void;
+  /** A releitura falhou: o que está na seleção pode ser a lotação de antes. */
+  releituraFalhou: boolean;
 };
 const SelecaoContext = createContext<Contexto | null>(null);
 
@@ -24,21 +35,49 @@ const SelecaoContext = createContext<Contexto | null>(null);
  */
 export function SelecaoDeMilitares({ ativa = true, children }: { ativa?: boolean; children: ReactNode }) {
   const [selecionados, setSelecionados] = useState<LinhaDaBusca[]>([]);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [releituraFalhou, setReleituraFalhou] = useState(false);
+  const queryClient = useQueryClient();
   // fora do módulo Pecúlio a seleção some
   useEffect(() => {
-    if (!ativa) setSelecionados([]);
+    if (!ativa) { setSelecionados([]); setAviso(null); }
   }, [ativa]);
+  // a seleção muda de uma vez só: a conta do limite e o aviso saem do mesmo valor
+  const mudar = useCallback((f: (atual: LinhaDaBusca[]) => LinhaDaBusca[]) => {
+    setSelecionados((atual) => {
+      const novo = f(atual);
+      if (novo.length > LIMITE_DA_SELECAO && novo.length > atual.length) { setAviso(MSG_LIMITE_DA_SELECAO); return atual; }
+      setAviso(null);
+      return novo;
+    });
+  }, []);
+  const reler = useCallback(() => {
+    if (selecionados.length > 0) {
+      void pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: selecionados.map((s) => s.matricula) }).then(
+        (r) => { setSelecionados((atual) => atual.map((s) => r.militares.find((l) => l.id === s.id) ?? s)); setReleituraFalhou(false); },
+        () => setReleituraFalhou(true),
+      );
+    }
+    queryClient.removeQueries({ queryKey: ['consulta', 'militar'] });
+    queryClient.removeQueries({ queryKey: ['militar'] });
+    void queryClient.invalidateQueries({ queryKey: ['consulta'] });
+    void queryClient.invalidateQueries({ queryKey: ['peculio'] });
+    void queryClient.invalidateQueries({ queryKey: ['militares'] });
+  }, [selecionados, queryClient]);
   const valor = useMemo<Contexto>(
     () => ({
       selecionados,
+      aviso,
+      reler,
+      releituraFalhou,
       tem: (id) => selecionados.some((s) => s.id === id),
-      alternar: (linha) => setSelecionados((atual) => (atual.some((s) => s.id === linha.id) ? atual.filter((s) => s.id !== linha.id) : [...atual, linha])),
-      incluir: (linhas) => setSelecionados((atual) => { const ja = new Set(atual.map((s) => s.id)); return [...atual, ...linhas.filter((l) => !ja.has(l.id))]; }),
-      tirar: (id) => setSelecionados((atual) => atual.filter((s) => s.id !== id)),
+      alternar: (linha) => mudar((atual) => (atual.some((s) => s.id === linha.id) ? atual.filter((s) => s.id !== linha.id) : [...atual, linha])),
+      incluir: (linhas) => mudar((atual) => { const ja = new Set(atual.map((s) => s.id)); return [...atual, ...linhas.filter((l) => !ja.has(l.id))]; }),
+      tirar: (id) => mudar((atual) => atual.filter((s) => s.id !== id)),
       atualizar: (linhas) => setSelecionados((atual) => atual.map((s) => linhas.find((l) => l.id === s.id) ?? s)),
-      limpar: () => setSelecionados([]),
+      limpar: () => { setSelecionados([]); setAviso(null); setReleituraFalhou(false); },
     }),
-    [selecionados],
+    [selecionados, aviso, mudar, reler, releituraFalhou],
   );
   return <SelecaoContext.Provider value={valor}>{children}</SelecaoContext.Provider>;
 }
@@ -47,61 +86,4 @@ export function useSelecao(): Contexto {
   const c = useContext(SelecaoContext);
   if (!c) throw new Error('useSelecao fora de SelecaoDeMilitares');
   return c;
-}
-
-/** O painel "Selecionados ({n})": quem está dentro, com "Tirar" em cada um e "Limpar". Sem ninguém, nem aparece. */
-export function PainelDeSelecionados() {
-  const { selecionados, tirar, limpar, atualizar } = useSelecao();
-  const queryClient = useQueryClient();
-  const [lote, setLote] = useState(false);
-  // a releitura dos selecionados depois do lote falhou: o que está na tela pode ser a lotação de antes, e o painel diz isso
-  const [releituraFalhou, setReleituraFalhou] = useState(false);
-  if (selecionados.length === 0 && !lote) return null;
-  const titulo = `Selecionados (${selecionados.length})`;
-  // "Selecionar todos" (6.54) pode passar do que o lote aceita: avisa aqui, em vez de a API recusar depois de a pessoa preencher tudo
-  const passouDoLote = selecionados.length > LIMITE_DO_LOTE;
-  return (
-    <section aria-labelledby="selecionados-titulo" className="mt-6 max-w-3xl rounded-xl border border-linha bg-superficie">
-      <div className="flex items-center justify-between gap-3 border-b border-linha px-4 py-2">
-        <h2 id="selecionados-titulo" className="font-cond text-lg font-semibold">{titulo}</h2>
-        <div className="flex items-center gap-2">
-          <Button type="button" disabled={passouDoLote} onClick={() => setLote(true)}>Atualizar em lote</Button>
-          <Button type="button" variant="discreto" onClick={() => { limpar(); setReleituraFalhou(false); }}>Limpar</Button>
-        </div>
-      </div>
-      {releituraFalhou && <p role="status" className="border-b border-linha px-4 py-2 text-apoio text-pendencia">Não foi possível ler de novo os dados dos selecionados: a lotação mostrada pode estar desatualizada.</p>}
-      {passouDoLote && <p className="border-b border-linha px-4 py-2 text-apoio text-apagado">{`A atualização em lote vai até ${LIMITE_DO_LOTE} militares. Tire alguns da seleção.`}</p>}
-      <ul className="max-h-60 divide-y divide-linha overflow-auto">
-        {selecionados.map((s) => (
-          <li key={s.id} className="flex min-w-0 items-center gap-2 px-4 py-2">
-            <span className="shrink-0 font-cond text-apoio text-apagado">{s.postoGrad}</span>
-            <span className="shrink-0 font-cond font-semibold">{s.nomeGuerra}</span>
-            {/* o caminho longo corta com reticências; o nome não encolhe */}
-            <span title={s.lotacaoCaminho ?? s.lotacao ?? undefined} className="ml-auto min-w-0 truncate rounded border border-linha px-1.5 font-cond text-xs">{s.lotacaoCaminho ?? s.lotacao ?? 'Sem lotação'}</span>
-            <Button type="button" variant="discreto" size="sm" aria-label={`Tirar ${s.postoGrad} ${s.nomeGuerra}`} onClick={() => tirar(s.id)}>
-              <X aria-hidden />
-              Tirar
-            </Button>
-          </li>
-        ))}
-      </ul>
-      {lote && (
-        <AtualizarEmLote
-          aoFechar={(aplicou) => {
-            setLote(false);
-            // aplicou: a seleção continua com os mesmos militares (a pessoa pode seguir com eles), com os dados lidos de novo; a pesquisa e o Pecúlio buscam de novo (o que mudou já aparece)
-            if (aplicou) {
-              void pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: selecionados.map((s) => s.matricula) }).then((r) => { atualizar(r.militares); setReleituraFalhou(false); }, () => setReleituraFalhou(true));
-              // as fichas já lidas (a de consulta e a completa) saem do cache: abrir uma delas espera a leitura nova, em vez de mostrar o dado de antes do lote
-              queryClient.removeQueries({ queryKey: ['consulta', 'militar'] });
-              queryClient.removeQueries({ queryKey: ['militar'] });
-              void queryClient.invalidateQueries({ queryKey: ['consulta'] });
-              void queryClient.invalidateQueries({ queryKey: ['peculio'] });
-              void queryClient.invalidateQueries({ queryKey: ['militares'] });
-            }
-          }}
-        />
-      )}
-    </section>
-  );
 }

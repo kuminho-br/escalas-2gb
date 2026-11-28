@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { COLUNAS_DA_EXPORTACAO, type FiltrosDaBusca, type PedidoDeExportacao } from 'contratos';
+import { COLUNAS_DA_EXPORTACAO, LIMITE_DA_BUSCA_SEM_CORTE, type FiltrosDaBusca, type PedidoDeExportacao } from 'contratos';
 import { FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
-import { baixarArquivo, mensagemDe } from '@/api/cliente';
+import { baixarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
 import { buscarTodos, consultaDaBuscaComFiltros } from '@/api/consulta';
 import { Button } from '@/componentes/ui/button';
 import { Checkbox } from '@/componentes/ui/checkbox';
@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Radio } from '@/componentes/ui/radio';
 import { hoje } from '@/lib/meses';
 import { useSelecao } from './Selecao';
+
+/** A busca passou do que a exportação aceita de uma vez: a contagem não vem, e a frase diz o que fazer. */
+export const MSG_BUSCA_PASSOU = `A busca passou de ${LIMITE_DA_BUSCA_SEM_CORTE} militares: refine os critérios para ver a contagem.`;
+const mensagemDaContagem = (e: unknown) => (e instanceof ErroApi && e.status === 400 && e.message.startsWith('Mais de') ? MSG_BUSCA_PASSOU : mensagemDe(e));
 
 type OQueSai = 'selecionados' | 'busca' | 'juntos';
 const ROTULOS = COLUNAS_DA_EXPORTACAO.map((c) => c.rotulo);
@@ -21,6 +25,7 @@ const INICIAIS = COLUNAS_DA_EXPORTACAO.filter((c) => c.bloco === 'identificacao'
 /**
  * "Exportar" (6.54), em Pesquisar militares: baixa um .xlsx com as colunas da importação do Pecúlio (para corrigir no Excel e importar de volta). Sai a busca inteira (sem o corte de
  * 500), a seleção ou as duas juntas, sem repetir; a janela só pergunta quando há as duas. `filtros` é a busca em vigor (null: sem busca feita). Só quem tem nível de acesso a vê.
+ * Fica no alto, ao lado do título (6.63); sem busca e sem seleção, desabilitado.
  */
 export function ExportarMilitares({ filtros }: { filtros: FiltrosDaBusca | null }) {
   const { selecionados } = useSelecao();
@@ -28,14 +33,15 @@ export function ExportarMilitares({ filtros }: { filtros: FiltrosDaBusca | null 
   // a mesma busca que a lista mostra (o cache é um só): diz se há resultado para exportar
   const mostrada = useQuery({ ...consultaDaBuscaComFiltros(filtros ?? {}), enabled: filtros !== null });
   const temBusca = filtros !== null && (mostrada.data?.militares.length ?? 0) > 0;
-  if (!temBusca && selecionados.length === 0) return null;
+  // 6.63: o botão fica sempre no mesmo lugar (ao lado do título); sem busca e sem seleção, não há o que exportar e ele diz isso
+  const nada = !temBusca && selecionados.length === 0;
   return (
     <>
-      <Button type="button" variant="secundario" className="mt-4 justify-self-start" onClick={() => setAberta(true)}>
+      <Button type="button" variant="secundario" disabled={nada} title={nada ? 'Faça uma busca ou selecione militares para exportar.' : undefined} onClick={() => setAberta(true)}>
         <FileSpreadsheet aria-hidden />
         Exportar
       </Button>
-      {aberta && <Janela filtros={temBusca ? filtros : null} aoFechar={() => setAberta(false)} />}
+      {aberta && !nada && <Janela filtros={temBusca ? filtros : null} aoFechar={() => setAberta(false)} />}
     </>
   );
 }
@@ -87,14 +93,16 @@ function Janela({ filtros, aoFechar }: { filtros: FiltrosDaBusca | null; aoFecha
             <legend className="mb-1 font-cond text-base font-semibold">O que sai</legend>
             {([
               ['selecionados', `Selecionados (${idsSelecionados.length})`],
-              ['busca', `Resultado da busca (${inteira.data ? idsDaBusca.length : '…'})`],
-              ['juntos', `Os dois juntos, sem repetir (${inteira.data ? juntos : '…'})`],
-            ] as const).map(([valor, rotulo]) => (
+              ['busca', 'Resultado da busca', inteira.data ? idsDaBusca.length : null],
+              ['juntos', 'Os dois juntos, sem repetir', inteira.data ? juntos : null],
+            ] as const).map(([valor, rotulo, n]) => (
               <label key={valor} className="flex items-center gap-2 text-corpo">
                 <Radio name="exportar-o-que-sai" checked={saida === valor} onChange={() => setEscolha(valor)} />
-                {rotulo}
+                {/* a contagem só vem quando a lista inteira da busca chega; se a busca passou de 5000, a frase diz por que ela não vem */}
+                {valor === 'selecionados' ? rotulo : n !== null ? `${rotulo} (${n})` : inteira.isError ? `${rotulo} (sem contagem)` : `${rotulo} (…)`}
               </label>
             ))}
+            {inteira.isError && saida === 'selecionados' && <p className="text-apoio text-apagado">{mensagemDaContagem(inteira.error)}</p>}
           </fieldset>
         )}
 
@@ -115,7 +123,7 @@ function Janela({ filtros, aoFechar }: { filtros: FiltrosDaBusca | null; aoFecha
           <p className="text-apoio text-apagado">Os campos que você não vê na ficha de um militar saem vazios.</p>
         </fieldset>
 
-        {inteira.error && saida !== 'selecionados' && <p role="alert" className="text-sm text-alerta">{mensagemDe(inteira.error)}</p>}
+        {inteira.error && saida !== 'selecionados' && <p role="alert" className="text-sm text-alerta">{mensagemDaContagem(inteira.error)}</p>}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter>
           <Button type="button" variant="secundario" onClick={aoFechar} disabled={ocupado}>Cancelar</Button>
