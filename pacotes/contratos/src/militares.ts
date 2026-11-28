@@ -180,7 +180,19 @@ export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: st
 /** Unidade, de qualquer tipo, em que o usuário pode lotar um militar (as que ele pode cadastrar). */
 /** A sigla vem como é (sem a unidade de cima entre parênteses): quem escolhe vê a árvore, montada com `maeId` (6.45). */
 export type UnidadeDeLotacao = { id: string; sigla: string; nome: string; maeId: string | null };
-export type Equipe = { id: string; nome: string; ordemCiclo: number };
+/**
+ * Uma equipe do cadastro (6.64): o tipo é fixo (pronto, adm ou externa) e, no Pronto, a posição no ciclo vai de 1 a 4. `unidadeId` e `unidadeSigla` dizem onde ela foi criada (a corporação,
+ * para as padrão); `herdada` é verdadeira quando não é da unidade pedida. Desativada, ela não entra em rastreio novo, mas o histórico fica.
+ */
+export type Equipe = { id: string; nome: string; tipo: 'pronto' | 'adm' | 'externa'; posicaoCiclo: number | null; ativa: boolean; unidadeId: string; unidadeSigla: string; /** Foi criada na corporação (a unidade raiz): as padrão. */ daCorporacao: boolean; herdada: boolean };
+/** Por rota só se cria equipe do tipo ADM: as quatro do Pronto e a Externa são as padrão da corporação. */
+export const NovaEquipe = z.object({ nome: Nome, tipo: z.literal('adm') });
+export type NovaEquipe = z.infer<typeof NovaEquipe>;
+/** Renomear e/ou ativar de novo; o tipo e a posição não mudam por rota. */
+export const EdicaoDeEquipe = z.object({ nome: Nome.optional(), ativa: z.boolean().optional() }).refine((e) => e.nome !== undefined || e.ativa !== undefined, 'Nada para mudar.');
+export type EdicaoDeEquipe = z.infer<typeof EdicaoDeEquipe>;
+/** O que a exclusão diz: a equipe já usada em algum mês não se apaga, é desativada, e `aviso` traz a frase. */
+export type ResultadoDaExclusaoDeEquipe = { desativada: boolean; aviso?: string };
 
 export type LinhaMilitar = {
   id: string;

@@ -128,6 +128,25 @@ describe('o painel Atualizar em lote (6.52)', () => {
     expect(enviado.desde).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
 
+  it('6.64: a equipe do lote se escolhe numa lista do cadastro, separada por tipo e sem a Externa; o lote vai pelo nome', async () => {
+    const equipe = (id: string, nome: string, tipo: 'pronto' | 'adm' | 'externa', posicaoCiclo: number | null) => ({ id, nome, tipo, posicaoCiclo, ativa: true, unidadeId: 'u-cbmpe', unidadeSigla: 'CBMPE', daCorporacao: true, herdada: true });
+    const f = api({
+      'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [equipe('e1', 'Alfa', 'pronto', 1), equipe('e2', 'Bravo', 'pronto', 2), equipe('e5', 'ADM', 'adm', null), equipe('e6', 'Externa', 'externa', null)] },
+    });
+    abrir('/peculio/pesquisar');
+    await selecionarTodos();
+    const p = await abrirPainel();
+    await userEvent.click(p.getByRole('checkbox', { name: 'Equipe' }));
+    await userEvent.click(p.getByRole('button', { name: 'Continuar' }));
+    const lista = await p.findByLabelText('Equipe');
+    await waitFor(() => expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['Escolha a equipe', 'Alfa', 'Bravo', 'ADM']));
+    expect(within(lista).getAllByRole('group').map((g) => g.getAttribute('label'))).toEqual(['Pronto', 'ADM']);
+    await userEvent.selectOptions(lista, 'Bravo');
+    await userEvent.click(p.getByRole('button', { name: 'Ver a prévia' }));
+    await p.findByText('2 militares vão mudar');
+    expect(corpos(f, '/lote/previa')[0].campos).toEqual({ equipe: 'Bravo' });
+  });
+
   it('passo 4, Aplicar: "Aplicar a {n} militares" manda a assinatura, o resultado diz quantos mudaram, e fechar mantém a seleção e refaz a busca', async () => {
     const f = api();
     abrir('/peculio/pesquisar');

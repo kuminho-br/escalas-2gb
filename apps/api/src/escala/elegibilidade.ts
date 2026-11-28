@@ -34,7 +34,9 @@ import { nomeDaVaga } from './vagas.ts';
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null; tirarDoExpediente?: boolean; ignorarAfastamento?: boolean };
 
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string; tira: boolean };
-/** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
+export const MSG_EXTERNO_SO_EM_OPERACOES = 'Militar externo só entra em operações.';
+
+/** `externo`: veio de outra unidade pelo vínculo (6.33); só é candidato nos serviços extras (PJES e Diária) lançados à mão (6.36, 6.64), e a pré-escala e as distribuições automáticas nunca o põem. */
 /** O que choca com o militar num turno: as alocações dele que se sobrepõem e se o expediente também (6.38). */
 /** `expedienteLancado`: o expediente que a pré-escala lançou (sem escala) está entre o que choca; só um serviço que tira do expediente o tira (6.40). */
 export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean; expedienteLancado?: AlocacaoDaJanela };
@@ -71,7 +73,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
   // (uma consulta só, com os externos em `union all`: o painel do dia conta as consultas)
   // os externos: militares de outra unidade que o gestor trouxe (vinculo_externo) e cujo vínculo vale em algum dia do mês da vaga. Os dados dele (jornada, situação,
-  // quadro) são do período de rastreio que vale no dia, na lotação dele; a equipe é "Externo"; `lotado_no_dia` é o vínculo cobrir o dia
+  // quadro) são do período de rastreio que vale no dia, na lotação dele; a equipe é a Externa do cadastro (a única, da corporação, 6.64); `lotado_no_dia` é o vínculo cobrir o dia
   const pool = (
     await c.query<{
       id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; posto_ordem: number; antiguidade: number | null;
@@ -89,7 +91,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
           and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)
        union all
        select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade,
-              l.jornada, 'Externo' as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo, l.unidade_id as lotacao_unidade
+              l.jornada, (select ex.nome from equipe ex where ex.tipo = 'externa' limit 1) as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo, l.unidade_id as lotacao_unidade
          from vinculo_externo ve
          join militar m on m.id = ve.militar_id join posto_grad p on p.id = m.posto_grad_id
          join lateral (select r.* from rastreio r where r.militar_id = m.id
@@ -164,9 +166,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       turnos.map((turno) => {
         let motivo: string | null = null;
         let conflito: Conflito | undefined;
-        // o externo (6.36) é candidato em qualquer serviço lançado à mão, com as regras de todos
+        // o externo (6.36) é candidato nos serviços extras (PJES e Diária) lançados à mão, com as regras de todos; no ordinário (Pronto, Saldo, Expediente) nunca (6.64, o filtro é por `servico.tipo`)
+        if (m.externo && turno.tipo === 'ordinario') motivo = MSG_EXTERNO_SO_EM_OPERACOES;
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
-        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do ADM';
+        else if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do ADM';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
           const choque = choqueDoTurno({ militarId: m.id, data: v.data, turno, existentes, regras, porChave, poePorCima: !!v.tirarDoExpediente && turno.tira });

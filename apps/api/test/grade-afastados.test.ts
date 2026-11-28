@@ -47,8 +47,8 @@ const tipoId = async (nome: string) => (await api.banco.query<{ id: string }>('s
 beforeAll(async () => {
   api = await montarApi();
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
-  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
+  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
   let seq = 0;
   const criar = async (nome: string, periodos: { equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }[]) => {
     seq++;

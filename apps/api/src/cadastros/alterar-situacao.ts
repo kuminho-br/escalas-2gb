@@ -4,6 +4,7 @@ import type { AlteracaoDeSituacao } from 'contratos';
 import { CADASTRO, ehAdministrador, papeisVigentes, siglaDaUnidadeDeCima, temNivelDeCima, temPapel, unidadeDoRegistro } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
+import { recusaDaEquipeNoRastreio } from './equipes.ts';
 import { periodoAberto } from './periodo-aberto.ts';
 import { quadroParaOPosto } from './quadros.ts';
 
@@ -103,10 +104,6 @@ export async function conferirAlteracaoDeSituacao(c: Consulta, usuarioId: string
   // a unidade de destino também precisa ser de quem registra
   const noDestino = await papelDeCadastroNaUnidade(c, usuarioId, d.unidadeId, hoje);
   if (noDestino) return noDestino;
-  if (d.equipeId) {
-    const daUnidade = (await c.query('select 1 from equipe where id = $1 and unidade_id = $2', [d.equipeId, d.unidadeId])).rows.length > 0;
-    if (!daUnidade) return recusa('equipe', MSG_EQUIPE_DE_OUTRA, 400, 'equipeId');
-  }
   // o período aberto pode ser de outra seção (uma mudança de lotação já marcada): substituí-lo ou fechá-lo também pede papel nela
   const aberta0 = (await c.query<{ unidade_id: string; quadro_id: string | null; situacao_id: string; equipe_id: string | null; jornada: string }>('select unidade_id, quadro_id, situacao_id, equipe_id, jornada from rastreio where militar_id = $1 and ate is null', [militarId])).rows[0];
   const unidadeAberta = aberta0?.unidade_id;
@@ -128,6 +125,11 @@ export async function conferirAlteracaoDeSituacao(c: Consulta, usuarioId: string
   if (mudaQuadro || mudaSituacao || mudaEquipe || mudaJornada) {
     const naoEDono = await donoDoPeculioDoMilitar(c, usuarioId, militarId, FRASE_CAMPO, hoje);
     if (naoEDono) return naoEDono;
+  }
+  // a equipe: da unidade da lotação ou de cima, ativa e combinando com a jornada (6.64). Só se confere quando a equipe, a jornada ou a unidade mudam: o que já está gravado não trava outra edição
+  if (d.equipeId && (mudaEquipe || mudaJornada || d.unidadeId !== aberta0?.unidade_id)) {
+    const recusaDaEquipe = await recusaDaEquipeNoRastreio(c, d.equipeId, d.unidadeId, d.jornada);
+    if (recusaDaEquipe) return recusa('equipe', recusaDaEquipe, 400, 'equipeId');
   }
   if (mudaSituacao) {
     const sit = (await c.query<{ ativo: boolean }>('select ativo from situacao_militar where id = $1', [d.situacaoId]))?.rows[0];

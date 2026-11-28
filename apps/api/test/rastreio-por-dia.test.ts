@@ -34,8 +34,8 @@ beforeAll(async () => {
   escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Ordinário', titulo: 'Escala', militares_doc: 'todos', dias_doc: 'todos' });
   await inserir(api.banco, 'escala_servico', { escala_id: escala, servico_id: pronto.id, ordem: 1 }, 'escala_id');
   await inserir(api.banco, 'escala_servico', { escala_id: escala, servico_id: jes.id, ordem: 2 }, 'escala_id');
-  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
+  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, periodos: { equipe: string; desde: string; ate?: string }[]) => {

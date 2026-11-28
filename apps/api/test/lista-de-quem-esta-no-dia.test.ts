@@ -76,7 +76,7 @@ describe('a lista de Militares mostra quem está na unidade no dia de referênci
   it('Review Focus 5: o externo continua aparecendo pela regra dele, uma vez só', async () => {
     const externos = (await lista(api.ids.secao, PASSADO)).filter((m) => m.nomeGuerra === 'T48EXTERNO');
     expect(externos).toHaveLength(1);
-    expect(externos[0]).toMatchObject({ equipe: 'Externo', externo: { lotacaoSigla: '2ª SB' } });
+    expect(externos[0]).toMatchObject({ equipe: 'Externa', externo: { lotacaoSigla: '2ª SB' } });
   });
 
   it('a lista inteira da seção em março: só quem está lá no último dia, e o externo', async () => {

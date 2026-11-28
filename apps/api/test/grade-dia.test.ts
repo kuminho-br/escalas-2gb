@@ -68,7 +68,7 @@ beforeAll(async () => {
     itens: [{ guarnicaoId: abt, inicio: '08:00', fim: '20:00' }, { guarnicaoId: abt, inicio: '20:00', fim: '08:00' }],
   });
   expect(v.status).toBe(200);
-  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; jornada?: 'pronto' | 'adm'; unidade?: string; foraDoQuadro?: boolean } = {}) => {

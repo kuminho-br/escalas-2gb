@@ -38,7 +38,7 @@ beforeAll(async () => {
   api = await montarApi();
   sb1 = api.ids.secao;
   sb2 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
-  equipeDaSb2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Bravo', ordem_ciclo: 1 });
+  equipeDaSb2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 1 });
   ativa = (await api.banco.query<{ id: string }>("select id from situacao_militar where nome = 'Ativa'")).rows[0]!.id;
   desativada = await inserir(api.banco, 'situacao_militar', { nome: 'Situação encerrada', escalavel: false, ativo: false });
   quadroOficial = (await api.banco.query<{ id: string }>("select id from quadro where sigla = 'QOC'")).rows[0]!.id;

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { lerPlanilha } from '../src/importacao/planilha.ts';
 import { montarApi, type ApiDeTeste, type Quem } from './apoio-api.ts';
+import { equipePadrao } from './banco-teste.ts';
 import { formulario, planilha } from './planilha-teste.ts';
 
 // Entrega 6.13: o Pecúlio é a origem dos dados do militar. Só a MATRÍCULA é obrigatória; célula vazia não mexe; célula inválida é ignorada,
@@ -311,21 +312,31 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
     expect((await rastreio('990401-1')).at(-1)).toMatchObject({ situacao: 'Reserva', ate: null });
   });
 
-  it('JORNADA e EQUIPE: a equipe que não existe na seção é criada, na posição do ciclo, e a prévia avisa', async () => {
+  it('JORNADA e EQUIPE: a equipe é a do cadastro (a Bravo, pela posição, mesmo escrita "bravo"); a importação não cria equipe (6.64)', async () => {
     const previa = await importar([{ 'MATRÍCULA': '990402-2', 'JORNADA': 'pronto', 'EQUIPE': 'bravo' }, { 'MATRÍCULA': '990403-3', 'JORNADA': 'XX' }], true);
-    expect(previa.avisos).toContain('Equipes novas na 1ª SB: bravo.');
+    expect(previa.avisos.some((a: string) => a.startsWith('Equipes novas'))).toBe(false);
     expect(previa.ignoradas).toEqual([expect.objectContaining({ chave: '990403-3', coluna: 'JORNADA', motivo: 'Use PRONTO ou ADM.' })]);
-    expect((await rastreio('990402-2')).at(-1)).toMatchObject({ equipe: 'bravo', jornada: 'pronto' });
-    expect((await api.banco.query<{ ordem_ciclo: number }>("select ordem_ciclo from equipe where unidade_id = $1 and nome = 'bravo'", [secao1])).rows[0]!.ordem_ciclo).toBe(2);
+    expect((await rastreio('990402-2')).at(-1)).toMatchObject({ equipe: 'Bravo', jornada: 'pronto' });
+    // nenhuma equipe nova na seção: as da corporação bastam
+    expect((await api.banco.query<{ n: number }>('select count(*)::int as n from equipe where unidade_id = $1', [secao1])).rows[0]!.n).toBe(0);
   });
 
-  it('EQUIPE com JORNADA ADM é ignorada com o motivo, e a jornada entra; passar para ADM esvazia a equipe (Review Focus 3)', async () => {
+  it('equipe que não combina com a jornada, a Externa e um nome que não existe viram aviso; a linha grava o resto e não grava a equipe (Review Focus 5); passar para ADM tira a equipe do Pronto', async () => {
+    const frase = (nome: string) => `A equipe '${nome}' não existe ou não combina com a jornada; a equipe não foi gravada.`;
     const previa = await importar([{ 'MATRÍCULA': '990402-2', 'JORNADA': 'ADM', 'EQUIPE': 'BRAVO' }], true);
-    expect(previa.ignoradas).toEqual([{ linha: 2, chave: '990402-2', coluna: 'EQUIPE', motivo: 'No expediente não há equipe.' }]);
-    expect(previa.alterados[0].mudancas).toEqual(['jornada: Pronto → ADM', 'equipe: bravo → sem equipe']);
+    expect(previa.avisos.some((a: string) => a.includes(frase('BRAVO')))).toBe(true);
+    expect(previa.alterados[0].mudancas).toEqual(['jornada: Pronto → ADM', 'equipe: Bravo → sem equipe']);
     expect((await rastreio('990402-2')).at(-1)).toMatchObject({ jornada: 'adm', equipe: null });
-    // quem já é ADM também não recebe equipe
-    expect((await importar([{ 'MATRÍCULA': '990402-2', 'EQUIPE': 'BRAVO' }])).ignoradas).toEqual([expect.objectContaining({ motivo: 'No expediente não há equipe.' })]);
+    // quem já é ADM: a equipe do Pronto, a Externa e o nome que não existe viram aviso e nada muda na equipe
+    for (const nome of ['BRAVO', 'EXTERNA', 'INEXISTENTE']) {
+      const p = await importar([{ 'MATRÍCULA': '990402-2', 'EQUIPE': nome }], true);
+      expect(p.avisos.some((a: string) => a.includes(frase(nome))), nome).toBe(true);
+      expect(p.alterados, nome).toEqual([]);
+    }
+    // a equipe do ADM, essa vale (e a equipe é opcional no ADM)
+    const adm = await importar([{ 'MATRÍCULA': '990402-2', 'EQUIPE': 'adm' }], true);
+    expect(adm.alterados[0].mudancas).toEqual(['equipe: sem equipe → ADM']);
+    expect((await rastreio('990402-2')).at(-1)).toMatchObject({ jornada: 'adm', equipe: 'ADM' });
   });
 
   it('MOTORISTA e VOLUNTÁRIO JES: SIM, S, X, 1 / NÃO, NAO, N, 0; outra coisa é ignorada', async () => {
@@ -396,7 +407,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
     await importar([{ 'MATRÍCULA': '990405-5', 'QUADRO': 'QBMG', 'SITUAÇÃO': 'Reserva', 'JORNADA': 'PRONTO', 'EQUIPE': 'ALFA' }], true);
     const r = await rastreio('990405-5');
     expect(r).toHaveLength(2);
-    expect(r[1]).toMatchObject({ situacao: 'Reserva', equipe: 'ALFA', jornada: 'pronto', quadro: 'QBMG', desde: hoje, ate: null });
+    expect(r[1]).toMatchObject({ situacao: 'Reserva', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', desde: hoje, ate: null });
   });
 
   it('a planilha de 20 colunas de antes desta entrega importa sem tocar em equipe, jornada, motorista, CNH e voluntário JES (Review Focus 1)', async () => {
@@ -412,7 +423,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
 
   it('quem está no ADM com equipe (pela ficha) não perde a equipe numa planilha sem a coluna JORNADA (achado da revisão final)', async () => {
     await importar([NOVO('990430-0', 'ADMCOMEQUIPE')], true);
-    const equipe = (await api.banco.query<{ id: string }>("select id from equipe where unidade_id = $1 and nome = 'ALFA'", [secao1])).rows[0]!.id;
+    const equipe = await equipePadrao(api.banco, 'ADM');
     await api.banco.query("update rastreio set jornada = 'adm', equipe_id = $2 where militar_id = (select id from militar where matricula = $1)", ['990430-0', equipe]);
     const periodos = await rastreio('990430-0');
     const previa = await importar([{ 'MATRÍCULA': '990430-0', 'TELEFONE': '(81) 94444-0000' }], true, ['MATRÍCULA', 'TELEFONE']);

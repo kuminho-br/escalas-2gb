@@ -396,16 +396,6 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     return c.json(permitidas);
   });
 
-  r.get('/unidades/:u/equipes', async (c) => {
-    const negado = await exigirPapel(c, c.req.param('u'), CADASTRO);
-    if (negado) return negado;
-    const { rows } = await dep.banco.query<Equipe>(
-      'select id, nome, ordem_ciclo as "ordemCiclo" from equipe where unidade_id = $1 order by ordem_ciclo',
-      [c.req.param('u')],
-    );
-    return c.json(rows);
-  });
-
   r.get('/unidades/:u/militares', async (c) => {
     const u = c.req.param('u');
     const negado = await exigirPapel(c, u, CADASTRO);
@@ -444,11 +434,12 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       )
     ).rows.filter((x) => !rows.some((m) => m.id === x.id));
     const afast = await afastamentosNoMes(dep.banco, [...rows, ...externos].map((m) => m.id), mes);
+    const nomeDaExterna = externos.length ? ((await dep.banco.query<{ nome: string }>("select nome from equipe where tipo = 'externa' limit 1")).rows[0]?.nome ?? null) : null;
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
     return c.json([
       ...rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))),
-      // o cadastro incompleto do externo é da unidade dele, e não daqui: sem pendências, com a equipe "Externo" e a unidade de origem
-      ...externos.map((m) => ({ ...linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes), equipe: 'Externo', pendencias: [], externo: { lotacaoSigla: m.lotacao_sigla ?? '' } })),
+      // o cadastro incompleto do externo é da unidade dele, e não daqui: sem pendências, com a equipe Externa do cadastro (6.64) e a unidade de origem
+      ...externos.map((m) => ({ ...linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes), equipe: nomeDaExterna, pendencias: [], externo: { lotacaoSigla: m.lotacao_sigla ?? '' } })),
     ]);
   });
 

@@ -57,7 +57,7 @@ beforeAll(async () => {
   sb9 = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: '9ª Seção', mae_id: gb9, desde: '2026-11-01' });
   sb9b = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB-B', nome: '9ª Seção B', mae_id: gb9, desde: '2026-11-01' });
 
-  const equipeA = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', ordem_ciclo: 1 });
+  const equipeA = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   const afastada = (await api.banco.query<{ id: string }>("select id from situacao_militar where nome <> 'Ativa' limit 1")).rows[0]!.id;
   const funcao = await inserir(api.banco, 'funcao_militar', { nome: 'Chefe de seção' });
   const tipo = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'LTS'")).rows[0]!.id;

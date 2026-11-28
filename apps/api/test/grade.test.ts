@@ -47,8 +47,8 @@ beforeAll(async () => {
   await servicoComTurnos('Saldo', 'ordinario', '#2B7BB9', [['A', '08:00', '20:00']]);
   escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id as string;
   expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: Object.values(servico).map((x) => x.id) })).status).toBe(200);
-  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
+  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
   await inserir(api.banco, 'feriado', { unidade_id: api.ids.secao, data: dia(8), descricao: 'Feriado de teste' });
   const cb = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'CB'")).rows[0]!.id;
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;

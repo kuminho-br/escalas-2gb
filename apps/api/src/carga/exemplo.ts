@@ -1,3 +1,4 @@
+import { garantirEquipesPadrao } from '../cadastros/equipes-padrao.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import type { Banco, Consulta } from '../banco/banco.ts';
 import { SCHEMA_ESPELHO } from '../laboratorio/constantes.ts';
@@ -26,7 +27,6 @@ const GRUPOS: Grupo[] = [
   { jornada: 'pronto', equipe: 'Charlie', postos: [['ST', 1], ['2º SGT', 1], ['3º SGT', 2], ['CB', 1], ['SD', 4]] },
   { jornada: 'pronto', equipe: 'Delta', postos: [['2º SGT', 1], ['3º SGT', 2], ['CB', 1], ['SD', 4]] },
 ];
-const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
 
 /** A matrícula do n-ésimo militar da carga (1 a 53): 100001-1 ... 100053-3. */
 const matriculaDaCarga = (n: number) => `100${String(n).padStart(3, '0')}-${n % 10}`;
@@ -89,10 +89,8 @@ export async function cargaExemploEm(tx: Consulta, mes: string, opcoes: { deTest
   const postos = new Map(
     (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad')).rows.map((p) => [p.sigla, p.id]),
   );
-  const equipes = new Map<string, string>();
-  for (const [i, nome] of EQUIPES.entries()) {
-    equipes.set(nome, await id(tx, 'insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, $2, $3) returning id', [secao, nome, i + 1]));
-  }
+  // as equipes são as padrão da corporação (6.64): nenhuma seção ganha equipe própria
+  const equipes = await garantirEquipesPadrao(tx);
 
   let n = 0;
   for (const g of GRUPOS) {

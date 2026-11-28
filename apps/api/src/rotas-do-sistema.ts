@@ -8,6 +8,7 @@ import { rotasCotas } from './cadastros/cotas.ts';
 import { rotasEstrutura } from './cadastros/estrutura.ts';
 import { rotasTiposDeUnidade } from './cadastros/tipos-de-unidade.ts';
 import { rotasExternos } from './cadastros/externos.ts';
+import { rotasEquipes } from './cadastros/equipes.ts';
 import { rotasFeriados } from './cadastros/feriados.ts';
 import { rotasFuncoesDoMilitar } from './cadastros/funcoes-do-militar.ts';
 import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
@@ -47,6 +48,7 @@ export function montarRotasDoSistema(app: Hono, comAuth: { banco: Banco; auth: A
   app.route(prefixo, rotasFuncoesDoMilitar(comAuth));
   app.route(prefixo, rotasCotas(comAuth));
   app.route(prefixo, rotasFeriados(comAuth));
+  app.route(prefixo, rotasEquipes(comAuth));
   app.route(prefixo, rotasExternos(comAuth));
   app.route(prefixo, rotasEstrutura(comAuth));
   app.route(prefixo, rotasTiposDeUnidade(comAuth));

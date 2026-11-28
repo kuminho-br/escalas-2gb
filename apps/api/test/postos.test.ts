@@ -18,7 +18,7 @@ beforeAll(async () => {
   api = await montarApi();
   postos = await lerPostos();
   // um 3º sargento e um cabo na mesma equipe, com a mesma antiguidade: o sargento vem primeiro na Grade pelo posto
-  const equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  const equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   for (const [mat, posto, nome] of [['990601-1', 'CB', 'CABO'], ['990602-2', '3º SGT', 'SARGENTO']] as const) {
     // a matrícula do cabo vem antes: sem a ordem do posto, o desempate pela matrícula poria o cabo à frente
     const id = await inserir(api.banco, 'militar', { matricula: mat, posto_grad_id: de(posto).id, nome_guerra: nome, antiguidade: 1 });

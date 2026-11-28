@@ -211,10 +211,12 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar, periodo }: { ficha: 
   const sugerida = daLotacao ?? daTela ?? '';
   const unidadeId = escolhida ?? sugerida;
   const equipes = useQuery({ ...consultaEquipes(unidadeId), enabled: Boolean(unidadeId) });
-  // a equipe sugerida é a de hoje, se a lotação não mudou; trocar de lotação zera a equipe (cada unidade tem as suas)
-  const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
-  const equipeId = equipeEscolhida ?? (unidadeId === sugerida ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   const [jornada, setJornada] = useState<'pronto' | 'adm'>(atual?.jornada ?? 'pronto');
+  // a equipe é a do cadastro (6.64): só as ativas do tipo da jornada escolhida (Pronto: as quatro do ciclo; ADM: as do ADM)
+  const equipesDaJornada = (equipes.data ?? []).filter((e) => e.ativa && e.tipo === jornada);
+  // a equipe sugerida é a de hoje, se a lotação não mudou e ela combina com a jornada; trocar de lotação ou de jornada zera a equipe
+  const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
+  const equipeId = equipeEscolhida ?? (unidadeId === sugerida ? (equipesDaJornada.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   // o quadro e a situação do período de hoje valem de novo, se nada for escolhido
   const quadros = useQuery(consultaQuadros);
   const situacoes = useQuery(consultaSituacoesDoMilitar);
@@ -284,12 +286,12 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar, periodo }: { ficha: 
               <Label htmlFor="rs-equipe">Equipe</Label>
               <Selecao id="rs-equipe" value={equipeId} onChange={(e) => setEquipeEscolhida(e.target.value)}>
                 <option value="">Sem equipe</option>
-                {equipes.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                {equipesDaJornada.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </Selecao>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="rs-jornada">Jornada</Label>
-              <Selecao id="rs-jornada" value={jornada} onChange={(e) => setJornada(e.target.value === 'adm' ? 'adm' : 'pronto')}>
+              <Selecao id="rs-jornada" value={jornada} onChange={(e) => { setJornada(e.target.value === 'adm' ? 'adm' : 'pronto'); setEquipeEscolhida(''); }}>
                 <option value="pronto">Pronto</option>
                 <option value="adm">ADM</option>
               </Selecao>

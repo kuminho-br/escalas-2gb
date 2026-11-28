@@ -40,7 +40,7 @@ const motivo = (nome: string, data: string, faixa: { inicio: string; fim: string
 
 beforeAll(async () => {
   api = await montarApi();
-  const equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  const equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   await criarServico('Pronto', 'ordinario', 'A', { inicio: '08:00', fim: '20:00' });
   turno['Pronto B'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Pronto}/turnos`, { letra: 'B', inicio: '20:00', fim: '08:00' })).json()).turnos.find((t: { letra: string }) => t.letra === 'B').id;
   await criarServico('Eleições', 'diaria', 'A', ELEICOES);

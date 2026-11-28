@@ -16,3 +16,4 @@ export * from './ativacao.ts';
 export * from './linhas-do-tempo.ts';
 export * from './oficiais.ts';
 export * from './cota-do-mes.ts';
+export * from './equipes.ts';

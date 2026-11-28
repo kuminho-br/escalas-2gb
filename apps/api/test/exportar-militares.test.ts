@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife, somarDias } from '../src/datas.ts';
 import { COLUNAS } from '../src/importacao/peculio.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste, type Quem } from './apoio-api.ts';
 import { formulario } from './planilha-teste.ts';
 
@@ -124,7 +124,7 @@ describe('quem sai', () => {
 
 describe('o formato de cada célula (o que a importação lê)', () => {
   it('Review Focus 5: nascimento e matrícula como texto; CNH junta; SIM/NÃO; jornada em maiúsculas; antiguidade número', async () => {
-    const eq = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', ordem_ciclo: 1 });
+    const eq = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
     await militar('FORMATO', sb1, {
       jornada: 'pronto', equipe: eq,
       mil: { nascimento_dia: 15, nascimento_mes: 3, motorista: true, cnh: ['D', 'A'], voluntario_jes: true, abono_permanencia: false, sexo: 'M', cpf: '52998224725', cep: '50030000', uf: 'PE' },
@@ -147,7 +147,7 @@ describe('o formato de cada célula (o que a importação lê)', () => {
 
 describe('o período aberto (o que a importação lê)', () => {
   it('Review Focus 1: com uma mudança marcada para depois, a planilha traz o período aberto (o da importação) e reimportá-la não muda nada', async () => {
-    const alfa = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', ordem_ciclo: 1 });
+    const alfa = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
     const postoId = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
     const id = await inserir(api.banco, 'militar', { matricula: '990990-0', posto_grad_id: postoId, nome_guerra: 'MARCADO', nome_completo: 'Fulano MARCADO', antiguidade: 999 });
     await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: sb2, jornada: 'pronto', desde: dia1, ate: somarDias(hoje, 10), quadro_id: quadros.QBMG, equipe_id: alfa });
@@ -236,5 +236,20 @@ describe('a sigla que se repete na corporação', () => {
     expect(previa.ignoradas).toEqual([]);
     expect(previa.alterados).toEqual([]);
     expect(previa.iguais).toBe(1);
+  });
+});
+
+describe('a equipe na planilha (6.64)', () => {
+  it('a coluna EQUIPE escreve o nome cadastrado, inclusive depois de renomear a equipe', async () => {
+    const alfa = await equipePadrao(api.banco, 'Alfa');
+    const id = await militar('RENOMEADA', sb1, { jornada: 'pronto', equipe: alfa });
+    const linhaDele = async () => (await lerArquivo(await exportar('admin', { ids: [id], colunas: TODAS }))).linhas[0]!;
+    expect((await linhaDele())['EQUIPE']).toBe('Alfa');
+    await api.banco.query("update equipe set nome = 'Equipe 1' where id = $1", [alfa]);
+    try {
+      expect((await linhaDele())['EQUIPE']).toBe('Equipe 1');
+    } finally {
+      await api.banco.query("update equipe set nome = 'Alfa' where id = $1", [alfa]);
+    }
   });
 });

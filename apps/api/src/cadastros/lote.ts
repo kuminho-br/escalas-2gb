@@ -3,6 +3,7 @@
 // transação (com uma trava para quem aplica ao mesmo tempo), compara com a prévia e grava tudo ou nada.
 import { createHash } from 'node:crypto';
 import { AplicarLote, LoteDeMilitares, type AlteracaoDeSituacao, type PreviaDoLote, type ResultadoDoLote } from 'contratos';
+import { conferirEquipeEJornada, normalizar } from 'dominio';
 import { Hono } from 'hono';
 import { exigirSessao, papeisVigentes, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -12,6 +13,7 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import {
   aplicarAlteracaoDeSituacao, conferirAlteracaoDeSituacao, donoDoPeculioDoMilitar, FRASE_CAMPO, papelDeCadastroNaUnidade, papelDeCadastroNoMilitar, RecusaDaAlteracao,
 } from './alterar-situacao.ts';
+import { equipesVisiveis } from './equipes.ts';
 import { quadroParaOPosto } from './quadros.ts';
 
 const MSG_SEM_NIVEL = 'Você não tem nível de acesso sobre este militar.';
@@ -120,8 +122,9 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
       if (k.equipe !== undefined) {
         if (k.equipe === null) equipeId = null;
         else {
-          const e = (await c.query<{ id: string; nome: string }>('select id, nome from equipe where unidade_id = $1 and upper(nome) = upper($2)', [unidadeId, k.equipe])).rows[0];
-          if (!e) { fora(`A equipe ${k.equipe} não existe em ${nomes.unidades.get(unidadeId) ?? 'a unidade'}.`); continue; }
+          // a equipe do cadastro que a unidade vê (a corporação, as de cima e as dela), ativa e que combina com a jornada; senão o militar fica de fora (6.64)
+          const e = (await equipesVisiveis(c, unidadeId)).find((q) => q.ativa && normalizar(q.nome) === normalizar(k.equipe!));
+          if (!e || conferirEquipeEJornada(e.tipo, k.jornada ?? aberto.jornada) !== null) { fora(`A equipe '${k.equipe}' não existe ou não combina com a jornada; a equipe não foi gravada.`); continue; }
           equipeId = e.id;
           equipeNova = e.nome;
         }
@@ -129,6 +132,9 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
         // lotação marcada sem equipe marcada: todos chegam sem equipe (decisão do usuário, 24/11/2026)
         equipeId = null;
         semEquipe = true;
+      } else if (k.jornada !== undefined && k.jornada !== aberto.jornada && aberto.equipe_id) {
+        // trocar de jornada sem escolher equipe tira a de antes: a equipe de uma jornada não vale para a outra
+        equipeId = null;
       }
       const jornada = k.jornada ?? aberto.jornada;
       const quadroId = k.quadroId === undefined ? aberto.quadro_id : k.quadroId;

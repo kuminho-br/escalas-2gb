@@ -3,7 +3,7 @@ import { diaDaSemana, diasDoMes } from 'dominio';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { avaliarCandidatos, motivoDeFora } from '../src/escala/elegibilidade.ts';
-import { inserir, situacaoDoMilitar } from './banco-teste.ts';
+import { equipePadrao, inserir, situacaoDoMilitar, soAlfaNoCiclo } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7): seção com Pronto A/B (08h–20h, 20h–08h), "Madrugada" (06h–14h), JES (PJES, 09h–17h) e Bioma
@@ -72,7 +72,9 @@ beforeAll(async () => {
   api = await montarApi();
   motorista = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   combatente = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
-  equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  // o Pronto deste cenário é montado à mão numa equipe só: as outras posições do ciclo não têm ninguém
+  await soAlfaNoCiclo(api.banco);
+  equipe = await equipePadrao(api.banco, 'Alfa');
   await criarServico('Pronto', 'ordinario', 'A', FAIXA.A);
   turno['Pronto B'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Pronto}/turnos`, { letra: 'B', ...FAIXA.B })).json()).turnos.find((t: { letra: string }) => t.letra === 'B').id;
   await criarServico('Madrugada', 'ordinario', 'A', FAIXA.MADRUGADA);
@@ -387,10 +389,10 @@ describe('o militar externo como candidato (6.33)', () => {
     await inserir(api.banco, 'alocacao', { militar_id: externo.EXTCHOQUE, escala_id: outraEscala, servico_id: s.id, turno_id: turnoDela, data: D, origem: 'manual' });
   });
 
-  it('o externo vigente aparece na vaga de JES, elegível sem voluntariado marcado, com a equipe "Externo"; quem não é voluntário JES fica de fora', async () => {
+  it('o externo vigente aparece na vaga de JES, elegível sem voluntariado marcado, com a equipe Externa do cadastro; quem não é voluntário JES fica de fora', async () => {
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.JES));
     expect(nomes(r)).toEqual(expect.arrayContaining(['EXTJES', 'JESVOL']));
-    expect(r.aptos.find((a) => a.nomeGuerra === 'EXTJES')).toMatchObject({ equipe: 'Externo', jornada: 'pronto' });
+    expect(r.aptos.find((a) => a.nomeGuerra === 'EXTJES')).toMatchObject({ equipe: 'Externa', jornada: 'pronto' });
     expect(nomes(r)).not.toContain('EXTNAO');
     expect(await motivoExt('EXTNAO', D, FAIXA.JES, T('JES A'))).toBe('Não é voluntário JES');
     expect(await motivoExt('EXTJES', D, FAIXA.JES, T('JES A'))).toBeNull();
@@ -402,13 +404,18 @@ describe('o militar externo como candidato (6.33)', () => {
     expect(await motivoExt('EXTNAO', D, FAIXA.BIOMA, T('Bioma A'))).toBeNull();
   });
 
-  it('6.36: no Pronto o externo também é candidato, com as regras de todos; no Saldo vale a regra do Adm', async () => {
-    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Pronto A'))).toBeNull();
-    expect(await motivoExt('EXTNAO', D, FAIXA.A, T('Pronto A'))).toBeNull();
-    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do ADM');
+  it('6.64 (Review Focus 4): no Pronto e no Saldo (serviço ordinário) o externo não é candidato, com o motivo fixo; em PJES e Diária segue candidato (6.36)', async () => {
+    const MOTIVO = 'Militar externo só entra em operações.';
+    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Pronto A'))).toBe(MOTIVO);
+    expect(await motivoExt('EXTNAO', D, FAIXA.A, T('Pronto A'))).toBe(MOTIVO);
+    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe(MOTIVO);
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
-    expect(nomes(r)).toEqual(expect.arrayContaining(['EXTJES', 'EXTNAO']));
-    expect(r.fora.map((f) => f.motivo)).not.toContain('Externo só em serviço extra');
+    expect(nomes(r)).not.toContain('EXTJES');
+    expect(nomes(r)).not.toContain('EXTNAO');
+    expect(r.fora.map((f) => f.motivo)).toContain(MOTIVO);
+    // nas operações ele continua apto
+    expect(await motivoExt('EXTJES', D, FAIXA.JES, T('JES A'))).toBeNull();
+    expect(await motivoExt('EXTNAO', D, FAIXA.BIOMA, T('Bioma A'))).toBeNull();
   });
 
   it('Review Focus 1: o serviço do externo na própria unidade conta: no mesmo horário ou por cima dele é choque, mesmo noutra seção', async () => {
@@ -426,15 +433,16 @@ describe('o militar externo como candidato (6.33)', () => {
     expect(nomes(await avaliarCandidatos(api.banco, vaga(dia(11), FAIXA.JES)))).not.toContain('EXTSAIU');
   });
 
-  it('escalar o externo à mão: num JES e no Pronto passa (201), no Saldo de quem não é do Adm é 409 com o motivo; tirar o vínculo depois não apaga o lançamento', async () => {
-    const ok = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(15), turnoId: T('JES A'), guarnicaoId: null, funcaoId: null });
-    expect(ok.status).toBe(201);
-    // 6.36: no Pronto, à mão, também passa (a escala dele na unidade de origem e o voluntariado não entram)
-    const pronto = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(16), turnoId: T('Pronto A'), guarnicaoId: null, funcaoId: null });
-    expect(pronto.status).toBe(201);
-    const saldo = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(17), turnoId: T('Saldo A'), guarnicaoId: null, funcaoId: null });
-    expect(saldo.status).toBe(409);
-    expect((await saldo.json()).erro).toBe('Saldo só para militar do ADM');
+  it('escalar o externo à mão: num JES passa (201); no Pronto e no Saldo (ordinários) é 409 com "Militar externo só entra em operações." e nada é gravado; tirar o vínculo depois não apaga o lançamento', async () => {
+    const pedir = (data: string, turno: string) => api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data, turnoId: T(turno), guarnicaoId: null, funcaoId: null });
+    expect((await pedir(dia(15), 'JES A')).status).toBe(201);
+    // 6.64: o externo só entra em operações (a decisão de 24/11, que o punha também no Pronto à mão, mudou)
+    for (const [d, turno] of [[dia(16), 'Pronto A'], [dia(17), 'Saldo A']] as const) {
+      const r = await pedir(d, turno);
+      expect(r.status, turno).toBe(409);
+      expect((await r.json()).erro, turno).toBe('Militar externo só entra em operações.');
+      expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [externo.EXTJES, d])).rows, turno).toHaveLength(0);
+    }
     const vinculo = (await api.banco.query<{ id: string }>('select id from vinculo_externo where militar_id = $1', [externo.EXTJES])).rows[0]!.id;
     expect((await api.pedir('admin', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${vinculo}`)).status).toBe(204);
     expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [externo.EXTJES, dia(15)])).rows).toHaveLength(1);

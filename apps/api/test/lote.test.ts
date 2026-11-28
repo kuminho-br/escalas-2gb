@@ -1,7 +1,7 @@
 import type { PreviaDoLote, ResultadoDoLote } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife, somarDias } from '../src/datas.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
 // Entrega 6.52, Task 2: a prévia e o aplicar da atualização em lote. Dados fictícios (D7): matrículas 996xxx-x.
@@ -57,8 +57,9 @@ beforeAll(async () => {
   sb2 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
   sb3 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '3ª SB'")).rows[0]!.id;
   for (const q of (await api.banco.query<{ id: string; sigla: string }>('select id, sigla from quadro')).rows) quadros[q.sigla] = q.id;
-  alfa1 = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', ordem_ciclo: 1 });
-  alfa2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', ordem_ciclo: 1 });
+  // 6.64: a Alfa é a padrão da corporação, que toda seção herda
+  alfa1 = await equipePadrao(api.banco, 'Alfa');
+  alfa2 = alfa1;
   gestorGb = await entrarComo(api, { matricula: '996901-1', nome: 'LGESTOR', nivel: { papel: 'gestor', unidadeId: api.ids.gb } });
   escalanteSb = await entrarComo(api, { matricula: '996902-2', nome: 'LESCAL', nivel: { papel: 'escalante', unidadeId: sb1 } });
 });
@@ -95,31 +96,37 @@ describe('a prévia', () => {
     expect(motivoDe(p, 'DEPOIS')).toBe(`A data é anterior à lotação atual dele (${dataBr(amanha)}).`);
     expect(motivoDe(p, 'JAESTA')).toBe('Nada muda para este militar.');
 
-    const q = await verPrevia(gestorGb, lote(['SEMALFA'], { equipe: 'Alfa' }, hoje));
-    expect(motivoDe(q, 'SEMALFA')).toBe('A equipe Alfa não existe em 3ª SB.');
+    const q = await verPrevia(gestorGb, lote(['SEMALFA'], { equipe: 'Inexistente' }, hoje));
+    expect(motivoDe(q, 'SEMALFA')).toBe("A equipe 'Inexistente' não existe ou não combina com a jornada; a equipe não foi gravada.");
 
     const k = await verPrevia(gestorGb, lote(['P1'], { quadroId: quadros.QOC }, hoje));
     expect(motivoDe(k, 'P1')).toBe('O quadro QOC não serve ao posto dele.');
   });
 
-  it('Review Focus 3: a equipe por nome vale em cada unidade (quem está numa unidade sem ela fica de fora, com o motivo)', async () => {
-    await militar('E1', sb1);
-    await militar('E2', sb2);
-    await militar('E3', sb3);
+  it('a equipe por nome é a do cadastro e vale em toda unidade que a vê; a que não combina com a jornada ou a Externa deixa o militar de fora, com a frase fixa (6.64)', async () => {
+    await militar('E1', sb1, { jornada: 'pronto' });
+    await militar('E2', sb2, { jornada: 'pronto' });
+    await militar('E3', sb3, { jornada: 'pronto' });
     const p = await verPrevia(gestorGb, lote(['E1', 'E2', 'E3'], { equipe: 'alfa' }, hoje));
-    expect(p.mudam.map((x) => x.id).sort()).toEqual([m.E1, m.E2].sort());
-    expect(motivoDe(p, 'E3')).toBe('A equipe alfa não existe em 3ª SB.');
+    expect(p.mudam.map((x) => x.id).sort()).toEqual([m.E1, m.E2, m.E3].sort());
+    const frase = (nome: string) => `A equipe '${nome}' não existe ou não combina com a jornada; a equipe não foi gravada.`;
+    // a equipe do ADM para quem é do Pronto, e a Externa, não combinam
+    expect(motivoDe(await verPrevia(gestorGb, lote(['E1'], { equipe: 'ADM' }, hoje)), 'E1')).toBe(frase('ADM'));
+    expect(motivoDe(await verPrevia(gestorGb, lote(['E1'], { equipe: 'Externa' }, hoje)), 'E1')).toBe(frase('Externa'));
+    // trocando a jornada para ADM junto com a equipe do ADM, combina; com a do Pronto, não
+    expect((await verPrevia(gestorGb, lote(['E1'], { equipe: 'ADM', jornada: 'adm' }, hoje))).mudam).toHaveLength(1);
+    expect(motivoDe(await verPrevia(gestorGb, lote(['E1'], { equipe: 'Alfa', jornada: 'adm' }, hoje)), 'E1')).toBe(frase('Alfa'));
   });
 
   it('6.53 (b): a equipe aparece como está cadastrada ("Alfa"), mesmo digitada "alfa"', async () => {
-    await militar('EQ1', sb1);
+    await militar('EQ1', sb1, { jornada: 'pronto' });
     const p = await verPrevia(gestorGb, lote(['EQ1'], { equipe: 'alfa' }, hoje));
     expect(p.mudam[0]!.para).toBe('Equipe: Alfa');
   });
 
   it('lotação marcada sem equipe marcada: todos chegam sem equipe, e a prévia conta quantos', async () => {
-    await militar('L1', sb1, { equipe: alfa1 });
-    await militar('L2', sb1);
+    await militar('L1', sb1, { equipe: alfa1, jornada: 'pronto' });
+    await militar('L2', sb1, { jornada: 'pronto' });
     const p = await verPrevia(gestorGb, lote(['L1', 'L2'], { unidadeId: sb2 }, hoje));
     expect(p.mudam).toHaveLength(2);
     expect(p.chegamSemEquipe).toBe(2);

@@ -7,6 +7,8 @@ import { atualizarMilitares } from '@/api/militares';
 import { hoje, mesAtual, somarDias } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi, trava, responderConfirmacao } from './apoio';
 
+/** Uma equipe do Pronto do cadastro (6.64), herdada da corporação. */
+const EQUIPE = (id: string, nome: string, posicaoCiclo: number) => ({ id, nome, tipo: 'pronto' as const, posicaoCiclo, ativa: true, unidadeId: 'u-cbmpe', unidadeSigla: 'CBMPE', daCorporacao: true, herdada: true });
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
@@ -45,7 +47,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: EU_EXEMPLO },
     'GET /api/unidades/u-1sb/militares': { status: 200, corpo: LISTA },
-    'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [{ id: 'e-alfa', nome: 'Alfa', ordemCiclo: 1 }, { id: 'e-bravo', nome: 'Bravo', ordemCiclo: 2 }] },
+    'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [EQUIPE('e-alfa', 'Alfa', 1), EQUIPE('e-bravo', 'Bravo', 2)] },
     'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }] },
     'GET /api/quadros': { status: 200, corpo: QUADROS },
     'GET /api/situacoes-do-militar': { status: 200, corpo: [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }] },
@@ -606,7 +608,7 @@ describe('alterar situação', () => {
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
     api({
       'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
-      'GET /api/unidades/u-2sb/equipes': { status: 200, corpo: [{ id: 'e-2sb', nome: 'Delta', ordemCiclo: 1 }] },
+      'GET /api/unidades/u-2sb/equipes': { status: 200, corpo: [EQUIPE('e-2sb', 'Delta', 1)] },
       'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA },
       ...extra,
     });
@@ -629,10 +631,23 @@ describe('alterar situação', () => {
     expect(dialogo.getByLabelText('A partir de')).toHaveAttribute('type', 'date');
     expect(dialogo.getByText('A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.')).toBeInTheDocument();
     await userEvent.selectOptions(dialogo.getByLabelText('Equipe'), 'Bravo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'ADM');
     await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'adm', desde: hoje() }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'pronto', desde: hoje() }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('6.64: a escolha de equipe mostra só as do tipo da jornada; trocar a jornada zera a equipe, e o ADM aceita ficar sem equipe', async () => {
+    const f = rotas({ 'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [EQUIPE('e-alfa', 'Alfa', 1), EQUIPE('e-bravo', 'Bravo', 2), { ...EQUIPE('e-adm', 'ADM', 0), tipo: 'adm' as const, posicaoCiclo: null }] } });
+    abrir('/militares/m1');
+    const dialogo = await abrirODialogo();
+    await waitFor(() => expect(dialogo.getByLabelText('Equipe')).toHaveValue('e-alfa'));
+    const nomes = () => within(dialogo.getByLabelText('Equipe')).getAllByRole('option').map((o) => o.textContent);
+    expect(nomes()).toEqual(['Sem equipe', 'Alfa', 'Bravo']);
+    await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'ADM');
+    expect(dialogo.getByLabelText('Equipe')).toHaveValue('');
+    expect(nomes()).toEqual(['Sem equipe', 'ADM']);
+    await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: null, jornada: 'adm', desde: hoje() }));
   });
 
   it('a situação atual é a de hoje: com uma mudança marcada para depois de hoje, vale a anterior', async () => {
@@ -1682,7 +1697,8 @@ describe('cancelar e editar uma mudança do rastreio, e o aviso de quem fica sem
     await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(chamadasA(f, 'PUT /api/militares/m1/rastreio/r2')).toBe(1));
     expect(chamadasA(f, 'POST /api/militares/m1/situacao')).toBe(0);
-    expect(corpoEnviado(f, 'PUT /api/militares/m1/rastreio/r2')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-alfa', jornada: 'adm', desde: somarDias(hoje(), 15) });
+    // 6.64: trocar a jornada zera a equipe (a do Pronto não vale para o ADM)
+    expect(corpoEnviado(f, 'PUT /api/militares/m1/rastreio/r2')).toEqual({ unidadeId: 'u-1sb', equipeId: null, jornada: 'adm', desde: somarDias(hoje(), 15) });
   });
 
   it('o erro da data aparece na janela de edição', async () => {

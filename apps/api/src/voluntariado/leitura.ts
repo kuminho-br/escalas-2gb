@@ -1,12 +1,14 @@
 // Voluntariado lançado à mão: a lista do mês (quem já foi lançado e quem falta) e as marcações de um militar.
 import { mesParaData, type FaixaDeDisponibilidade, type MeuVoluntariado, type MilitarDoVoluntariado, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
-import { blocosDoDia, CICLO_EQUIPES, cortesDoDia, detectarEquipeInicial, diasDoMes, equipeDoDia, grupoDoMilitar, mesAnterior, PRE_ESCALA, unirFaixas, type Faixa, type Militar } from 'dominio';
+import { blocosDoDia, cortesDoDia, detectarEquipeInicial, diasDoMes, equipeDoDia, mesAnterior, rotuloDoCiclo, PRE_ESCALA, unirFaixas, type Faixa, type Militar } from 'dominio';
 import { unidadeDoRegistro } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { coletaAberta, mensagemColetaFechada, mensagemSoAPartirDe } from './coleta.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'horas' | 'dias' | 'peloMilitar' | 'correcoes'>;
+/** O militar lotado com o rótulo do ciclo da equipe dele (pela posição, 6.64): é o que o motor usa, nunca o nome cadastrado. */
+type LotadoNoCiclo = Lotado & { rotuloDoCiclo: string | null };
 
 /** 480 -> "08:00"; 1440 -> "24:00". */
 export const horaDe = (min: number): string => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
@@ -30,12 +32,12 @@ export async function blocosDaSecao(c: Consulta, unidadeId: string): Promise<Fai
 }
 
 /** Militares ativos com lotação na seção em algum dia do mês; com duas lotações no mês vale a que cobre o maior trecho (empate: a mais recente). */
-export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, somente?: string): Promise<Lotado[]> {
+export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, somente?: string): Promise<LotadoNoCiclo[]> {
   const inicio = mesParaData(mes);
   const { rows } = await c.query<{
-    id: string; matricula: string; nome_guerra: string; voluntario_jes: boolean; posto: string; jornada: 'pronto' | 'adm'; equipe: string | null; trecho: number; desde: string;
+    id: string; matricula: string; nome_guerra: string; voluntario_jes: boolean; posto: string; jornada: 'pronto' | 'adm'; equipe: string | null; tipo: string | null; posicao_ciclo: number | null; trecho: number; desde: string;
   }>(
-    `select m.id, m.matricula, m.nome_guerra, m.voluntario_jes, p.sigla as posto, l.jornada, e.nome as equipe, to_char(l.desde, 'YYYY-MM-DD') as desde,
+    `select m.id, m.matricula, m.nome_guerra, m.voluntario_jes, p.sigla as posto, l.jornada, e.nome as equipe, e.tipo, e.posicao_ciclo, to_char(l.desde, 'YYYY-MM-DD') as desde,
             (least(coalesce(l.ate, date '9999-12-31'), ($1::date + interval '1 month' - interval '1 day')::date) - greatest(l.desde, $1::date) + 1)::int as trecho
        from militar m join posto_grad p on p.id = m.posto_grad_id
        join rastreio l on l.militar_id = m.id and l.unidade_id = $2
@@ -50,7 +52,7 @@ export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, 
     if (!atual || r.trecho > atual.trecho || (r.trecho === atual.trecho && r.desde > atual.desde)) melhor.set(r.id, r);
   }
   return [...melhor.values()]
-    .map((r): Lotado => ({ militarId: r.id, posto: r.posto, nomeGuerra: r.nome_guerra, matricula: r.matricula, equipe: r.equipe, jornada: r.jornada, voluntarioJes: r.voluntario_jes }))
+    .map((r): LotadoNoCiclo => ({ militarId: r.id, posto: r.posto, nomeGuerra: r.nome_guerra, matricula: r.matricula, equipe: r.equipe, jornada: r.jornada, voluntarioJes: r.voluntario_jes, rotuloDoCiclo: r.tipo === 'pronto' && r.posicao_ciclo !== null ? rotuloDoCiclo(r.posicao_ciclo) : null }))
     .sort((a, b) => a.nomeGuerra.localeCompare(b.nomeGuerra, 'pt-BR') || a.matricula.localeCompare(b.matricula));
 }
 
@@ -121,12 +123,13 @@ export async function faixasDoMes(c: Consulta, militarId: string, mes: string): 
 }
 
 /** Os dias do mês em que a equipe do militar não está de serviço, pelo ciclo do motor; null quando não dá para saber. */
-async function folgasDoMilitar(c: Consulta, unidadeId: string, mes: string, doMilitar: Lotado): Promise<string[] | null> {
-  const grupo = grupoDoMilitar({ jornada: doMilitar.jornada, equipe: doMilitar.equipe });
-  if (!CICLO_EQUIPES.includes(grupo)) return null;
+async function folgasDoMilitar(c: Consulta, unidadeId: string, mes: string, doMilitar: LotadoNoCiclo): Promise<string[] | null> {
+  // o grupo vem do rótulo da posição no ciclo (renomear a equipe não muda); ADM, sem equipe e equipe fora do ciclo seguem sem ciclo
+  const grupo = doMilitar.jornada === 'pronto' ? doMilitar.rotuloDoCiclo : null;
+  if (!grupo) return null;
   const anterior = mesAnterior(mes);
   // a equipe de cada militar no mês anterior e o Pronto turno A que ele cumpriu (o motor vota pelos últimos dias)
-  const militares = (await lotadosNoMes(c, unidadeId, anterior)).map((m): Militar => ({ mat: m.militarId, jornada: m.jornada, equipe: m.equipe ?? '' }));
+  const militares = (await lotadosNoMes(c, unidadeId, anterior)).map((m): Militar => ({ mat: m.militarId, jornada: m.jornada, equipe: m.rotuloDoCiclo ?? '' }));
   const { rows } = await c.query<{ mat: string; dia: string; servico: string; turno: string }>(
     `select a.militar_id as mat, to_char(a.data, 'YYYY-MM-DD') as dia, s.nome as servico, t.letra as turno
        from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id

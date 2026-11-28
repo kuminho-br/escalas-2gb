@@ -173,7 +173,7 @@ export async function exigirAdministradorRaiz(c: Context<AmbienteApi>, erro = 'S
   return c.json({ erro }, 403);
 }
 
-type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota' | 'alocacao' | 'remocao' | 'acumulo';
+type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota' | 'equipe' | 'alocacao' | 'remocao' | 'acumulo';
 
 const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
   militar: 'select unidade_id from rastreio where militar_id = $1 order by desde desc limit 1',
@@ -186,6 +186,7 @@ const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
   escala: 'select unidade_id from escala where id = $1',
   feriado: 'select unidade_id from feriado where id = $1',
   cota: 'select unidade_id from cota where id = $1',
+  equipe: 'select unidade_id from equipe where id = $1',
   // o serviço é da unidade (e a alocação do expediente do Adm não tem escala, 6.40): a unidade vem do serviço
   alocacao: 'select s.unidade_id from alocacao a join servico s on s.id = a.servico_id where a.id = $1',
   remocao: 'select s.unidade_id from remocao r join servico s on s.id = r.servico_id where r.id = $1',

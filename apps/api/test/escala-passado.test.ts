@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { conferirPassado } from '../src/escala/passado.ts';
 import { hojeRecife } from '../src/datas.ts';
 import { lerRegistro, textoDaAlteracaoNoPassado } from '../src/registro.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir, soAlfaNoCiclo } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
 // O relógio da trava do passado é fixo: as 12:00 do dia 15 do mês do cenário (o turno A começa às 08:00 e já começou; o B, às 20:00, não).
@@ -72,7 +72,8 @@ const sozinho = async (acao: () => Promise<Response>) => {
 beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-PS', nome: 'Soldado PS', ordem: 941 });
-  equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  await soAlfaNoCiclo(api.banco);
+  equipe = await equipePadrao(api.banco, 'Alfa');
   motorista = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   combatente = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
   chefe = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Chefe' });

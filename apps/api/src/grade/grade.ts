@@ -57,7 +57,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
       id: string; matricula: string; nome_guerra: string; posto: string; posto_ordem: number; antiguidade: number | null; ativo: boolean; jornada: 'pronto' | 'adm';
       equipe_id: string | null; equipe: string | null; ordem_ciclo: number | null; desde: string; ate: string | null;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, ${PODE_SER_ESCALADO} as ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
+      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, ${PODE_SER_ESCALADO} as ativo, l.jornada, l.equipe_id, e.nome as equipe, e.posicao_ciclo as ordem_ciclo,
               to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
          from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
@@ -200,7 +200,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     if (!periodos.some((p) => p.ativo) && !temAlocacaoNoMes(l.id)) continue;
     const linha = montarLinha(l, l.jornada, periodos, periodosDoMilitar.get(l.id)! > 1);
     if (l.jornada === 'adm') poe('adm', 'ADM', 1_000_000, linha, l.antiguidade);
-    else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 0, linha, l.antiguidade);
+    else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 500_000, linha, l.antiguidade);
     else poe('sem-equipe', 'Sem equipe', 999_999, linha, l.antiguidade);
   }
   for (const p of deFora) poe('outras', 'Outras seções', 2_000_000, montarLinha(p, 'pronto', null), p.antiguidade);

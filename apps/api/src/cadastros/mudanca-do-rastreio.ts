@@ -8,6 +8,7 @@ import {
   donoDoPeculioDoMilitar, FRASE_CAMPO, MSG_EQUIPE_DE_OUTRA, MSG_PERIODO_ANTES, MSG_SITUACAO_DESATIVADA, MSG_SITUACAO_NAO_ACHADA, papelDeCadastroNaUnidade, papelDeCadastroNoMilitar,
   RecusaDaAlteracao, type MotivoDeRecusa,
 } from './alterar-situacao.ts';
+import { recusaDaEquipeNoRastreio } from './equipes.ts';
 import { ADMINISTRADOR_MEXE_EM_QUALQUER_PERIODO } from './fase-de-testes.ts';
 import { quadroParaOPosto } from './quadros.ts';
 
@@ -83,9 +84,10 @@ export async function editarPeriodo(tx: Consulta, usuarioId: string, militarId: 
   if (!(ADMINISTRADOR_MEXE_EM_QUALQUER_PERIODO && administrador) && d.desde <= hoje) throw recusa('data', MSG_DATA_DEPOIS_DE_HOJE, 400, 'desde');
   const noDestino = await papelDeCadastroNaUnidade(tx, usuarioId, d.unidadeId, hoje);
   if (noDestino) throw new RecusaDaAlteracao(noDestino);
-  if (d.equipeId) {
-    const daUnidade = (await tx.query('select 1 from equipe where id = $1 and unidade_id = $2', [d.equipeId, d.unidadeId])).rows.length > 0;
-    if (!daUnidade) throw recusa('equipe', MSG_EQUIPE_DE_OUTRA, 400, 'equipeId');
+  // a equipe: da unidade da lotação ou de cima, ativa e combinando com a jornada (6.64); só se confere quando a equipe, a jornada ou a unidade do período mudam
+  if (d.equipeId && (d.equipeId !== p.equipe_id || d.jornada !== p.jornada || d.unidadeId !== p.unidade_id)) {
+    const recusaDaEquipe = await recusaDaEquipeNoRastreio(tx, d.equipeId, d.unidadeId, d.jornada);
+    if (recusaDaEquipe) throw recusa('equipe', recusaDaEquipe, 400, 'equipeId');
   }
   const situacaoId = d.situacaoId ?? p.situacao_id;
   if (situacaoId !== p.situacao_id) {
