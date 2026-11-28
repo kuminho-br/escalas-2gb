@@ -307,6 +307,14 @@ describe('grade geral: adicionar serviço neste dia', () => {
   });
 });
 
+describe('o painel do dia no tablet (6.75)', () => {
+  it('no tablet o painel começa abaixo da faixa do Laboratório (a faixa não cobre o alto dele)', async () => {
+    api();
+    abrir(ABERTA);
+    expect((await painel()).className).toContain('md:max-lg:top-[var(--faixa)]');
+  });
+});
+
 describe('grade geral: remover', () => {
   it('o painel do dia não traz a frase da pré-escala (ela fica na Escala do mês), mas diz de onde mais ele sai quando acumula; o botão chama o DELETE e busca a grade de novo', async () => {
     const f = api(PAINEL, { 'DELETE /api/alocacoes/a-1': { status: 200, corpo: ESCALA } });

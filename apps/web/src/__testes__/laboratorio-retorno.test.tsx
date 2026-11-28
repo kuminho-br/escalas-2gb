@@ -202,3 +202,21 @@ describe('os retornos e o cadastro, para o administrador', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('O caminho começa com /.');
   });
 });
+
+describe('o aviso dos 500 retornos (6.75)', () => {
+  const retornos = (n: number) => Array.from({ length: n }, (_, i) => ({ ...RETORNOS[0]!, id: `r${i}`, texto: `Retorno ${i}.` }));
+  const FRASE = 'Mostrando os 500 mais recentes. Use os filtros para ver os outros.';
+
+  it('com 500 retornos vindos da API, a tela avisa que são os 500 mais recentes', async () => {
+    simularApi({ ...base, '/api/eu': { status: 200, corpo: ADMIN }, '/api/laboratorio/retornos': { status: 200, corpo: retornos(500) } });
+    abrir('/laboratorio/retornos');
+    expect(await screen.findByText(FRASE)).toBeInTheDocument();
+  });
+
+  it('com 499 a frase não aparece', async () => {
+    simularApi({ ...base, '/api/eu': { status: 200, corpo: ADMIN }, '/api/laboratorio/retornos': { status: 200, corpo: retornos(499) } });
+    abrir('/laboratorio/retornos');
+    await screen.findByText('Retorno 498.');
+    expect(screen.queryByText(FRASE)).toBeNull();
+  });
+});

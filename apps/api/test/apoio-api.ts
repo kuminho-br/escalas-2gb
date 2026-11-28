@@ -72,7 +72,7 @@ export async function montarApi(
   const admin = (await novo('990901-1', 'ADMIN', 'admin@exemplo.test')).usuarioId;
   const escalante = (await novo('990902-2', 'ESCALANTE', 'escalante@exemplo.test')).usuarioId;
   await banco.query("update papel_usuario set papel = 'escalante', unidade_id = $2 where usuario_id = $1", [escalante, ids.secao]);
-  const gestorGb = (await novo('990908-8', 'GESTORGB', 'gestorgb@exemplo.test')).usuarioId;
+  const gestorGb = (await novo('100908-8', 'GESTORGB', 'gestorgb@exemplo.test')).usuarioId;
   await banco.query("update papel_usuario set papel = 'gestor', unidade_id = $2 where usuario_id = $1", [gestorGb, ids.gb]);
   const semPapel = (await novo('990903-3', 'COMUM', 'comum@exemplo.test')).usuarioId;
   await banco.query('delete from papel_usuario where usuario_id = $1', [semPapel]);
