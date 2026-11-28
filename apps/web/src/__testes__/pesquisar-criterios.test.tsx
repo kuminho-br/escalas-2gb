@@ -19,6 +19,10 @@ function api(eu: unknown = NIVEL, extra: Parameters<typeof simularApi>[0] = {}) 
   return simularApi({
     '/api/eu': { status: 200, corpo: eu },
     'GET /api/consulta/unidades': { status: 200, corpo: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null }] },
+    'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }] },
+    'GET /api/quadros': { status: 200, corpo: [{ id: 'q-bmg', sigla: 'QBMG', nome: 'Praças', oficial: false }] },
+    'GET /api/situacoes-do-militar': { status: 200, corpo: [{ id: 's-ativa', nome: 'Ativa', escalavel: true, ativo: true }] },
+    'GET /api/funcoes-do-militar': { status: 200, corpo: [{ id: 'f-chefe', nome: 'Chefe de seção', ativo: true }] },
     [BUSCAR]: { status: 200, corpo: resposta([JULIO]) },
     ...extra,
   });
@@ -115,6 +119,30 @@ describe('onde o texto procura (6.63)', () => {
     await userEvent.type(await campo(), 'silva');
     await clicarBuscar();
     expect(await screen.findByText(/O nome completo está desligado nos critérios\./)).toBeInTheDocument();
+  });
+});
+
+describe('revisão do Opus (6.63)', () => {
+  it('tirar uma etiqueta refaz a busca que valia (o texto de antes), e o que a pessoa digitou ou mexeu sem buscar fica', async () => {
+    const f = api();
+    abrir('/peculio/pesquisar');
+    await userEvent.type(await campo(), 'silva');
+    await abrirCriterios('Outros filtros');
+    await userEvent.selectOptions(screen.getByLabelText('Jornada'), 'pronto');
+    await userEvent.selectOptions(screen.getByLabelText('Voluntário JES'), 'sim');
+    await clicarBuscar();
+    await lista();
+    // depois da busca: um texto novo na barra e um filtro novo na aba, sem buscar
+    await userEvent.clear(await campo());
+    await userEvent.type(await campo(), 'costa');
+    await abrirCriterios(/^Outros filtros/);
+    await userEvent.selectOptions(screen.getByLabelText('Quadro'), 'q-bmg');
+    await userEvent.click(within(screen.getByRole('group', { name: 'Critérios em uso' })).getByRole('button', { name: /^Tirar o critério: Jornada/ }));
+    await waitFor(() => expect(corpos(f)).toHaveLength(2));
+    expect(corpos(f)[1]).toEqual({ texto: 'silva', voluntarioJes: true });
+    expect(await campo()).toHaveValue('costa');
+    await abrirCriterios(/^Outros filtros/);
+    expect(screen.getByLabelText('Quadro')).toHaveValue('q-bmg');
   });
 });
 
@@ -262,6 +290,33 @@ describe('no celular (6.63)', () => {
     expect(folha.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Nome e matrícula', 'Pela árvore', 'Arquivo de matrículas', 'Outros filtros']);
     await userEvent.click(folha.getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('o que falta para buscar aparece na própria folha dos critérios (a barra com o erro está atrás dela)', async () => {
+    celular();
+    api();
+    abrir('/peculio/pesquisar');
+    await userEvent.click(await screen.findByRole('button', { name: /^Critérios de pesquisa/ }));
+    const folha = within(await screen.findByRole('dialog', { name: 'Critérios de pesquisa' }));
+    await userEvent.click(folha.getByRole('button', { name: 'Buscar' }));
+    expect(await folha.findByRole('alert')).toHaveTextContent('Digite pelo menos 3 letras ou escolha uma unidade.');
+  });
+
+  it('o aviso do limite de 5000 aparece na barra de baixo, fora da folha', async () => {
+    celular();
+    const cinco = Array.from({ length: 5000 }, (_, i) => linha(`m${i}`, `M${i}`, { matricula: `10${String(i).padStart(5, '0')}-1` }));
+    const f = api(NIVEL, { [BUSCAR]: { status: 200, corpo: { ...resposta(cinco.slice(0, 500)), haMais: true } } });
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (e, init) => {
+      if (String(e).endsWith('/militares/buscar/todos')) return new Response(JSON.stringify(resposta([...cinco, linha('extra', 'EXTRA')])), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return padrao(e, init);
+    });
+    abrir('/peculio/pesquisar');
+    await userEvent.type(await campo(), 'abc');
+    await clicarBuscar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    expect(await screen.findByText('Dá para selecionar até 5000 militares de uma vez.')).toBeInTheDocument();
+    expect(screen.getByText('0 selecionados')).toBeInTheDocument();
   });
 
   it('os selecionados viram uma barra embaixo ("{n} selecionados" e "Ver") que abre o painel numa folha', async () => {

@@ -86,7 +86,7 @@ function Consulta() {
   const criterios: Criterios = { marcas: estado.marcas, matriculas: estado.matriculas, extras: estado.extras, procurarEm: estado.procurarEm };
 
   /** Faz a busca com os critérios dados; devolve a frase do que falta, ou null quando a busca saiu. `semFiltro`: a frase para quando nada está valendo. */
-  const buscar = (campo: string, escolhida: string, c: Criterios, semFiltro = MSG_BUSCA_CURTA): string | null => {
+  const buscar = (campo: string, escolhida: string, c: Criterios, semFiltro = MSG_BUSCA_CURTA, rascunho: Criterios = c): string | null => {
     const f = filtrosDe(campo, escolhida, c, nivel);
     if (campo.trim().length < 3 && !f.unidades?.length && !f.matriculas?.length && contarExtras(c.extras) === 0) {
       return semFiltro;
@@ -94,14 +94,17 @@ function Consulta() {
     // o endereço guarda só o texto e a unidade escolhida no campo (os critérios das abas ficam no estado, que o acompanha pela chave)
     const novoTexto = campo.trim();
     const novaUnidade = c.marcas.length ? '' : escolhida;
-    mudar({ ...c, aplicados: f, valendo: c, chave: `${novoTexto}|${novaUnidade}` });
+    mudar({ ...rascunho, aplicados: f, valendo: c, chave: `${novoTexto}|${novaUnidade}` });
     void navigate({ search: { texto: novoTexto || undefined, unidade: novaUnidade || undefined } });
     return null;
   };
   /** O x de uma etiqueta (ou "Limpar critérios"): tira o critério dos que valem e busca de novo; sem nada que buscar, o resultado some e a tela pede um critério. */
-  const aplicarCriterios = (novo: Criterios, campo: string, escolhida: string): string | null => {
-    const problema = buscar(campo, escolhida, novo, MSG_ESCOLHA_UM_FILTRO);
-    if (problema) mudar({ ...novo, aplicados: {}, valendo: novo });
+  const aplicarCriterios = (tirar: (c: Criterios) => Criterios, texto: string, escolhida: string): string | null => {
+    // a busca refeita é a que estava valendo, menos o critério (o texto e a unidade são os da busca em vigor, não os que a pessoa está digitando); o que ela mexeu nas abas sem buscar fica
+    const novo = tirar(valendo);
+    const rascunho = tirar(criterios);
+    const problema = buscar(texto, escolhida, novo, MSG_ESCOLHA_UM_FILTRO, rascunho);
+    if (problema) mudar({ ...rascunho, aplicados: {}, valendo: novo });
     return problema;
   };
 
@@ -128,8 +131,8 @@ function Consulta() {
         valendo={valendo}
         aoMudar={(parte) => mudar(parte)}
         aoBuscar={(campo, escolhida) => buscar(campo, escolhida, criterios)}
-        aoTirar={(chave, campo, escolhida) => aplicarCriterios(semOCriterio(valendo, chave), campo, escolhida)}
-        aoLimpar={(campo, escolhida) => aplicarCriterios(CRITERIOS_VAZIOS, campo, escolhida)}
+        aoTirar={(chave) => aplicarCriterios((c) => semOCriterio(c, chave), texto, unidade)}
+        aoLimpar={() => aplicarCriterios(() => CRITERIOS_VAZIOS, texto, unidade)}
       />
       <div className={cn('grid gap-5', nivel && 'md:grid-cols-[minmax(0,1fr)_20rem] md:items-start')}>
         <Resultado filtros={vigentes} nivel={nivel} endereco={{ texto, unidade }} />
@@ -149,8 +152,8 @@ function Formulario({
   valendo: Criterios;
   aoMudar: (parte: Partial<Criterios>) => void;
   aoBuscar: (campo: string, escolhida: string) => string | null;
-  aoTirar: (chave: string, campo: string, escolhida: string) => string | null;
-  aoLimpar: (campo: string, escolhida: string) => string | null;
+  aoTirar: (chave: string) => string | null;
+  aoLimpar: () => string | null;
 }) {
   const unidades = useQuery(consultaUnidadesDaBusca);
   const [campo, setCampo] = useState(texto);
@@ -202,8 +205,8 @@ function Formulario({
       {erro && <p id="consulta-erro" role="alert" className="text-sm text-alerta">{erro}</p>}
       <EtiquetasDosCriterios
         etiquetas={etiquetas}
-        aoTirar={(chave) => setErro(aoTirar(chave, campo, escolhida))}
-        aoLimpar={() => setErro(aoLimpar(campo, escolhida))}
+        aoTirar={(chave) => setErro(aoTirar(chave))}
+        aoLimpar={() => setErro(aoLimpar())}
       />
       <PainelDosCriterios
         id={idDoPainel}
@@ -218,6 +221,7 @@ function Formulario({
         aoBuscar={buscar}
         aoLimpar={limparRascunho}
         aoFechar={() => setAberto(false)}
+        erro={erro}
       />
     </div>
   );
@@ -271,7 +275,7 @@ function SelecionarEstes({ militares, haMais, filtros }: { militares: LinhaDaBus
     setBuscando(true);
     setErro(null);
     try {
-      const todos = (await buscarTodos(filtros)).militares;
+      const todos = (inteira.data ?? (await buscarTodos(filtros))).militares;
       incluir(todos.filter((m) => m.podeAlterar));
     } catch (e) {
       setErro(mensagemDe(e));

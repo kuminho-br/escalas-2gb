@@ -111,4 +111,34 @@ describe('Importar e Exportar no alto (6.63)', () => {
     await waitFor(() => expect(depois.getByRole('region', { name: '2º GB / 2ª SB' })).toBeInTheDocument());
     expect(within(depois.getByRole('region', { name: '2º GB / 2ª SB' })).getByRole('button', { name: 'Tirar SD ANDRADE' })).toBeInTheDocument();
   });
+
+  it('a seleção grande é lida de novo em partes de 500 matrículas (a busca devolve até 500 por pedido), e nenhum selecionado fica com o dado de antes', async () => {
+    const todos = Array.from({ length: 1200 }, (_, i) => linha(`m${i}`, `M${i}`, `10${String(i).padStart(5, '0')}-1`));
+    const tela = todos.slice(0, 500);
+    let importou = false;
+    const f = api(GESTOR_GB, { 'POST /api/consulta/militares/buscar': { status: 200, corpo: { ...resultado(tela), haMais: true } } });
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (e, init) => {
+      const url = String(e);
+      if (url.includes('/importacao/peculio') && url.includes('confirmar=1')) importou = true;
+      if (url.endsWith('/militares/buscar/todos')) return new Response(JSON.stringify(resultado(todos)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (importou && url.endsWith('/militares/buscar') && init?.method === 'POST' && String(init.body).includes('matriculas')) {
+        const pedidas: string[] = JSON.parse(String(init.body)).matriculas;
+        return new Response(JSON.stringify(resultado(todos.filter((m) => pedidas.includes(m.matricula)))), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return padrao(e, init);
+    });
+    abrir('/peculio/pesquisar');
+    await userEvent.type(await screen.findByLabelText('Matrícula ou nome de guerra'), 'abc');
+    await clicarBuscar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    await screen.findByRole('heading', { name: 'Selecionados (1200)' });
+    await userEvent.click(screen.getByRole('button', { name: /^Importar/ }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    await userEvent.upload(dialogo.getByLabelText('Arquivo da planilha (.xlsx)'), new File(['x'], 'peculio.xlsx'));
+    await userEvent.click(dialogo.getByRole('button', { name: 'Ver o que vai entrar' }));
+    await userEvent.click(await dialogo.findByRole('button', { name: /^Importar 1/ }));
+    await dialogo.findByText('1 registros gravados.');
+    await waitFor(() => expect(buscasPorMatricula(f).map((c) => c.matriculas.length)).toEqual([500, 500, 200]));
+  });
 });

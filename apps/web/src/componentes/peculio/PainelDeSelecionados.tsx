@@ -94,7 +94,7 @@ function ConteudoDosSelecionados({ aoAtualizarEmLote, idDoTitulo, aoFechar }: { 
  * ("{n} selecionados" e "Ver") que abre o painel numa folha. É a entrada da atualização em lote (6.52).
  */
 export function PainelDeSelecionados() {
-  const { selecionados, reler, releituraFalhou } = useSelecao();
+  const { selecionados, reler, releituraFalhou, aviso: avisoDoLimite } = useSelecao();
   const celular = useEhCelular();
   const titulo = useId();
   const [lote, setLote] = useState(false);
@@ -112,6 +112,8 @@ export function PainelDeSelecionados() {
   if (celular) {
     return (
       <>
+        {/* o aviso do limite e o da releitura ficam à vista também fora da folha */}
+        {(avisoDoLimite || releituraFalhou) && <p role="status" className="rounded-md bg-pendencia-fundo px-3 py-2 text-apoio text-pendencia">{avisoDoLimite ?? 'Não foi possível ler de novo os dados dos selecionados: a lotação mostrada pode estar desatualizada.'}</p>}
         <div className="sticky bottom-0 z-20 flex min-h-12 items-center gap-2 rounded-xl bg-tinta py-1.5 pr-1.5 pl-4 text-white shadow-por-cima">
           <b className="mr-auto font-cond text-lg font-semibold">{selecionados.length === 1 ? '1 selecionado' : `${selecionados.length} selecionados`}</b>
           <Button type="button" variant="secundario" onClick={() => setFolha(true)}>Ver</Button>

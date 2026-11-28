@@ -86,7 +86,7 @@ function AbaNomeEMatricula({ valor, aoMudar }: { valor: ProcurarEm; aoMudar: (p:
  * de acesso), e "Buscar" embaixo. O campo principal fica na barra, fora daqui. Os critérios são o rascunho: só valem no "Buscar".
  */
 function ConteudoDosCriterios({
-  criterios, aoMudar, nivel, unidades, aba, aoMudarAba, aoBuscar, aoLimpar, aoFechar,
+  criterios, aoMudar, nivel, unidades, aba, aoMudarAba, aoBuscar, aoLimpar, aoFechar, erro,
 }: {
   criterios: Criterios;
   aoMudar: (parte: Partial<Criterios>) => void;
@@ -97,6 +97,7 @@ function ConteudoDosCriterios({
   aoBuscar: () => void;
   aoLimpar: () => void;
   aoFechar: () => void;
+  erro?: string | null;
 }) {
   const contas = contasDasAbas(criterios);
   const abas: [Aba, string][] = [['texto', 'Nome e matrícula'], ['arvore', 'Pela árvore'], ...(nivel ? ([['arquivo', 'Arquivo de matrículas'], ['outros', 'Outros filtros']] as [Aba, string][]) : [])];
@@ -122,6 +123,7 @@ function ConteudoDosCriterios({
         {nivel && <TabsContent value="arquivo"><ArquivoDeMatriculas matriculas={criterios.matriculas} aoLer={(matriculas) => aoMudar({ matriculas })} /></TabsContent>}
         {nivel && <TabsContent value="outros"><FiltrosDaPesquisa valor={criterios.extras} aoMudar={(extras) => aoMudar({ extras })} /></TabsContent>}
       </div>
+      {erro && <p role="alert" className="border-t border-linha px-4 py-2 text-sm text-alerta">{erro}</p>}
       <div className="flex flex-wrap items-center gap-2 border-t border-linha px-4 py-3">
         <Button type="button" variant="discreto" disabled={!algumCriterio} onClick={aoLimpar}>Limpar critérios</Button>
         <Button type="button" variant="secundario" onClick={aoFechar}>Fechar</Button>
@@ -137,7 +139,7 @@ function ConteudoDosCriterios({
 /**
  * Onde o painel aparece: no computador, por baixo da barra; no celular, numa folha que cobre a tela (6.63). `id` liga o botão ao painel.
  */
-export function PainelDosCriterios({ id, aberto, celular, aoFechar, ...resto }: { id: string; aberto: boolean; celular: boolean; aoFechar: () => void } & Omit<Parameters<typeof ConteudoDosCriterios>[0], 'aoFechar'>): ReactNode {
+export function PainelDosCriterios({ id, aberto, celular, aoFechar, erro, ...resto }: { id: string; aberto: boolean; celular: boolean; aoFechar: () => void; /** O que falta para buscar: na folha do celular, fica nela (a barra com o erro está atrás dela). */ erro?: string | null } & Omit<Parameters<typeof ConteudoDosCriterios>[0], 'aoFechar' | 'erro'>): ReactNode {
   const titulo = useId();
   if (!aberto) return null;
   if (celular) {
@@ -149,7 +151,7 @@ export function PainelDosCriterios({ id, aberto, celular, aoFechar, ...resto }: 
             <DialogDescription className="sr-only">Escolha onde o texto procura e os filtros da busca.</DialogDescription>
             <Button type="button" variant="discreto" size="icon" aria-label="Fechar os critérios" onClick={aoFechar}><X aria-hidden /></Button>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col"><ConteudoDosCriterios {...resto} aoFechar={aoFechar} /></div>
+          <div className="flex min-h-0 flex-1 flex-col"><ConteudoDosCriterios {...resto} erro={erro} aoFechar={aoFechar} /></div>
         </DialogContent>
       </Dialog>
     );

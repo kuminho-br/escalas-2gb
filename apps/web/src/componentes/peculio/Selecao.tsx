@@ -5,6 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 /** A seleção vai até o que a exportação aceita de uma vez (6.63); acima disso a pessoa vê esta frase, e não o erro da validação. */
 export const LIMITE_DA_SELECAO = LIMITE_DA_EXPORTACAO;
+/** Quantas matrículas vão em cada pedido de releitura (a busca devolve até 500 linhas). */
+const TAMANHO_DA_RELEITURA = 500;
 export const MSG_LIMITE_DA_SELECAO = `Dá para selecionar até ${LIMITE_DA_SELECAO} militares de uma vez.`;
 
 type Contexto = {
@@ -53,8 +55,11 @@ export function SelecaoDeMilitares({ ativa = true, children }: { ativa?: boolean
   }, []);
   const reler = useCallback(() => {
     if (selecionados.length > 0) {
-      void pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: selecionados.map((s) => s.matricula) }).then(
-        (r) => { setSelecionados((atual) => atual.map((s) => r.militares.find((l) => l.id === s.id) ?? s)); setReleituraFalhou(false); },
+      // a busca devolve até 500 linhas por pedido: a seleção (que vai até 5000) é relida em partes de 500 matrículas
+      const matriculas = selecionados.map((s) => s.matricula);
+      const partes = Array.from({ length: Math.ceil(matriculas.length / TAMANHO_DA_RELEITURA) }, (_, i) => matriculas.slice(i * TAMANHO_DA_RELEITURA, (i + 1) * TAMANHO_DA_RELEITURA));
+      void Promise.all(partes.map((p) => pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', { matriculas: p }))).then(
+        (rs) => { const lidas = rs.flatMap((r) => r.militares); setSelecionados((atual) => atual.map((s) => lidas.find((l) => l.id === s.id) ?? s)); setReleituraFalhou(false); },
         () => setReleituraFalhou(true),
       );
     }
