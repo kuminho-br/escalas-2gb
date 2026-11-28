@@ -186,12 +186,12 @@ describe('o fim de semana e o feriado', () => {
 describe('a legenda', () => {
   const grupos: GradeDoMes['grupos'] = [{ chave: 'a', nome: 'Alfa', linhas: [linha('X', { dias: { [d(5)]: [bloco('#2F8F5B', 'A', 'Pronto'), bloco('#6E56A8', 'B', 'JES')] }, choques: [d(5)], afastamentos: [af('Férias', d(1), d(3))] })] }];
 
-  it('mostra, como as células, os quadradinhos na cor ajustada e com a letra, o traço do afastado e o contorno do choque', () => {
+  it('mostra, como as células, os quadradinhos na cor ajustada e lisos (sem a letra do turno), o traço do afastado e o contorno do choque', () => {
     render(<LegendaDaGrade grupos={grupos} />);
     const legenda = screen.getByRole('list', { name: 'Legenda' });
     const pronto = within(legenda).getByText('Pronto').closest('li')!;
     const quadrado = pronto.querySelector<HTMLElement>('[data-quadrado]')!;
-    expect(quadrado).toHaveTextContent('A');
+    expect(quadrado.textContent).toBe('');
     const ajustado = estiloDaCor('#2F8F5B');
     expect(quadrado.style.backgroundColor).not.toBe('');
     expect(quadrado).toHaveStyle({ backgroundColor: ajustado.backgroundColor, color: ajustado.color });

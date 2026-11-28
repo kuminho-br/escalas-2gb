@@ -2,17 +2,13 @@ import type { GrupoDaGrade } from 'contratos';
 import { estiloDaCor } from '@/lib/cores';
 
 /**
- * A legenda, numa linha acima da tabela (6.70): os mesmos quadradinhos das células (a cor ajustada, com a letra do turno), o traço do afastado e o contorno do choque. Cada cor é um
- * serviço e a letra é o turno; só entra o que aparece na grade. No fim da linha, só no computador, a dica de como rolar para os lados.
+ * A legenda, numa linha acima da tabela (6.70): os mesmos quadradinhos das células (a cor ajustada, lisos: a letra do turno é da célula, não da legenda, 6.74), o traço do afastado
+ * e o contorno do choque. Cada cor é um serviço; só entra o que aparece na grade. No fim da linha, só no computador, a dica de como rolar para os lados.
  */
 export function LegendaDaGrade({ grupos }: { grupos: GrupoDaGrade[] }) {
   const blocos = grupos.flatMap((g) => g.linhas.flatMap((l) => Object.values(l.dias).flat()));
-  // a letra do quadradinho é a primeira letra de turno que o serviço tem na grade
-  const porServico = new Map<string, { id: string; nome: string; cor: string; letra: string }>();
-  for (const b of blocos) {
-    const atual = porServico.get(b.servico.id);
-    if (!atual || b.letra < atual.letra) porServico.set(b.servico.id, { id: b.servico.id, nome: b.servico.nome, cor: b.servico.cor, letra: b.letra });
-  }
+  const porServico = new Map<string, { id: string; nome: string; cor: string }>();
+  for (const b of blocos) if (!porServico.has(b.servico.id)) porServico.set(b.servico.id, { id: b.servico.id, nome: b.servico.nome, cor: b.servico.cor });
   const servicos = [...porServico.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   const temChoque = grupos.some((g) => g.linhas.some((l) => l.choques.length > 0));
   const temAfastado = grupos.some((g) => g.linhas.some((l) => l.afastamentos.length > 0));
@@ -21,7 +17,7 @@ export function LegendaDaGrade({ grupos }: { grupos: GrupoDaGrade[] }) {
     <ul aria-label="Legenda" className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-linha px-4 py-2.5 text-[13px] text-apagado">
       {servicos.map((s) => (
         <li key={s.id} className="inline-flex items-center gap-1.5">
-          <span aria-hidden data-quadrado className="grid h-[18px] w-5 place-items-center rounded-[3px] font-cond text-[11px] leading-none font-bold" style={estiloDaCor(s.cor)}>{s.letra}</span>
+          <span aria-hidden data-quadrado className="h-[18px] w-5 rounded-[3px]" style={estiloDaCor(s.cor)} />
           {s.nome}
         </li>
       ))}

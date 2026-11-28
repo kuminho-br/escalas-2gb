@@ -35,6 +35,10 @@ const TROCAS: OpcoesDeTroca = {
       { alocacaoId: 'a-b2', onde: 'Ordinário, 08h–16h, sem guarnição', permuta: false },
     ],
   }],
+  vagas: [
+    { guarnicaoId: 'g-abt', guarnicao: 'ABT', funcaoId: 'f-motorista', funcao: 'Motorista' },
+    { guarnicaoId: 'g-asu', guarnicao: 'ASU', funcaoId: 'f-combatente', funcao: 'Combatente' },
+  ],
 };
 const ESCALA: EscalaDoMes = { escalaId: 'e-ord', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 }, estado: { estado: 'rascunho', emRetificacao: false, em: null, por: null }, podePublicar: false, podeAlterarPassado: false };
 const ROTA_GRADE = `GET /api/unidades/u-1sb/grade/${MES}`;
@@ -175,3 +179,63 @@ describe('grade geral: trocar', () => {
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
   });
 });
+
+describe('grade geral: trocar, "Por outra função" (6.74)', () => {
+  const abrirAbaDaFuncao = async () => {
+    const d = await abrirTroca();
+    await userEvent.click(await within(d).findByRole('tab', { name: 'Por outra função' }));
+    return d;
+  };
+
+  it('o diálogo tem as duas abas: "Por outro militar" aberta, com o que já existia, e "Por outra função"', async () => {
+    api();
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    const abas = await within(d).findAllByRole('tab');
+    expect(abas.map((a) => a.textContent)).toEqual(['Por outro militar', 'Por outra função']);
+    expect(within(d).getByRole('tab', { name: 'Por outro militar' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(d).getByRole('button', { name: /CHARLIE/ })).toBeInTheDocument();
+    expect(within(d).getByText('Ponha outro militar no lugar de CABO ou mude CABO de função neste turno.')).toBeInTheDocument();
+  });
+
+  it('cada vaga é um botão "{função} do {guarnição}"; clicar pergunta, e "Mudar de função" manda { paraVaga } e fecha', async () => {
+    const f = api();
+    abrir(ABERTA);
+    const d = await abrirAbaDaFuncao();
+    expect(within(d).getByRole('button', { name: 'Motorista do ABT' })).toBeInTheDocument();
+    await userEvent.click(within(d).getByRole('button', { name: 'Combatente do ASU' }));
+    expect(within(d).getByText('Mudar CABO para Combatente do ASU?')).toBeInTheDocument();
+    await userEvent.click(within(d).getByRole('button', { name: 'Mudar de função' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ paraVaga: { guarnicaoId: 'g-asu', funcaoId: 'f-combatente' } }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Trocar' })).toBeNull());
+    await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
+  });
+
+  it('"Voltar" da confirmação volta à mesma aba', async () => {
+    api();
+    abrir(ABERTA);
+    const d = await abrirAbaDaFuncao();
+    await userEvent.click(within(d).getByRole('button', { name: 'Motorista do ABT' }));
+    await userEvent.click(within(d).getByRole('button', { name: 'Voltar' }));
+    expect(within(d).getByRole('tab', { name: 'Por outra função' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(d).getByRole('button', { name: 'Motorista do ABT' })).toBeInTheDocument();
+  });
+
+  it('sem vaga livre, a aba diz isso', async () => {
+    api({ 'GET /api/alocacoes/a-1/trocas': { status: 200, corpo: { ...TROCAS, vagas: [] } } });
+    abrir(ABERTA);
+    const d = await abrirAbaDaFuncao();
+    expect(within(d).getByText('Nenhuma outra vaga livre neste turno para ele.')).toBeInTheDocument();
+  });
+
+  it('a recusa da API (vaga que ficou completa) aparece no diálogo, que continua aberto', async () => {
+    api({ [POST]: { status: 409, corpo: { erro: 'A função Combatente já está completa nesta guarnição.' } } });
+    abrir(ABERTA);
+    const d = await abrirAbaDaFuncao();
+    await userEvent.click(within(d).getByRole('button', { name: 'Combatente do ASU' }));
+    await userEvent.click(within(d).getByRole('button', { name: 'Mudar de função' }));
+    expect(await within(d).findByRole('alert')).toHaveTextContent('A função Combatente já está completa nesta guarnição.');
+    expect(screen.getByRole('dialog', { name: 'Trocar' })).toBeInTheDocument();
+  });
+});
+
