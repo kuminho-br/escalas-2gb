@@ -41,7 +41,7 @@ const expedientes = <T extends { servicoId: string }>(novas: T[]) => novas.filte
 
 beforeAll(async () => {
   api = await montarApi();
-  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   const servico = async (nome: string, tipo: string, inicio: string, fim: string) => {
     const id = ((await (await api.pedir('admin', 'POST', `${secao()}/servicos`, { nome, tipo, operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string }).id;
     const turno = (await (await api.pedir('admin', 'POST', `/api/servicos/${id}/turnos`, { letra: 'A', inicio, fim })).json()).turnos[0].id as string;
@@ -134,7 +134,7 @@ describe('o expediente do Adm na pré-escala (6.40)', () => {
 
   it('uma unidade sem o serviço Expediente gera só o Pronto e avisa', async () => {
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '8ª SB', nome: '8ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
-    const equipe8 = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
+    const equipe8 = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
     const p = ((await (await api.pedir('admin', 'POST', `/api/unidades/${outra}/servicos`, { nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string }).id;
     await api.pedir('admin', 'POST', `/api/servicos/${p}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' });
     // as unidades novas já nascem com os serviços fixos? só o Expediente nos interessa: apaga-o, se existir

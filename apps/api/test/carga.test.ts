@@ -68,16 +68,20 @@ describe('carga de exemplo', () => {
     expect(await n("select count(*)::int as n from militar where matricula !~ '^100\\d{3}-\\d$'")).toBe(0);
     expect(await n("select count(*)::int as n from rastreio where jornada = 'adm'")).toBe(17);
     expect(await n("select count(*)::int as n from rastreio where jornada = 'pronto'")).toBe(36);
-    const { rows } = await banco.query<{ nome: string; ordem_ciclo: number; n: number }>(
-      `select e.nome, e.ordem_ciclo, count(l.id)::int as n from equipe e left join rastreio l on l.equipe_id = e.id
-        group by e.nome, e.ordem_ciclo order by e.ordem_ciclo`,
+    // 6.64: as seis equipes padrão são da corporação (a raiz); nenhuma seção ganha equipe própria
+    const { rows } = await banco.query<{ nome: string; unidade: string; tipo: string; posicao_ciclo: number | null; n: number }>(
+      `select e.nome, u.sigla as unidade, e.tipo, e.posicao_ciclo, count(l.id)::int as n from equipe e join unidade u on u.id = e.unidade_id left join rastreio l on l.equipe_id = e.id
+        group by e.nome, u.sigla, e.tipo, e.posicao_ciclo order by e.tipo, e.posicao_ciclo`,
     );
     expect(rows).toEqual([
-      { nome: 'Alfa', ordem_ciclo: 1, n: 9 },
-      { nome: 'Bravo', ordem_ciclo: 2, n: 10 },
-      { nome: 'Charlie', ordem_ciclo: 3, n: 9 },
-      { nome: 'Delta', ordem_ciclo: 4, n: 8 },
+      { nome: 'ADM', unidade: 'CBMPE', tipo: 'adm', posicao_ciclo: null, n: 0 },
+      { nome: 'Externa', unidade: 'CBMPE', tipo: 'externa', posicao_ciclo: null, n: 0 },
+      { nome: 'Alfa', unidade: 'CBMPE', tipo: 'pronto', posicao_ciclo: 1, n: 9 },
+      { nome: 'Bravo', unidade: 'CBMPE', tipo: 'pronto', posicao_ciclo: 2, n: 10 },
+      { nome: 'Charlie', unidade: 'CBMPE', tipo: 'pronto', posicao_ciclo: 3, n: 9 },
+      { nome: 'Delta', unidade: 'CBMPE', tipo: 'pronto', posicao_ciclo: 4, n: 8 },
     ]);
+    expect(await n("select count(*)::int as n from equipe e join unidade u on u.id = e.unidade_id where u.mae_id is not null")).toBe(0);
     expect(await n('select count(*)::int as n from militar where motorista')).toBe(8);
     expect(await n('select count(*)::int as n from militar where voluntario_jes')).toBe(10);
     expect(await n('select count(distinct nome_guerra)::int as n from militar')).toBe(53);

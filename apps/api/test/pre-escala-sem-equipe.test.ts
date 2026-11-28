@@ -32,9 +32,9 @@ beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-PE', nome: 'Soldado PE', ordem: 940 });
   const ids: string[] = [];
-  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) ids.push(await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, ordem_ciclo: i + 1 }));
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) ids.push(await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, tipo: 'pronto', posicao_ciclo: i + 1 }));
   alfa = ids[0]!;
-  fora = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Extra', ordem_ciclo: 5 });
+  fora = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Extra', tipo: 'adm' });
   secaoB = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
   const s = (await (await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/servicos`, { nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string };
   await api.pedir('escalante', 'POST', `/api/servicos/${s.id}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' });

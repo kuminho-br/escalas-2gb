@@ -396,16 +396,6 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     return c.json(permitidas);
   });
 
-  r.get('/unidades/:u/equipes', async (c) => {
-    const negado = await exigirPapel(c, c.req.param('u'), CADASTRO);
-    if (negado) return negado;
-    const { rows } = await dep.banco.query<Equipe>(
-      'select id, nome, ordem_ciclo as "ordemCiclo" from equipe where unidade_id = $1 order by ordem_ciclo',
-      [c.req.param('u')],
-    );
-    return c.json(rows);
-  });
-
   r.get('/unidades/:u/militares', async (c) => {
     const u = c.req.param('u');
     const negado = await exigirPapel(c, u, CADASTRO);

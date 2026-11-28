@@ -40,7 +40,7 @@ const f = (data: string, inicio: string, fim: string): FaixaDeDisponibilidade =>
 beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-VO', nome: 'Soldado VO', ordem: 932 });
-  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, ordem_ciclo: i + 1 });
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, tipo: 'pronto', posicao_ciclo: i + 1 });
   const s = (await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string };
   pronto = s.id;
   turnoA = (await (await api.pedir('escalante', 'POST', `/api/servicos/${pronto}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' })).json()).turnos[0].id;

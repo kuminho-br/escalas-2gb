@@ -72,7 +72,7 @@ beforeAll(async () => {
   api = await montarApi();
   motorista = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   combatente = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
-  equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  equipe = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   await criarServico('Pronto', 'ordinario', 'A', FAIXA.A);
   turno['Pronto B'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Pronto}/turnos`, { letra: 'B', ...FAIXA.B })).json()).turnos.find((t: { letra: string }) => t.letra === 'B').id;
   await criarServico('Madrugada', 'ordinario', 'A', FAIXA.MADRUGADA);

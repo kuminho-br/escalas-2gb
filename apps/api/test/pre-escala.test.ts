@@ -46,7 +46,7 @@ const noTurno = (novas: { data: string; turnoId: string; militarId: string; guar
 beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-PE', nome: 'Soldado PE', ordem: 940 });
-  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, ordem_ciclo: i + 1 });
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, tipo: 'pronto', posicao_ciclo: i + 1 });
   motorista = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   combatente = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
   chefe = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Chefe' });
@@ -270,7 +270,7 @@ describe('as rotas da prévia e da gravação', () => {
     expect(semCorpo.status).toBe(400);
     expect((await semCorpo.json()).campos).toHaveProperty('equipeDia1Id');
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: '9ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
-    const deOutra = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
+    const deOutra = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
     const recusada = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: deOutra });
     expect(recusada.status).toBe(400);
     expect((await recusada.json()).campos).toHaveProperty('equipeDia1Id');

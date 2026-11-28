@@ -29,8 +29,8 @@ async function criar(nome: string, postoSigla: string, quadroSigla: string | nul
 
 beforeAll(async () => {
   api = await montarApi();
-  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
+  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
   servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Pronto', tipo: 'ordinario', cor: '#2F8F5B' });
   turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: FAIXA.inicio, fim: FAIXA.fim });
   await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '20:00', fim: '08:00' });

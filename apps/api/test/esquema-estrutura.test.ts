@@ -66,11 +66,11 @@ describe('estrutura e pessoas', () => {
   it('a lotação virou rastreio, com as mesmas regras', async () => {
     const { rows } = await banco.query<{ tabela: string }>("select tablename as tabela from pg_tables where schemaname = current_schema() and tablename in ('lotacao', 'rastreio')");
     expect(rows.map((r) => r.tabela)).toEqual(['rastreio']);
-    // equipe de outra unidade continua barrada
+    // equipe de outra unidade (que não é a da lotação nem de cima dela) continua barrada
     const outra = await inserir(banco, 'unidade', { tipo: 'secao', sigla: 'SEC-T2', nome: 'Outra seção de teste', mae_id: raiz, desde: '2026-11-01' });
-    const equipeDeOutra = await inserir(banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
+    const equipeDeOutra = await inserir(banco, 'equipe', { unidade_id: outra, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
     const m = await militar();
-    await expect(inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, equipe_id: equipeDeOutra, jornada: 'pronto', desde: '2026-11-01' })).rejects.toThrow(/mesma unidade/);
+    await expect(inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, equipe_id: equipeDeOutra, jornada: 'pronto', desde: '2026-11-01' })).rejects.toThrow(/da unidade da lotação ou de uma acima/);
     // a auditoria continua ligada à tabela nova
     const { rows: gatilhos } = await banco.query<{ n: number }>("select count(*)::int as n from pg_trigger where tgrelid = 'rastreio'::regclass and tgname in ('auditoria_registro', 'rastreio_equipe')");
     expect(gatilhos[0]!.n).toBe(2);

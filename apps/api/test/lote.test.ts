@@ -57,8 +57,8 @@ beforeAll(async () => {
   sb2 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
   sb3 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '3ª SB'")).rows[0]!.id;
   for (const q of (await api.banco.query<{ id: string; sigla: string }>('select id, sigla from quadro')).rows) quadros[q.sigla] = q.id;
-  alfa1 = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', ordem_ciclo: 1 });
-  alfa2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', ordem_ciclo: 1 });
+  alfa1 = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  alfa2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   gestorGb = await entrarComo(api, { matricula: '996901-1', nome: 'LGESTOR', nivel: { papel: 'gestor', unidadeId: api.ids.gb } });
   escalanteSb = await entrarComo(api, { matricula: '996902-2', nome: 'LESCAL', nivel: { papel: 'escalante', unidadeId: sb1 } });
 });

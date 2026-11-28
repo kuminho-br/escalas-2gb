@@ -34,7 +34,7 @@ beforeAll(async () => {
   const tipos = (await api.banco.query<{ id: string; nome: string }>('select id, nome from tipo_afastamento')).rows;
   ferias = tipos.find((t) => t.nome === 'Férias')!.id;
   lts = tipos.find((t) => t.nome === 'LTS')!.id;
-  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
+  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   // a 2ª SB vem da migração 0023 (as sete seções do 2º GB)
   outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
 });
@@ -105,8 +105,8 @@ describe('alterar situação (rastreio)', () => {
   const situacao = (id: string, corpo: Record<string, unknown>, papel: Parameters<ApiDeTeste['pedir']>[0] = 'gestorGb') => api.pedir(papel, 'POST', `/api/militares/${id}/situacao`, corpo);
   const ultimoDiaDoMes = (mes: string) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
   beforeAll(async () => {
-    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
-    equipeDeOutra = await inserir(api.banco, 'equipe', { unidade_id: outraSecao, nome: 'Alfa', ordem_ciclo: 1 });
+    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
+    equipeDeOutra = await inserir(api.banco, 'equipe', { unidade_id: outraSecao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   });
 
   it('só a equipe, a partir do mês seguinte: fecha o período aberto no fim do mês e abre outro com a mesma lotação', async () => {
@@ -815,7 +815,7 @@ describe('a ficha da escala: o que a SB edita (6.32)', () => {
   let bravo: string;
   const FRASE = 'Este campo é alterado por quem tem nível de acesso no 2º GB.';
   beforeAll(async () => {
-    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo-632', ordem_ciclo: 9 });
+    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo-632', tipo: 'adm' });
   });
 
   it('o voluntário JES é só da SP: o escalante da lotação recebe 403 com a frase do campo do Pecúlio, e nada é gravado; o gestor acima da lotação passa', async () => {

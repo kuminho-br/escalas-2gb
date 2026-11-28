@@ -41,8 +41,8 @@ const texto = async (r: Response) => ((await r.json()) as { erro: string }).erro
 beforeAll(async () => {
   api = await montarApi();
   sb2 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
-  equipeSb1 = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  equipeSb2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Bravo', ordem_ciclo: 1 });
+  equipeSb1 = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  equipeSb2 = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 1 });
   desativada = await inserir(api.banco, 'situacao_militar', { nome: 'Situação encerrada', escalavel: false, ativo: false });
 });
 afterAll(async () => {

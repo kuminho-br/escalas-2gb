@@ -39,7 +39,8 @@ describe('a carga de teste do espelho', () => {
     expect(await n("select count(*)::int as n from laboratorio.militar where matricula like '100%'")).toBe(58);
     expect(await n('select count(*)::int as n from laboratorio.usuario')).toBe(5);
     expect(await n('select count(*)::int as n from laboratorio.servico')).toBeGreaterThan(5);
-    expect(await n('select count(*)::int as n from laboratorio.equipe')).toBe(4);
+    // as seis padrão da corporação (6.64): as quatro do Pronto, a ADM e a Externa
+    expect(await n('select count(*)::int as n from laboratorio.equipe')).toBe(6);
     // o real não ganhou nada, nem na auditoria
     expect({
       militares: await n('select count(*)::int as n from public.militar'),
