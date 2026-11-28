@@ -3,7 +3,7 @@
 // (jornada, equipe, situação, voluntário JES, motorista e CNH, função, afastamento, cadastro incompleto), só enxergam os militares lotados onde a pessoa tem nível de acesso
 // (ou abaixo): assim ninguém descobre por um filtro o que a ficha não lhe mostra.
 import { categoriasQueHabilitam } from 'dominio';
-import { LIMITE_DA_BUSCA_COM_FILTROS, LIMITE_DA_BUSCA_SEM_CORTE, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
+import { LIMITE_DA_BUSCA_COM_FILTROS, LIMITE_DA_BUSCA_SEM_CORTE, PROCURAR_EM_PADRAO, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
 import { ehAdministrador, papeisVigentes } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { rotulosDoBanco } from '../importacao/caminho-da-unidade.ts';
@@ -28,6 +28,8 @@ export async function buscarComFiltros(c: Consulta, usuarioId: string, f: Filtro
   const admin = await ehAdministrador(c, usuarioId, hoje);
   const temNivel = admin || (await papeisVigentes(c, usuarioId, hoje)).length > 0;
   const texto = (f.texto ?? '').trim();
+  const em = f.procurarEm ?? PROCURAR_EM_PADRAO;
+  if (!em.matricula && !em.nomeDeGuerra && !em.nomeCompleto) return { ok: false, status: 400, erro: 'Ligue pelo menos um lugar para o texto procurar.' };
   // quem tem nível de acesso recebe até 500 linhas; o militar comum, as 50 de sempre da Consulta (a varredura da corporação não rende mais por esta rota)
   if (opcoes.semCorte && !temNivel) return { ok: false, status: 403, erro: 'Só quem tem nível de acesso vê o resultado inteiro.' };
   const limite = opcoes.semCorte ? LIMITE_DA_BUSCA_SEM_CORTE : temNivel ? LIMITE_DA_BUSCA_COM_FILTROS : LIMITE_DA_BUSCA;
@@ -62,8 +64,10 @@ export async function buscarComFiltros(c: Consulta, usuarioId: string, f: Filtro
 
   const onde: string[] = [];
   if (texto) {
+    // só os campos ligados entram no texto onde as palavras são procuradas (a matrícula, com e sem o traço)
+    const campos = [em.nomeDeGuerra && 'm.nome_guerra', em.nomeCompleto && "coalesce(m.nome_completo, '')", em.matricula && "m.matricula || ' ' || replace(m.matricula, '-', '')"].filter(Boolean);
     onde.push(`not exists (select 1 from unnest(${par(palavrasDaBusca(texto), '::text[]')}) as w(t)
-      where upper(translate(m.nome_guerra || ' ' || coalesce(m.nome_completo, '') || ' ' || m.matricula || ' ' || replace(m.matricula, '-', ''), ${par(COM_ACENTO)}, ${par(SEM_ACENTO)})) not like '%' || w.t || '%' escape '\\')`);
+      where upper(translate(${campos.join(" || ' ' || ")}, ${par(COM_ACENTO)}, ${par(SEM_ACENTO)})) not like '%' || w.t || '%' escape '\\')`);
   }
   if (unidades.length) {
     const soEla = [...new Set(unidades.filter((u) => !u.comAsDeBaixo).map((u) => u.id))];

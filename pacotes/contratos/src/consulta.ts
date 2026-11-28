@@ -69,6 +69,8 @@ export const LIMITE_DA_BUSCA_SEM_CORTE = 5000;
  */
 export const FiltrosDaBusca = z.object({
   texto: z.string().trim().max(80).optional(),
+  /** Onde o texto procura (6.63). Ausente, vale `{ matricula: true, nomeDeGuerra: true, nomeCompleto: false }`; todos falsos é 400. */
+  procurarEm: z.object({ matricula: z.boolean(), nomeDeGuerra: z.boolean(), nomeCompleto: z.boolean() }).optional(),
   unidades: z.array(z.object({ id: z.string().uuid(), comAsDeBaixo: z.boolean() })).max(200).optional(),
   matriculas: z.array(z.string().trim().min(1).max(20)).max(2000).optional(),
   postoGradIds: z.array(z.string().uuid()).max(100).optional(),
@@ -84,6 +86,8 @@ export const FiltrosDaBusca = z.object({
   cadastroIncompleto: z.boolean().optional(),
 });
 export type FiltrosDaBusca = z.infer<typeof FiltrosDaBusca>;
+/** Onde o texto procura quando a busca não diz (6.63): o nome completo fica de fora. */
+export const PROCURAR_EM_PADRAO = { matricula: true, nomeDeGuerra: true, nomeCompleto: false } as const;
 
 /**
  * A linha da busca com filtros: a identificação de sempre e, para quem tem nível de acesso sobre a lotação do militar, a situação dele. `podeAlterar`: quem pede tem nível de
