@@ -1,4 +1,4 @@
-import type { EscalaDosOficiais } from 'contratos';
+import { mesPorExtenso, type EscalaDosOficiais } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -36,7 +36,7 @@ beforeAll(async () => {
   for (const q of (await api.banco.query<{ id: string; sigla: string }>('select id, sigla from quadro')).rows) quadro[q.sigla] = q.id;
   await oficial('a', 1, false); // nenhum é voluntário JES no cadastro: na escala dos oficiais, todos podem
   await oficial('b', 2, false);
-  rodada = await escalaDaRodada(api.banco, api.ids.gb);
+  rodada = await escalaDaRodada(api.banco, api.ids.gb, 'Oficiais de operações', { semCota: true });
   // outra escala da unidade que também usa o serviço JES
   outraEscala = await inserir(api.banco, 'escala', { unidade_id: api.ids.gb, nome: 'Operações comuns', titulo: 'OPERAÇÕES', militares_doc: 'escalados', dias_doc: 'todos' });
   await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [outraEscala, rodada.jes]);
@@ -47,6 +47,7 @@ afterAll(async () => {
 
 describe('JES para todo elegível', () => {
   it('quem não é voluntário JES no cadastro recebe JES na escala dos oficiais (201/200, sem a recusa de antes)', async () => {
+    await cotaDeJes('2027-06', 15);
     expect((await abrir('2027-06')).status).toBe(200);
     const r = await lancarJes('2027-06', '2027-06-02', 'A', 'a');
     expect(r.status).toBe(200);
@@ -56,13 +57,15 @@ describe('JES para todo elegível', () => {
 });
 
 describe('a cota de JES do mês', () => {
-  it('sem cota cadastrada: cota null, e os JES lançados contam como usados', async () => {
-    const e = await ler('2027-06');
-    expect(e.jes).toEqual({ cota: null, usados: 1 });
+  it('sem cota cadastrada no mês vale cota zero (6.72.1): lançar JES é 409 com a frase e nada é gravado', async () => {
+    expect((await abrir('2027-09')).status).toBe(200);
+    const r = await lancarJes('2027-09', '2027-09-02', 'A', 'a');
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(`Não há cota de JES em ${mesPorExtenso('2027-09')}. Cadastre na tela Cotas.`);
+    expect((await ler('2027-09')).jes).toEqual({ cota: null, usados: 0 });
   });
 
   it('com cota cadastrada: a cota é a do serviço JES da unidade no mês, e os usados contam os JES de todas as escalas da unidade', async () => {
-    await cotaDeJes('2027-06', 15);
     // uma cota de outro mês não entra
     await cotaDeJes('2027-07', 99);
     // um JES lançado em outra escala da unidade no mesmo mês (Review Focus 3)
@@ -74,11 +77,14 @@ describe('a cota de JES do mês', () => {
     expect(e.jes).toEqual({ cota: 15, usados: 2 });
   });
 
-  it('com a cota acabada, lançar JES continua valendo (o escalante nunca é bloqueado)', async () => {
+  it('com a cota acabada, o próximo JES é 409 com a frase da cota; trocar o nome de um lugar já tomado passa, e o total não muda (6.72.1)', async () => {
     await cotaDeJes('2027-08', 1);
     expect((await abrir('2027-08')).status).toBe(200);
     expect((await lancarJes('2027-08', '2027-08-02', 'A', 'a')).status).toBe(200);
-    expect((await lancarJes('2027-08', '2027-08-03', 'A', 'b')).status).toBe(200);
-    expect((await ler('2027-08')).jes).toEqual({ cota: 1, usados: 2 });
+    const recusado = await lancarJes('2027-08', '2027-08-03', 'A', 'b');
+    expect(recusado.status).toBe(409);
+    expect((await recusado.json()).erro).toBe(`A cota de JES em ${mesPorExtenso('2027-08')} acabou. Para escalar mais, aumente a cota na tela Cotas.`);
+    expect((await lancarJes('2027-08', '2027-08-02', 'A', 'b')).status).toBe(200);
+    expect((await ler('2027-08')).jes).toEqual({ cota: 1, usados: 1 });
   });
 });

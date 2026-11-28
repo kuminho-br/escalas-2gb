@@ -5,7 +5,7 @@ import { textoFaixa, tipoDoServicoFixo } from 'contratos';
 import { cnhParaEscala, detectarChoques, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
-import { cotaDoServico, recusaDaCota } from '../cadastros/cota-do-servico.ts';
+import { recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
@@ -132,9 +132,8 @@ async function frasesDeChoque(
     });
 }
 
-/** O serviço PJES ou diária tem cota neste mês e ela aceita mais um neste dia (o total não acabou, o máximo do dia não bateu e o resto não está reservado)? */
+/** O serviço PJES ou diária tem cota neste mês e ela aceita mais um neste dia (o total não acabou, o máximo do dia não bateu e o resto não está reservado)? Sem cota, não. */
 async function cotaAceitaNoDia(c: Consulta, unidadeId: string, servicoId: string, nome: string, data: string): Promise<boolean> {
-  if (!(await cotaDoServico(c, unidadeId, servicoId, data.slice(0, 7)))) return false;
   return (await recusaDaCota(c, { unidadeId, servicoId, nomeDoServico: nome, data })) === null;
 }
 
