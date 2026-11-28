@@ -8,6 +8,7 @@
 .area-linha{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 24px;align-items:start;padding:18px 0;border-top:1px solid var(--linha)}
 .area-linha:first-child{border-top:0}
 .area-linha h3{font:600 var(--t20)/26px var(--cond)}
+.area-linha h3 .tipo{display:inline-block;margin-right:10px;padding:0 8px;border:1px solid var(--linha);border-radius:var(--raio);font:500 var(--t13)/22px var(--texto);color:var(--apagado);vertical-align:3px}
 .area-linha h3 a{color:var(--tinta);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px}
 .area-linha p{grid-column:1;max-width:72ch}
 .area-linha .pedido{font-size:var(--t13);line-height:18px;color:var(--apagado)}
@@ -31,7 +32,7 @@
   <p class="de-quem"><img src="img/brasao-2gb.png" alt="" width="32" height="34">Sistema de Escalas do 2º GB. Refatoração da interface.</p>
   <h1>Manual de Identidade Visual</h1>
   <p>O manual da interface das Escalas do 2º GB, em seções. As diretrizes gerais valem para todas as telas; depois vem uma área para cada tela principal, com o mockup dela e a lista do que muda em relação à tela de hoje. As telas são desenhadas uma por vez.</p>
-  <p class="menor">Mockup é guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Atualizado em 25/11/2026.</p>
+  <p class="menor">Mockup é guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Atualizado em 28/11/2026. Na frente de cada área, o tipo: diretrizes, tela, menu, módulo ou seção de uma tela.</p>
 </header>
 
 <section class="bloco largo" id="areas">
@@ -44,35 +45,27 @@
     <div class="sup areas">
 
       <div class="area-linha">
-        <h3><a href="diretrizes-gerais/index.html">Diretrizes gerais</a></h3>
+        <h3><span class="tipo">Diretrizes</span><a href="diretrizes-gerais/index.html">Diretrizes gerais</a></h3>
         <span class="estado etiqueta feita">Aprovada</span>
         <p>A identidade, as cores, a letra, a forma, os ícones, a placa e o encaixe, os componentes, a resposta do sistema e a moldura da tela. Vale para todas as telas.</p>
         <p class="pedido"><b>Já pedido por você:</b> patente sem "BM", o botão de ações da placa sempre à mostra, menu com ícones e o topo do menu com o brasão e o nome da unidade escolhida.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Grade geral</h3>
-        <span class="estado etiqueta neutra">Por fazer, é a próxima</span>
-        <p>O mês inteiro à vista, os totais compactos e o painel do dia por cima da tabela.</p>
-        <p class="pedido"><b>Já pedido por você:</b> sem a marca do dia de hoje; a tabela continua abrindo no dia. A marca de cada dia fica como é hoje: quadradinho na cor do serviço, com a letra do turno.</p>
-        <p class="pedido"><b>Já decidido para a entrega 6.46</b> (DESIGN, a pedido seu, 24/11/2026): a <a href="diretrizes-gerais/index.html#tabela-com-rolagem">fronteira da rolagem</a> é uma linha de 2 px na cor do encaixe, contínua, à direita da coluna do militar, embaixo do cabeçalho das datas e, na tela larga, à esquerda de PJES. Na célula do militar, a matrícula fica à esquerda e a barra da cota de saldo encostada à direita. As equipes viram um <a href="diretrizes-gerais/index.html#grupo-de-filtro">grupo de filtro</a> com o rótulo "Equipe"; a marcada fica em tinta, com visto. "Adm" passa a "ADM".</p>
-      </div>
-
-      <div class="area-linha">
-        <h3>Escala do mês</h3>
+        <h3><span class="tipo">Tela</span>Escala do mês</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>O mês inteiro numa tela, com os dias um depois do outro, e a escolha do militar para cada vaga.</p>
         <p class="pedido"><b>Já pedido por você:</b> todos os dias na mesma tela, com os turnos em colunas, e um cartão por guarnição em cada turno, que reúne a equipe que sai junta na viatura naquele turno.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Efetivo por dia</h3>
+        <h3><span class="tipo">Tela</span>Efetivo por dia</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>Quem está de serviço num dia, com as mesmas placas e cartões da Escala do mês.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Escala dos oficiais</h3>
+        <h3><span class="tipo">Tela</span>Escala dos oficiais</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>A escala do mês dos oficiais e o painel de Cotas, na moldura nova.</p>
         <p class="pedido"><b>Já pedido por você:</b> o painel de Cotas, à direita, sem rolagem de lado.</p>
@@ -80,55 +73,62 @@
       </div>
 
       <div class="area-linha">
-        <h3>Voluntariado e Cotas</h3>
+        <h3><span class="tipo">Telas</span>Voluntariado e Cotas</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>O voluntariado por faixa de horário e as cotas de cada serviço no mês.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Pecúlio</h3>
+        <h3><span class="tipo">Módulo</span>Pecúlio</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>Os dados de contato, os aniversariantes, as pendências do cadastro e a importação da planilha.</p>
         <p class="pedido"><b>Já decidido:</b> a linha da lista em três linhas. Patente (13 px, apagada) e nome de guerra (17 px, estreita); o nome completo em 15 px, em tinta; e os dados (matrícula, telefone e e-mail) em etiquetas neutras com ícone. O dado que falta vira etiqueta âmbar ("Sem telefone"). Sem uma cor por tipo de dado (PLANEJAMENTO, com aval do usuário, 23/11/2026).</p>
       </div>
 
       <div class="area-linha">
-        <h3><a href="grade-geral/index.html">Grade geral e menu lateral</a></h3>
+        <h3><span class="tipo">Tela</span><a href="grade-geral/index.html">Grade geral</a></h3>
         <span class="estado etiqueta feita">Versão 3 aprovada</span>
-        <p>A Grade inteira redesenhada, com o menu lateral largo. O que é normal fica calado e o que foge do normal fala alto.</p>
-        <p class="pedido"><b>Já pedido por você</b> (26/11): redesenhar a Grade para o melhor uso; a borda da área que rola mais grossa e escura; o menu no modelo do mockup, com os itens de hoje; os afastados marcados com um traço; a célula inteira do nome clicável. <b>Respondido por você</b> (26/11): os cinco pontos da versão 1, com o menu que se esconde de vez e a tela cheia no celular; o expediente fica na cor cadastrada. Na versão 3, também respondido: os botões do menu no alto, a tela cheia no computador e a dica do Shift. <b>Aprovada por você</b> em 26/11/2026, com o tracejado âmbar no afastado; entra no site na entrega B, depois da 6.61 e da 6.67.</p>
+        <p>A Grade inteira redesenhada. O que é normal fica calado e o que foge do normal fala alto: o afastado, o choque, o fim de semana. Uma borda escura e grossa diz onde a rolagem começa.</p>
+        <p class="pedido"><b>Já pedido por você</b> (26/11): redesenhar a Grade para o melhor uso; a borda da área que rola mais grossa e escura; os afastados marcados com um traço; a célula inteira do nome clicável. <b>Respondido por você</b> (26/11): a tela cheia no celular e no computador, a dica do Shift; o expediente fica na cor cadastrada. <b>Aprovada por você</b> em 26/11/2026, com o tracejado âmbar no afastado; entra no site na entrega B, depois da 6.61 e da 6.67.</p>
       </div>
 
       <div class="area-linha">
-        <h3><a href="pesquisar/index.html">Pesquisar militares</a></h3>
+        <h3><span class="tipo">Menu</span><a href="grade-geral/index.html#tela">Menu lateral</a></h3>
+        <span class="estado etiqueta feita">Aprovado</span>
+        <p>O menu do módulo de escalas: largo (240 px), com o brasão e o nome da unidade no alto, os rótulos ao lado e o item ativo em destaque; pode ficar recolhido ou escondido de vez; no celular, abre de lado. Por ora está desenhado dentro da área da Grade geral, na mesma página.</p>
+        <p class="pedido"><b>Já pedido por você</b> (26/11): o menu no modelo do mockup, com os itens de hoje, sem Histórico nem Estrutura. <b>Respondido por você</b> (26/11): o menu que se esconde de vez e os botões do menu no alto. <b>Aprovado por você</b> em 26/11/2026, junto com a Grade; entra no site na entrega B.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3><span class="tipo">Tela</span><a href="pesquisar/index.html">Pesquisar militares</a></h3>
         <span class="estado etiqueta feita">Versão 2 aprovada</span>
         <p>A busca de qualquer militar da corporação, a seleção para a atualização em lote e a exportação para o Excel.</p>
         <p class="pedido"><b>Já pedido por você</b> (26/11): "Selecionados" num painel lateral, com a matrícula e o agrupamento; "Exportar" perto de "Importar"; um botão só, "Critérios de pesquisa", com o nome completo desligado; e a marca âmbar dos critérios em uso. <b>Aprovada por você</b> em 26/11/2026, com o campo na barra, o agrupamento só no painel e "Importar" nesta tela; entra no site na entrega 6.63.</p>
       </div>
 
       <div class="area-linha">
-        <h3><a href="instrucoes/index.html">Instrução do dia</a></h3>
-        <span class="estado etiqueta falta">Versão 1 para revisão</span>
+        <h3><span class="tipo">Módulo</span><a href="instrucoes/index.html">Instrução do dia</a></h3>
+        <span class="estado etiqueta falta">Versão 2 em revisão por você</span>
         <p>A primeira área do módulo Instruções: o cronograma da unidade, o material da semana, a leitura do militar, a presença registrada pelo adjunto de dia e o painel.</p>
-        <p class="pedido"><b>Pedido por você</b> (28/11): quatro telas, no computador e no celular, mais o cartão na tela inicial. Fotos, Acervo e Quiz ficam para depois. As cinco perguntas em aberto estão no fim da página, com o que desenhei em cada uma.</p>
+        <p class="pedido"><b>Pedido por você</b> (28/11): quatro telas, no computador e no celular, mais o cartão na tela inicial. Fotos, Acervo e Quiz ficam para depois. <b>Respondido por você</b> (28/11): sem o painel "Seu serviço nesta semana"; a presença compacta, na mesma tela da instrução; material por arquivo ou link; o cronograma é da SICT; quem ministra é texto livre; conta quem estava de serviço no horário da instrução.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Militares e ficha</h3>
+        <h3><span class="tipo">Telas</span>Militares e ficha</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>A lista com filtro de pendências e a ficha com um salvar só, numa barra parada embaixo. O campo que falta aparece marcado, com a orientação.</p>
         <p class="pedido"><b>Já decidido:</b> a linha da lista em três linhas. Patente (13 px, apagada) e nome de guerra (17 px, estreita); o nome completo em 15 px, em tinta; e os dados (matrícula, jornada e equipe, CNH como "Motorista B") em etiquetas neutras com ícone. O dado que falta vira etiqueta âmbar ("Sem telefone"). Sem uma cor por tipo de dado (PLANEJAMENTO, com aval do usuário, 23/11/2026).</p>
       </div>
 
       <div class="area-linha">
-        <h3><a href="historico-de-rastreio/index.html">Histórico de rastreio</a></h3>
+        <h3><span class="tipo">Seção da ficha</span><a href="historico-de-rastreio/index.html">Histórico de rastreio</a></h3>
         <span class="estado etiqueta falta">Em revisão por você</span>
         <p>Uma seção da ficha do militar: o quadro "Hoje", com a lotação, a equipe, a jornada, o quadro e a situação, e a linha do tempo das mudanças, com a data e quem fez.</p>
         <p class="pedido"><b>Já pedido por você:</b> mais espaço entre as situações; recolhida, só a unidade e a jornada ao lado do título, e aberta, nada; a linha do tempo à esquerda fica; os afastamentos saem dela e ficam só na seção Afastamentos.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Configurações e Estrutura</h3>
+        <h3><span class="tipo">Telas</span>Configurações e Estrutura</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>Duas partes. O painel geral, aberto por um cartão "Configurações" na tela inicial: Minhas preferências, Estrutura, Tipos de unidade, Postos e graduações, Funções, Situações, Tipos de afastamento e Quem vê o quê. E as Configurações da escala, no módulo de escalas: Regras do processo, Voluntariado, Modelos de guarnição e Meta de ativação. Cada pessoa vê só o que o seu nível permite; o militar comum vê só as preferências.</p>
         <p>A Estrutura vira uma árvore de unidades editável: criar, renomear, mover, extinguir e excluir, com os tipos de unidade como cadastro. As regras ficam em lista de leitura, e os modelos de guarnição sem formulário dentro de formulário.</p>
@@ -136,7 +136,7 @@
       </div>
 
       <div class="area-linha">
-        <h3><a href="tela-inicial/index.html">Tela inicial</a> e moldura</h3>
+        <h3><span class="tipo">Tela</span><a href="tela-inicial/index.html">Tela inicial</a> e moldura</h3>
         <span class="estado etiqueta feita">Versão 3 aprovada</span>
         <p>A cena de combate menor, com a saudação, os próximos serviços e os avisos dentro dela; embaixo, os atalhos dos módulos e o próximo serviço. Da moldura: o menu (com "Configurações da escala" no módulo de escalas), o topo, o seletor de unidade e o roteiro de preparação da primeira escala.</p>
         <p class="pedido"><b>Já pedido por você:</b> o brasão e o nome do topo do menu acompanham a unidade escolhida. O desenho do topo já está nas diretrizes gerais.</p>
@@ -144,20 +144,20 @@
       </div>
 
       <div class="area-linha">
-        <h3><a href="entrada/index.html">Entrada</a></h3>
+        <h3><span class="tipo">Tela e animação</span><a href="entrada/index.html">Entrada</a></h3>
         <span class="estado etiqueta feita">Versão 2 aprovada</span>
         <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. A versão 1 foi aprovada em 22/11/2026 e está no site (entregas 6.4 e 6.14).</p>
         <p class="pedido"><b>Aprovado por você em 26/11/2026</b> (pedidos de 23, 25 e 26/11): a foto nova do quartel só no fundo do login, com a marca fora das bandeiras e do céu aberto, um enquadramento por plataforma; mais brasas (um terço a menos que na primeira revisão, pedido de 26/11), três em cada quatro esfriando até virar cinza, sumindo em 4 s; mais fracas sobre a saudação; e o pouso no quadro da tela inicial, agora com teto de 400 px.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Turnos, Escalas e Feriados</h3>
+        <h3><span class="tipo">Telas</span>Turnos, Escalas e Feriados</h3>
         <span class="estado etiqueta neutra">Por fazer</span>
         <p>Os cadastros da seção. Não ganham mockup próprio se as diretrizes gerais bastarem.</p>
       </div>
 
       <div class="area-linha">
-        <h3>Consulta no celular</h3>
+        <h3><span class="tipo">Telas</span>Consulta no celular</h3>
         <span class="estado etiqueta neutra">Por fazer, com a fase 7</span>
         <p>A Visualização de escalas e a Minha escala, para todos os militares. Nascem primeiro no celular.</p>
       </div>
