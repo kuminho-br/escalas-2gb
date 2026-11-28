@@ -161,6 +161,7 @@
 | [telas/refatoracao/historico-de-rastreio/index.html](telas/refatoracao/historico-de-rastreio/index.html) | Área "Histórico de rastreio", seção da ficha do militar: o quadro "Hoje" e a linha do tempo das mudanças, sem os afastamentos (dados fictícios) | DESIGN | em revisão pelo usuário |
 | [telas/refatoracao/grade-geral/index.html](telas/refatoracao/grade-geral/index.html) | Área "Grade geral e menu lateral": a Grade redesenhada (borda da rolagem, afastados, célula do nome, legenda, painel do dia, celular) e o menu largo com os itens de hoje (dados fictícios) | DESIGN | aprovado em 26/11/2026 (entrega B) |
 | [telas/refatoracao/pesquisar/index.html](telas/refatoracao/pesquisar/index.html) | Área "Pesquisar militares", versão 2: "Selecionados" em painel lateral com agrupamento, Importar e Exportar no alto, o botão "Critérios de pesquisa" com a marca âmbar (dados fictícios) | DESIGN | aprovado em 26/11/2026 (entrega 6.63) |
+| [telas/refatoracao/instrucoes/index.html](telas/refatoracao/instrucoes/index.html) | Área "Instrução do dia" (módulo Instruções): o militar, o adjunto de dia, o responsável e o painel, no computador e no celular (dados fictícios) | DESIGN | versão 1 em revisão |
 
 As versões v5 a v11 dos esboços ficam só na pasta local `.superpowers/` (fora do git) e estão superadas pela v12.
 
