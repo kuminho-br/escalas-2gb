@@ -48,13 +48,13 @@ export async function escaladosDosServicos(c: Consulta, unidadeId: string, servi
 const ddmm = (data: string) => `${data.slice(8, 10)}/${data.slice(5, 7)}`;
 
 /**
- * A frase da recusa de pôr mais um militar neste serviço neste dia, ou null se cabe. Sem cota do serviço no mês, a cota não limita nada (a tela "Adicionar serviço"
- * é quem só mostra o serviço PJES ou diária que tem cota). `nomeDoServico` entra nas frases.
+ * A frase da recusa de pôr mais um militar neste serviço neste dia, ou null se cabe. Sem cota do serviço no mês vale cota zero (6.72.1): o escalante não cria
+ * cota do nada, o caminho é cadastrá-la na tela Cotas. Só se chama para serviço PJES ou diária. `nomeDoServico` entra nas frases.
  */
 export async function recusaDaCota(c: Consulta, d: { unidadeId: string; servicoId: string; nomeDoServico: string; data: string }): Promise<string | null> {
   const mes = d.data.slice(0, 7);
   const cota = await cotaDoServico(c, d.unidadeId, d.servicoId, mes);
-  if (!cota) return null;
+  if (!cota) return `Não há cota de ${d.nomeDoServico} em ${mesPorExtenso(mes)}. Cadastre na tela Cotas.`;
   const escalados = (await escaladosDosServicos(c, d.unidadeId, [d.servicoId], mes)).get(d.servicoId) ?? { total: 0, porDia: {} };
   const recusa = conferirCota({ quantidade: cota.quantidade, dias: cota.dias, escaladosNoMes: escalados.total, escaladosPorDia: escalados.porDia, data: d.data });
   if (recusa === 'esgotada') return `A cota de ${d.nomeDoServico} em ${mesPorExtenso(mes)} acabou. Para escalar mais, aumente a cota na tela Cotas.`;

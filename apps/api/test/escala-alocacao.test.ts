@@ -60,6 +60,8 @@ beforeAll(async () => {
   jes = ((await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'JES', tipo: 'pjes', operacao: null, rotuloImpressao: null, cor: '#6E56A8' })).json()) as { id: string }).id;
   turnoJes = (await (await api.pedir('escalante', 'POST', `/api/servicos/${jes}/turnos`, { letra: 'A', ...FAIXA_A })).json()).turnos[0].id;
   await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [pronto, jes] });
+  // 6.72.1: escalar PJES ou diária confere a cota (sem cota vale cota zero)
+  await inserir(api.banco, 'cota', { mes: `${atual}-01`, unidade_id: api.ids.secao, servico_id: jes, quantidade: 100, prioridade: 1 });
   // a ABT está nas duas faixas; a Outra só na do dia
   expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/vinculos/${atual}`, { itens: [{ guarnicaoId: abt, ...FAIXA_A }, { guarnicaoId: abt, ...FAIXA_B }, { guarnicaoId: outra, ...FAIXA_A }] })).status).toBe(200);
   for (const nome of ['UM', 'DOIS', 'TRES', 'QUATRO', 'REMOVIDO', 'VOLTA']) await criarMilitar(nome);

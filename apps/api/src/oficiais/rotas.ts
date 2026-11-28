@@ -7,6 +7,7 @@ import { Hono, type Context } from 'hono';
 import { GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
+import { recusaDaCota } from '../cadastros/cota-do-servico.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { remover } from '../escala/alocacoes.ts';
@@ -474,6 +475,12 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       let foraDaOrdem: string | undefined;
       if (servico === 'saldo' && !atual) foraDaOrdem = await avisoDeOrdem(tx, rod, linha, militarId);
       if (!atual) {
+        // 6.72.1: um JES novo confere a cota do serviço no mês, com as mesmas frases das outras telas (sem cota vale cota zero); trocar o nome de um lugar já ocupado não muda o total
+        if (servico === 'jes') {
+          await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`cota|${rod.unidadeId}|${alvo.id}|${rod.mes}`]);
+          const recusa = await recusaDaCota(tx, { unidadeId: rod.unidadeId, servicoId: alvo.id, nomeDoServico: alvo.nome, data: dia });
+          if (recusa) throw new Recusa(409, recusa);
+        }
         await tx.query(
           'insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, origem) values ($1, $2, $3, $4, $5::date, $6)',
           [militarId, rod.escalaId, alvo.id, turno.id, dia, servico === 'jes' ? 'manual' : 'distribuicao'],

@@ -92,6 +92,8 @@ beforeAll(async () => {
   abt = (await g.json()).id;
   escalaId = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
   expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico.Madrugada, servico.JES, servico.Bioma, servico.Saldo, servico['PE Seguro']] })).status).toBe(200);
+  // 6.72.1: escalar PJES ou diária confere a cota (sem cota vale cota zero)
+  await inserir(api.banco, 'cota', { mes: `${atual}-01`, unidade_id: api.ids.secao, servico_id: servico.JES, quantidade: 100, prioridade: 1 });
   const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-C', nome: 'Soldado C', ordem: 920 });
   const p = { posto };
   await criarMilitar('APTO', p);

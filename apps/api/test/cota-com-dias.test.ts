@@ -175,11 +175,33 @@ describe('a cota esgotada bloqueia escalar (6.72)', () => {
     await api.pedir('escalante', 'DELETE', `/api/cotas/${cota.id}`);
   });
 
-  it('serviço sem nenhuma cota no mês não é conferido (a cota só limita onde existe), e o ordinário nunca depende dela', async () => {
+  it('serviço PJES ou diária sem cota no mês vale cota zero (6.72.1): 409 com a frase do cadastro, nada gravado; Pronto e Saldo (ordinários) seguem sem depender de cota', async () => {
     const x = await criar('SEMCOTA');
-    expect((await escalarNo(x, 'Bioma', dia(19))).status).toBe(201);
-    const pronto = await escalarNo(x, 'Pronto', dia(20));
-    expect({ status: pronto.status, corpo: pronto.status === 201 ? null : await pronto.json() }).toEqual({ status: 201, corpo: null });
+    const frase = (nome: string) => `Não há cota de ${nome} em ${mesPorExtenso(atual)}. Cadastre na tela Cotas.`;
+    for (const nome of ['JES', 'Bioma']) {
+      const r = await escalarNo(x, nome, dia(19));
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe(frase(nome));
+    }
+    expect((await api.banco.query('select 1 from alocacao where militar_id = $1', [x])).rows).toHaveLength(0);
+    // o Saldo é do Adm (a regra do Saldo é outra; aqui só importa que a cota não entra)
+    const adm = await criar('SEMCOTAADM');
+    await api.banco.query("update rastreio set jornada = 'adm' where militar_id = $1", [adm]);
+    for (const [quem, nome, n] of [[x, 'Pronto', 20], [adm, 'Saldo', 21]] as const) {
+      const r = await escalarNo(quem, nome, dia(n));
+      expect({ nome, status: r.status, corpo: r.status === 201 ? null : await r.json() }).toEqual({ nome, status: 201, corpo: null });
+    }
+  });
+
+  it('a cota cadastrada num serviço não vale para o outro: com a do JES, o Bioma continua recusado; criada a do Bioma, passa (6.72.1)', async () => {
+    const x = await criar('SEMCOTA2');
+    const jes = await criarCota('JES', 5);
+    expect((await escalarNo(x, 'JES', dia(19))).status).toBe(201);
+    expect((await escalarNo(x, 'Bioma', dia(20))).status).toBe(409);
+    const bioma = await criarCota('Bioma', 5);
+    expect((await escalarNo(x, 'Bioma', dia(20))).status).toBe(201);
+    await api.pedir('escalante', 'DELETE', `/api/cotas/${jes.id}`);
+    await api.pedir('escalante', 'DELETE', `/api/cotas/${bioma.id}`);
   });
 });
 
@@ -226,6 +248,22 @@ describe('revisão do Opus (6.72)', () => {
     expect(troca.status).toBeLessThan(300);
     expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [c, dia(5)])).rows).toHaveLength(1);
     await api.pedir('escalante', 'DELETE', `/api/cotas/${cota.id}`);
+  });
+});
+
+describe('revisão do Opus (6.72.1)', () => {
+  it('substituir por outro serviço da mesma faixa confere a cota do serviço novo (sem cota, 409 e a vaga fica como estava); no mesmo serviço não confere', async () => {
+    const [a, c] = [await criar('SUBST1'), await criar('SUBST2')];
+    expect((await escalarNo(a, 'Pronto', dia(8))).status).toBe(201);
+    const alocacao = (await api.banco.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date', [a, dia(8)])).rows[0]!.id;
+    const recusada = await api.pedir('escalante', 'POST', `/api/alocacoes/${alocacao}/trocar`, { militarId: c, turnoId: servico.JES!.turno, justificativa: 'teste' });
+    expect(recusada.status).toBe(409);
+    expect((await recusada.json()).erro).toBe(`Não há cota de JES em ${mesPorExtenso(atual)}. Cadastre na tela Cotas.`);
+    expect((await api.banco.query('select 1 from alocacao where id = $1', [alocacao])).rows).toHaveLength(1);
+    expect((await api.banco.query('select 1 from alocacao where militar_id = $1', [c])).rows).toHaveLength(0);
+    // o mesmo serviço (Pronto, sem cota nenhuma) continua passando
+    const igual = await api.pedir('escalante', 'POST', `/api/alocacoes/${alocacao}/trocar`, { militarId: c, turnoId: servico.Pronto!.turno, justificativa: 'teste' });
+    expect(igual.status).toBeLessThan(300);
   });
 });
 
