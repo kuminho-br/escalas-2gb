@@ -12,6 +12,7 @@ const EXCECOES: Record<string, string> = {
 // quem lê a lista de unidades só para escrever o nome (a unidade de cada serviço), sem escolher unidade nenhuma
 const SO_LE_O_NOME: Record<string, string> = {
   'routes/_app/minha-escala.tsx': 'a Minha escala escreve a unidade de cada serviço com o nome completo (6.53); não tem escolha de unidade',
+  'componentes/peculio/PainelDeSelecionados.tsx': 'o painel dos selecionados lê a árvore só para pôr os grupos por unidade na ordem dela (6.63); não tem escolha de unidade',
 };
 
 function arquivos(pasta: string): string[] {
