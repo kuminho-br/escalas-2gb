@@ -27,6 +27,8 @@ const MENSAGENS: Record<string, string> = {
   '23505': 'Já existe um cadastro com esse nome.',
   '23P01': 'As datas se sobrepõem a outro período já cadastrado.',
   '23503': 'Não dá para remover: o cadastro já está em uso.',
+  // duas pessoas mexendo na mesma escala ao mesmo tempo, cada uma esperando a outra (o Postgres derruba uma): a pessoa tenta de novo
+  '40P01': 'Outra pessoa estava mexendo na mesma escala ao mesmo tempo. Tente de novo.',
 };
 
 // o Postgres diz "insert or update" quando a referência é de quem se grava e "update or delete" quando se tenta remover o que é referenciado

@@ -107,6 +107,9 @@ describe('esconder e trazer de volta', () => {
     const flutuante = screen.getByRole('button', { name: 'Menu' });
     expect(flutuante.className).toContain('fixed');
     expect(flutuante.className).toContain('top-[calc(var(--faixa)+0.5rem)]');
+    // 6.75: o cabeçalho do Topo é z-40 (a lista do degrau passa por cima da Grade); o botão flutuante precisa ficar acima dele, senão o cabeçalho o cobre
+    const z = (el: Element) => Number(/(?:^|\s)z-(\d+)(?:\s|$)/.exec(el.className)?.[1]);
+    expect(z(flutuante)).toBeGreaterThan(z(document.querySelector('header')!));
     // o cabeçalho abre espaço à esquerda: o botão não cobre a unidade
     expect(screen.getAllByRole('banner')[0]!.className).toContain('md:pl-31');
     await userEvent.click(flutuante);

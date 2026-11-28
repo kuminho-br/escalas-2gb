@@ -39,6 +39,12 @@ describe('mensagens dos erros do banco', () => {
     expect((await resposta(erro('P0001', 'Cota só existe para serviço PJES ou diária'))).corpo.erro).toBe('Cota só existe para serviço PJES ou diária');
   });
 
+  it('6.74: dois escalantes esperando um ao outro (deadlock do Postgres) viram 409 com a frase de tentar de novo, e não 500', async () => {
+    const r = await resposta(erro('40P01', 'deadlock detected'));
+    expect(r.status).toBe(409);
+    expect(r.corpo.erro).toBe('Outra pessoa estava mexendo na mesma escala ao mesmo tempo. Tente de novo.');
+  });
+
   it('erro desconhecido é relançado', () => {
     expect(() => respostaDoErroDoBanco(contexto, erro('XX000', 'x'))).toThrow();
   });
