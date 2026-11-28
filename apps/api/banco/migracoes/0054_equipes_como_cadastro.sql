@@ -30,7 +30,9 @@ begin
   if e.tipo = 'externa' then
     raise exception 'A Externa só se põe pelo botão Trazer.';
   end if;
-  if (tg_op = 'INSERT' or new.equipe_id is distinct from old.equipe_id) and not e.ativa then
+  -- a equipe desativada não entra num rastreio novo de quem nunca esteve nela; quem já esteve (a equipe sobrou da migração, ou foi excluída já usada) segue com ela ao abrir outro período
+  if (tg_op = 'INSERT' or new.equipe_id is distinct from old.equipe_id) and not e.ativa
+     and not exists (select 1 from rastreio x where x.militar_id = new.militar_id and x.equipe_id = new.equipe_id and x.id is distinct from new.id) then
     raise exception 'Esta equipe está desativada.';
   end if;
   return new;

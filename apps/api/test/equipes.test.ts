@@ -146,6 +146,16 @@ describe('excluir', () => {
     expect((await excluir('admin', adm)).status).toBe(409);
   });
 
+  it('as padrão da corporação não se desativam por rota (só se reativam): PATCH com ativa false é 409, e uma criada pela unidade desativa', async () => {
+    const r = await mudar('admin', padrao.get('Alfa')!, { ativa: false });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('As equipes padrão da corporação não se desativam: só se renomeiam.');
+    expect((await mudar('admin', padrao.get('Externa')!, { ativa: false })).status).toBe(409);
+    const propria = (await ler(api.ids.gb)).find((e) => e.nome === 'Plantão do Grupamento' || e.nome === 'Plantão do GB')!;
+    expect((await mudar('gestorGb', propria.id, { ativa: false })).status).toBe(200);
+    expect((await mudar('gestorGb', propria.id, { ativa: true })).status).toBe(200);
+  });
+
   it('quem não é gestor da unidade recebe 403', async () => {
     const apoio = (await ler(api.ids.secao)).find((e) => e.nome === 'Apoio da seção')!;
     expect((await excluir('escalante', apoio.id)).status).toBe(403);

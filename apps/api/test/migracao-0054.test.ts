@@ -203,6 +203,22 @@ describe('o rastreio e a herança da equipe (0054)', () => {
     }
   });
 
+  it('quem já esteve numa equipe que ficou desativada abre outro período com ela (a importação e o lote não travam); quem nunca esteve, não entra', async () => {
+    const { banco, sb1 } = await cenario();
+    try {
+      const velha = await inserir(banco, 'equipe', { unidade_id: sb1, nome: 'Velha 2', tipo: 'adm', ativa: true });
+      const m = await militar(banco, 'DEZ');
+      await periodo(banco, m, sb1, velha, '2026-09-01', '2026-09-30');
+      await banco.query('update equipe set ativa = false where id = $1', [velha]);
+      // um período novo, com a mesma equipe agora desativada, é o que a importação e o lote fazem ao mudar só a situação ou o quadro
+      await expect(gravar(banco, m, sb1, velha, '2026-10-01')).resolves.toBeDefined();
+      const outro = await militar(banco, 'ONZE');
+      await expect(gravar(banco, outro, sb1, velha, '2026-10-01')).rejects.toThrow(/desativada/);
+    } finally {
+      await banco.fechar();
+    }
+  });
+
   it('as regras da tabela: Pronto precisa de posição de 1 a 4; ADM e Externa não têm posição; a Externa é uma só', async () => {
     const { banco, sb1 } = await cenario();
     try {

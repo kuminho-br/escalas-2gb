@@ -13,6 +13,7 @@ type Ctx = Context<AmbienteApi>;
 export const MSG_NOME_REPETIDO = 'Já existe uma equipe com esse nome.';
 export const MSG_USADA_E_DESATIVADA = 'A equipe já foi usada; ela foi desativada em vez de apagada.';
 const MSG_PADRAO = 'As equipes padrão da corporação não se excluem: só se renomeiam.';
+const MSG_PADRAO_ATIVA = 'As equipes padrão da corporação não se desativam: só se renomeiam.';
 
 const SELECT = `select e.id, e.nome, e.tipo, e.posicao_ciclo as "posicaoCiclo", e.ativa, e.unidade_id as "unidadeId", un.sigla as "unidadeSigla", un.mae_id is null as "daCorporacao", e.unidade_id <> alvo.id as herdada
                   from equipe e join unidade un on un.id = e.unidade_id join unidade alvo on alvo.id = $1`;
@@ -97,6 +98,15 @@ export function rotasEquipes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     }
   });
 
+  /** A equipe é uma das padrão da corporação? O Pronto e a Externa sempre; a ADM enquanto for a única ativa da corporação. */
+  async function ehPadrao(unidadeId: string, id: string, tipo: string): Promise<boolean> {
+    const daRaiz = (await dep.banco.query<{ raiz: boolean }>('select mae_id is null as raiz from unidade where id = $1', [unidadeId])).rows[0]!.raiz;
+    if (!daRaiz) return false;
+    if (tipo !== 'adm') return true;
+    const outrasAdm = (await dep.banco.query<{ n: number }>("select count(*)::int as n from equipe where unidade_id = $1 and tipo = 'adm' and ativa and id <> $2", [unidadeId, id])).rows[0]!.n;
+    return outrasAdm === 0;
+  }
+
   r.patch('/equipes/:id', async (c) => {
     const id = c.req.param('id');
     const acesso = await daEquipe(c, id);
@@ -104,6 +114,7 @@ export function rotasEquipes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const corpo = await lerCorpo(c, EdicaoDeEquipe);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    if (d.ativa === false && (await ehPadrao(acesso.unidadeId, id, acesso.tipo))) return c.json({ erro: MSG_PADRAO_ATIVA }, 409);
     if (d.nome !== undefined && (await nomeJaExiste(dep.banco, acesso.unidadeId, d.nome, id))) return c.json({ erro: MSG_NOME_REPETIDO, campos: { nome: MSG_NOME_REPETIDO } }, 409);
     try {
       const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
@@ -121,11 +132,7 @@ export function rotasEquipes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const acesso = await daEquipe(c, id);
     if ('resposta' in acesso) return acesso.resposta;
     // as padrão da corporação não se excluem: o Pronto e a Externa nunca, e a ADM enquanto for a única da corporação
-    const daRaiz = (await dep.banco.query<{ raiz: boolean }>('select mae_id is null as raiz from unidade where id = $1', [acesso.unidadeId])).rows[0]!.raiz;
-    if (daRaiz) {
-      const outrasAdm = (await dep.banco.query<{ n: number }>("select count(*)::int as n from equipe where unidade_id = $1 and tipo = 'adm' and ativa and id <> $2", [acesso.unidadeId, id])).rows[0]!.n;
-      if (acesso.tipo !== 'adm' || outrasAdm === 0) return c.json({ erro: MSG_PADRAO }, 409);
-    }
+    if (await ehPadrao(acesso.unidadeId, id, acesso.tipo)) return c.json({ erro: MSG_PADRAO }, 409);
     const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx): Promise<ResultadoDaExclusaoDeEquipe> => {
       const usada = (await tx.query('select 1 from rastreio where equipe_id = $1 limit 1', [id])).rows.length > 0;
       if (usada) {
