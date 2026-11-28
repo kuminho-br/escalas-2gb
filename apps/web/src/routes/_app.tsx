@@ -111,7 +111,7 @@ function Casca() {
           ref={botaoFlutuante}
           type="button"
           onClick={() => mudarEstado(antesDeEsconder.current)}
-          className="fixed top-[calc(var(--faixa)+0.5rem)] left-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
+          className="fixed top-[calc(var(--faixa)+0.5rem)] left-3 z-50 inline-flex h-10 items-center gap-2 rounded-full bg-vinho pr-4 pl-3 font-cond text-corpo font-semibold text-white shadow-md hover:bg-vinho-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta max-md:hidden"
         >
           <Menu className="size-5" strokeWidth={1.75} aria-hidden />
           Menu

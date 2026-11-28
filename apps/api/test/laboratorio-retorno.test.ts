@@ -138,7 +138,7 @@ describe('o retorno', () => {
     await retorno('gestorGb', { ferramentaId: b.id, tela: '/escalas', texto: 'Texto B', nota: 4 });
     const todos = (await (await api.pedir('admin', 'GET', '/api/laboratorio/retornos')).json()) as { ferramenta: string; conta: { nome: string; matricula: string }; perfilDeTeste: string; tela: string; texto: string; nota: number; criadoEm: string }[];
     const doA = todos.find((r) => r.texto === 'Texto A')!;
-    expect(doA).toMatchObject({ ferramenta: 'Filtro A', perfilDeTeste: 'Gestor de teste', tela: '/militares/:id', nota: 2, conta: { matricula: '990908-8' } });
+    expect(doA).toMatchObject({ ferramenta: 'Filtro A', perfilDeTeste: 'Gestor de teste', tela: '/militares/:id', nota: 2, conta: { matricula: '100908-8' } });
     expect(doA.conta.nome).toBeTruthy();
     expect(doA.criadoEm).toMatch(/^\d{4}-\d\d-\d\dT/);
     const filtrado = (await (await api.pedir('admin', 'GET', `/api/laboratorio/retornos?ferramenta=${b.id}`)).json()) as { texto: string }[];

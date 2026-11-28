@@ -316,15 +316,15 @@ describe('grade geral: a legenda', () => {
     abrir(`/?mes=${MES}`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
     expect(legenda.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // cada serviço leva o quadradinho com a letra do turno (6.70), e no fim a dica de rolar para os lados
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AExpediente', 'AJES', 'APronto', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
+    // cada serviço leva o quadradinho liso, só com a cor (6.74), e no fim a dica de rolar para os lados
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['Expediente', 'JES', 'Pronto', 'Choque de horário', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 
   it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
     api();
     abrir(`/?mes=${MES}&equipe=eq-bravo`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['AJES', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Para rolar para os lados, segure Shift e gire a roda do mouse.']);
   });
 });
 

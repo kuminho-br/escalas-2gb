@@ -50,11 +50,11 @@ describe('o expediente lançado no painel do dia (6.71)', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('traz os mesmos avisos do "Remover" dos outros serviços', async () => {
+  it('não traz a frase da pré-escala, como os outros serviços do painel do dia (6.74)', async () => {
     api(PAINEL);
     abrir(ABERTA);
     const servico = within(await painel()).getByRole('listitem', { name: 'Expediente A, 08h–16h' });
-    expect(within(servico).getByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toBeInTheDocument();
+    expect(within(servico).queryByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toBeNull();
   });
 });
 

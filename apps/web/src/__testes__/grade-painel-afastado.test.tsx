@@ -95,6 +95,7 @@ describe('a troca recusada que diz quem (6.70)', () => {
   const TROCAS: OpcoesDeTroca = {
     livres: { aptos: [{ militarId: 'm-livre', posto: 'SD', nomeGuerra: 'CHARLIE', matricula: '997003-3', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto' }] }], semVoluntariado: [], emChoque: [], fora: [], acumular: [] },
     escalados: [{ militarId: 'm-bravo', posto: 'SD', nomeGuerra: 'BRAVO', matricula: '997002-2', alocacoes: [{ alocacaoId: 'a-b1', onde: 'Ordinário, 20h–08h, sem guarnição', permuta: true }] }],
+    vagas: [],
   };
   const abrirTroca = async () => {
     const servico = await screen.findByRole('listitem', { name: 'Pronto A, 08h–20h' });

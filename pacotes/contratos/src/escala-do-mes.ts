@@ -168,8 +168,15 @@ export type Candidatos = {
   acumular: { alocacaoId: string; militarId: string; posto: string; nomeGuerra: string; matricula: string; vaga: string }[];
 };
 
-/** Trocar uma alocação: pôr um militar livre no lugar (com o turno escolhido, da mesma faixa) ou trocar de lugar com quem já está escalado no dia. */
-export const Troca = z.union([z.object({ militarId: Id, turnoId: Id, justificativa: Justificativa }), z.object({ comAlocacaoId: Id, justificativa: Justificativa })]);
+/**
+ * Trocar uma alocação: pôr um militar livre no lugar (com o turno escolhido, da mesma faixa), trocar de lugar com quem já está escalado no dia, ou mudar o próprio militar
+ * de função, para outra vaga livre do mesmo turno (`paraVaga`, 6.74).
+ */
+export const Troca = z.union([
+  z.object({ militarId: Id, turnoId: Id, justificativa: Justificativa }),
+  z.object({ comAlocacaoId: Id, justificativa: Justificativa }),
+  z.object({ paraVaga: z.object({ guarnicaoId: Id, funcaoId: Id }), justificativa: Justificativa }),
+]);
 export type Troca = z.infer<typeof Troca>;
 
 /** Um militar já escalado no dia, com onde ele está ("Ordinário, 20h–08h, Motorista do ABT"); `permuta` quando os dois serviços são ordinários. */
@@ -181,7 +188,11 @@ export type EscaladoNoDia = {
   alocacoes: { alocacaoId: string; onde: string; permuta: boolean }[];
 };
 
-export type OpcoesDeTroca = { livres: Candidatos; escalados: EscaladoNoDia[] };
+/** Uma vaga livre do mesmo turno, onde o militar da alocação cabe: "Motorista do ABT". */
+export type VagaDoTurno = { guarnicaoId: string; guarnicao: string; funcaoId: string; funcao: string };
+
+/** `vagas`: as vagas livres do mesmo turno onde o militar cabe (6.74), sem a que ele já ocupa; vazia no expediente lançado, que não tem escala. */
+export type OpcoesDeTroca = { livres: Candidatos; escalados: EscaladoNoDia[]; vagas: VagaDoTurno[] };
 
 /** As escalas mexidas pela troca: a tela busca de novo o que depende delas. */
 export type ResultadoDaTroca = { escalas: { escalaId: string; mes: string }[] };

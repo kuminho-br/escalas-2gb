@@ -307,12 +307,20 @@ describe('grade geral: adicionar serviço neste dia', () => {
   });
 });
 
+describe('o painel do dia no tablet (6.75)', () => {
+  it('no tablet o painel começa abaixo da faixa do Laboratório (a faixa não cobre o alto dele)', async () => {
+    api();
+    abrir(ABERTA);
+    expect((await painel()).className).toContain('md:max-lg:top-[var(--faixa)]');
+  });
+});
+
 describe('grade geral: remover', () => {
-  it('mostra os avisos do "Remover", e o botão chama o DELETE e busca a grade de novo', async () => {
+  it('o painel do dia não traz a frase da pré-escala (ela fica na Escala do mês), mas diz de onde mais ele sai quando acumula; o botão chama o DELETE e busca a grade de novo', async () => {
     const f = api(PAINEL, { 'DELETE /api/alocacoes/a-1': { status: 200, corpo: ESCALA } });
     abrir(ABERTA);
     const servico = within(await painel()).getByRole('listitem', { name: 'Pronto A, 08h–20h' });
-    expect(within(servico).getByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toBeInTheDocument();
+    expect(screen.queryByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toBeNull();
     expect(within(servico).getByText('Sai também de: Motorista ABT.')).toBeInTheDocument();
     await userEvent.click(within(servico).getByRole('button', { name: 'Remover' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-1')).toBe(1));

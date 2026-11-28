@@ -189,6 +189,19 @@ describe('os degraus', () => {
     expect(botao(n, '1ª SB')).toHaveFocus();
   });
 
+  it('6.75: a lista do degrau abre acima da Grade: o cabeçalho do Topo (que prende a lista) fica acima do cabeçalho fixo da Grade (z-30) e abaixo dos diálogos e do menu (z-50)', async () => {
+    guardarUnidade('u-1sb');
+    api(GESTOR);
+    abrir('/militares');
+    const n = await nav();
+    await waitFor(() => expect(degraus(n)).toHaveLength(5));
+    await userEvent.click(botao(n, '1ª SB'));
+    const topo = screen.getByRole('listbox').closest('header')!;
+    const z = Number(/(?:^|\s)z-(\d+)(?:\s|$)/.exec(topo.className)?.[1]);
+    expect(z).toBeGreaterThan(30);
+    expect(z).toBeLessThan(50);
+  });
+
   it('a lista rola por dentro no computador (muitas unidades não passam do fim da tela, com o cabeçalho parado)', async () => {
     guardarUnidade('u-1sb');
     api(GESTOR);

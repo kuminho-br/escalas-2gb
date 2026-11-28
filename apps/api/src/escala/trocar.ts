@@ -1,9 +1,12 @@
 // Trocar uma alocação (Grade geral): pôr um militar livre no lugar, ou trocar de lugar com quem já está escalado no dia (entre dois
 // serviços ordinários, é uma permuta). Cada militar passa pelas mesmas regras de "escalar" na vaga do outro, na mesma transação.
-import { textoFaixa, type Candidatos, type EscaladoNoDia, type OpcoesDeTroca, type ResultadoDaTroca, type Troca } from 'contratos';
-import { compararAntiguidade, intervaloDoTurno, type Militar } from 'dominio';
+import { textoFaixa, type Candidatos, type EscaladoNoDia, type OpcoesDeTroca, type ResultadoDaTroca, type Troca, type VagaDoTurno } from 'contratos';
+import { compararAntiguidade, intervaloDoTurno, motivoDaCnh, type Militar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
-import { Recusa, escalar, remover } from './alocacoes.ts';
+import { vinculosDaEscala } from '../cadastros/escalas.ts';
+import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
+import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { Recusa, escalar, mudarDeVaga, ocupantesDaFuncao, remover } from './alocacoes.ts';
 import { avaliarCandidatos, DE_EXPEDIENTE, JA_ESCALADO } from './elegibilidade.ts';
 
 export class NaoEncontrada extends Error {}
@@ -62,10 +65,44 @@ function paraFora(emChoque: Candidatos['emChoque']): Candidatos['fora'] {
   return [...contagem.entries()].map(([motivo, quantidade]) => ({ motivo, quantidade }));
 }
 
-/** Quem pode ocupar a vaga (sem o próprio militar) e quem já está escalado no mesmo dia, com onde está. */
+/**
+ * As vagas livres do mesmo turno (da mesma escala, do dia e da faixa da alocação) onde o militar cabe: a vaga existe na faixa neste mês, a função tem lugar e ele tem a CNH
+ * que ela exige. Fica de fora a vaga em que ele já está. Quem tem acúmulo não muda de função (o acúmulo não vai junto): a lista vem vazia.
+ */
+async function vagasDoTurno(c: Consulta, a: Aloc): Promise<VagaDoTurno[]> {
+  const mes = a.data.slice(0, 7);
+  const [vinculo, militar, acumulos] = await Promise.all([
+    vinculosDaEscala(c, a.escala_id).then((vs) => vs.find((v) => v.vigencia <= mes)),
+    c.query<{ motorista: boolean; cnh: string[] }>('select motorista, cnh from militar where id = $1', [a.militar_id]).then((r) => r.rows[0]!),
+    c.query('select 1 from alocacao_acumulo where alocacao_id = $1 limit 1', [a.id]).then((r) => r.rows.length),
+  ]);
+  if (acumulos > 0 || !vinculo) return [];
+  const guarnicaoIds = [...new Set(vinculo.itens.filter((i) => i.inicio === a.inicio && i.fim === a.fim).map((i) => i.guarnicaoId))];
+  if (!guarnicaoIds.length) return [];
+  const [versoes, nomes] = await Promise.all([
+    versoesDasGuarnicoes(c, guarnicaoIds),
+    c.query<{ id: string; nome: string }>('select id, nome from guarnicao where id = any($1::uuid[])', [guarnicaoIds]).then((r) => new Map(r.rows.map((x) => [x.id, x.nome] as const))),
+  ]);
+  const vagas: VagaDoTurno[] = [];
+  for (const guarnicaoId of guarnicaoIds) {
+    const versao = versaoNoMes(versoes.get(guarnicaoId) ?? [], mes);
+    if (!versao?.ativa) continue;
+    for (const f of versao.composicao) {
+      if (guarnicaoId === a.guarnicao_id && f.funcaoId === a.funcao_id) continue;
+      if (f.cnhExigida && motivoDaCnh(militar, f.cnhExigida)) continue;
+      if ((await ocupantesDaFuncao(c, a.escala_id, a.data, a, guarnicaoId, f.funcaoId)) >= f.maximo) continue;
+      vagas.push({ guarnicaoId, guarnicao: nomes.get(guarnicaoId) ?? '', funcaoId: f.funcaoId, funcao: f.funcao });
+    }
+  }
+  return vagas;
+}
+
+/** Quem pode ocupar a vaga (sem o próprio militar), quem já está escalado no mesmo dia, com onde está, e as vagas livres do mesmo turno para ele mudar de função. */
 export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<OpcoesDeTroca | null> {
   const a = await carregar(c, alocacaoId);
   if (!a) return null;
+  // o expediente lançado pela pré-escala não tem escala (nem vaga): não há por quem trocar nem para onde ir
+  if (!a.escala_id) return { livres: { aptos: [], emChoque: [], semVoluntariado: [], fora: [], acumular: [] }, escalados: [], vagas: [] };
   const todos = await avaliarCandidatos(c, { escalaId: a.escala_id, data: a.data, inicio: a.inicio, fim: a.fim, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id });
   // o próprio militar está "já escalado neste horário": sai das listas e da contagem dos que ficaram de fora
   const livres: Candidatos = {
@@ -106,18 +143,24 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
       ),
     )
     .map(({ base, alocacoes }) => ({ militarId: base.militar_id, posto: base.posto, nomeGuerra: base.nome_guerra, matricula: base.matricula, alocacoes }));
-  return { livres, escalados };
+  return { livres, escalados, vagas: a.escala_id ? await vagasDoTurno(c, a) : [] };
 }
 
 /** Faz a troca (dentro da transação do chamador: uma recusa desfaz tudo). Devolve as escalas mexidas. */
 export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usuarioId: string): Promise<ResultadoDaTroca['escalas']> {
   // trava as alocações da troca (em ordem de id, para duas trocas opostas não se prenderem): se outra pessoa mexeu antes, elas já não existem
-  const ids = 'militarId' in troca ? [alocacaoId] : [alocacaoId, troca.comAlocacaoId];
+  const ids = 'comAlocacaoId' in troca ? [alocacaoId, troca.comAlocacaoId] : [alocacaoId];
   const travadas = (await tx.query('select id from alocacao where id = any($1::uuid[]) order by id for update', [ids])).rows.length;
   if (travadas !== new Set(ids).size) throw new NaoEncontrada();
   const a = await carregar(tx, alocacaoId);
   if (!a) throw new NaoEncontrada();
   const mes = a.data.slice(0, 7);
+
+  if ('paraVaga' in troca) {
+    // mudar de função: a mesma alocação vai para outra vaga do mesmo turno (sem remoção, sem cota, sem choque)
+    const { escalaId } = await mudarDeVaga(tx, a.id, troca.paraVaga);
+    return [{ escalaId, mes }];
+  }
 
   if ('militarId' in troca) {
     // substituir: o atual sai (com a marca de remoção, como no "Remover") e o novo entra no turno escolhido, que precisa ser da faixa da vaga

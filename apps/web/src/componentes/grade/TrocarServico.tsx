@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Candidato, EscaladoNoDia } from 'contratos';
+import type { Candidato, EscaladoNoDia, VagaDoTurno } from 'contratos';
 import { useState } from 'react';
 import { ErroApi, foiCancelado, mensagemDe } from '@/api/cliente';
 import { consultaTrocas, trocar } from '@/api/escala-do-mes';
@@ -7,22 +7,28 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import { frasesDeFora, listaComE } from '@/lib/escala';
 import { Espera } from '@/componentes/resposta/Espera';
 
 type Escolha =
   | { tipo: 'livre'; livre: Candidato; turnoId: string; semVoluntariado: boolean }
-  | { tipo: 'escalado'; escalado: EscaladoNoDia; alocacaoId: string; onde: string; permuta: boolean };
+  | { tipo: 'escalado'; escalado: EscaladoNoDia; alocacaoId: string; onde: string; permuta: boolean }
+  | { tipo: 'vaga'; vaga: VagaDoTurno };
+
+/** As abas do "Trocar": por outro militar (o que já existia) ou por outra função, do mesmo militar, no mesmo turno (6.74). */
+type Aba = 'militar' | 'funcao';
 
 /**
- * "Trocar" um serviço: por um militar livre ou de lugar com quem já está escalado no dia (o diálogo mostra onde ele está antes de confirmar;
- * entre dois serviços ordinários, é uma permuta). A recusa fica no diálogo.
+ * "Trocar" um serviço: "Por outro militar" (um militar livre ou de lugar com quem já está escalado no dia: o diálogo mostra onde ele está antes de confirmar;
+ * entre dois serviços ordinários, é uma permuta) ou "Por outra função" (o mesmo militar vai para outra vaga livre do mesmo turno, 6.74). A recusa fica no diálogo.
  */
 export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: { alocacaoId: string; nomeAtual: string; acumulaCom: string[]; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const opcoes = useQuery(consultaTrocas(alocacaoId));
   const [turnoDe, setTurnoDe] = useState<Record<string, string>>({});
   const [escolha, setEscolha] = useState<Escolha | null>(null);
+  const [aba, setAba] = useState<Aba>('militar');
   const [erro, setErro] = useState<string | null>(null);
   // quem impede a troca, segundo a API (6.70): a lista volta com o texto e a linha dele marcada
   const [impede, setImpede] = useState<string | null>(null);
@@ -33,7 +39,11 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
     setErro(null);
     setImpede(null);
     try {
-      await trocar(queryClient, alocacaoId, escolha.tipo === 'livre' ? { militarId: escolha.livre.militarId, turnoId: escolha.turnoId } : { comAlocacaoId: escolha.alocacaoId });
+      await trocar(
+        queryClient,
+        alocacaoId,
+        escolha.tipo === 'livre' ? { militarId: escolha.livre.militarId, turnoId: escolha.turnoId } : escolha.tipo === 'vaga' ? { paraVaga: { guarnicaoId: escolha.vaga.guarnicaoId, funcaoId: escolha.vaga.funcaoId } } : { comAlocacaoId: escolha.alocacaoId },
+      );
       aoFechar();
     } catch (e) {
       setErro(foiCancelado(e) ? null : mensagemDe(e));
@@ -76,12 +86,14 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Trocar</DialogTitle>
-          <DialogDescription>Ponha outro militar no lugar de {nomeAtual} ou troque de lugar com quem já está escalado neste dia.</DialogDescription>
+          <DialogDescription>Ponha outro militar no lugar de {nomeAtual} ou mude {nomeAtual} de função neste turno.</DialogDescription>
         </DialogHeader>
 
         {escolha ? (
           <div className="grid gap-3">
-            {escolha.tipo === 'livre' ? (
+            {escolha.tipo === 'vaga' ? (
+              <p className="font-medium">Mudar {nomeAtual} para {escolha.vaga.funcao} do {escolha.vaga.guarnicao}?</p>
+            ) : escolha.tipo === 'livre' ? (
               <>
                 <p className="font-medium">Trocar {nomeAtual} por {escolha.livre.nomeGuerra}?</p>
                 {escolha.semVoluntariado && <p className="text-sm text-pendencia">Não marcou voluntariado neste horário.</p>}
@@ -100,7 +112,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
             {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={salvando} onClick={() => void confirmar()}>
-                {escolha.tipo === 'livre' ? 'Trocar' : escolha.permuta ? 'Fazer a permuta' : 'Trocar os dois'}
+                {escolha.tipo === 'livre' ? 'Trocar' : escolha.tipo === 'vaga' ? 'Mudar de função' : escolha.permuta ? 'Fazer a permuta' : 'Trocar os dois'}
               </Button>
               <Button type="button" variant="discreto" onClick={() => { setErro(null); setEscolha(null); }}>Voltar</Button>
             </div>
@@ -111,7 +123,12 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
             {opcoes.error && <p role="alert" className="text-alerta">{mensagemDe(opcoes.error)}</p>}
             {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
             {opcoes.data && (
-              <>
+              <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)}>
+                <TabsList aria-label="Como trocar">
+                  <TabsTrigger value="militar">Por outro militar</TabsTrigger>
+                  <TabsTrigger value="funcao">Por outra função</TabsTrigger>
+                </TabsList>
+                <TabsContent value="militar" className="grid gap-3 pt-2">
                 {aptos.length === 0 ? (
                   <p className="text-sm text-apagado">Ninguém livre pode ocupar este serviço agora.</p>
                 ) : (
@@ -151,7 +168,23 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
                     </ul>
                   </section>
                 )}
-              </>
+                </TabsContent>
+                <TabsContent value="funcao" className="grid gap-2 pt-2">
+                  {opcoes.data.vagas.length === 0 ? (
+                    <p className="text-sm text-apagado">Nenhuma outra vaga livre neste turno para ele.</p>
+                  ) : (
+                    <ul className="grid max-h-60 gap-1.5 overflow-y-auto">
+                      {opcoes.data.vagas.map((v) => (
+                        <li key={`${v.guarnicaoId}|${v.funcaoId}`}>
+                          <button type="button" onClick={() => { setErro(null); setEscolha({ tipo: 'vaga', vaga: v }); }} className="w-full rounded-md border border-linha px-3 py-2 text-left text-sm hover:bg-accent">
+                            {v.funcao} do {v.guarnicao}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </>
         )}

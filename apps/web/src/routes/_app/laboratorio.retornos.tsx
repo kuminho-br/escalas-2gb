@@ -16,6 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { Textarea } from '@/componentes/ui/textarea';
 import { emLaboratorio } from '@/laboratorio/modo';
 
+/** O que a API devolve de uma vez (`limit 500` em `retornos.ts`). */
+const LIMITE_DOS_RETORNOS = 500;
+
 export const Route = createFileRoute('/_app/laboratorio/retornos')({
   // é do administrador da conta real: o perfil de administrador de teste (dentro do Laboratório) não vale aqui; a API confere de qualquer jeito
   beforeLoad: ({ context }) => {
@@ -73,6 +76,8 @@ function ListaDeRetornos() {
       {retornos.isPending && <Espera />}
       {retornos.isError && <p role="alert" className="text-corpo text-alerta">{mensagemDe(retornos.error)}</p>}
       {retornos.data && retornos.data.length === 0 && <Vazio titulo="Nenhum retorno" frase="Ninguém deixou retorno com esse filtro ainda." />}
+      {/* a API devolve no máximo 500 (os mais recentes): com 500, pode haver outros que os filtros mostram */}
+      {retornos.data && retornos.data.length >= LIMITE_DOS_RETORNOS && <p role="status" className="text-apoio text-apagado">Mostrando os 500 mais recentes. Use os filtros para ver os outros.</p>}
       {retornos.data && retornos.data.length > 0 && (
         <ul className="grid gap-2">
           {retornos.data.map((r) => <ItemDeRetorno key={r.id} r={r} />)}

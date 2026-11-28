@@ -64,7 +64,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       tabIndex={-1}
       onKeyDown={teclar}
       aria-label={nome ? `Dia de ${nome}` : 'Dia do militar'}
-      className="outline-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[64dvh] max-md:overflow-hidden max-md:rounded-t-2xl max-md:border-t max-md:border-linha max-md:bg-superficie max-md:shadow-2xl md:max-lg:fixed md:max-lg:inset-0 md:max-lg:z-40 md:max-lg:overflow-y-auto md:max-lg:bg-fundo md:max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
+      className="outline-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[64dvh] max-md:overflow-hidden max-md:rounded-t-2xl max-md:border-t max-md:border-linha max-md:bg-superficie max-md:shadow-2xl md:max-lg:fixed md:max-lg:inset-0 md:max-lg:top-[var(--faixa)] md:max-lg:z-40 md:max-lg:overflow-y-auto md:max-lg:bg-fundo md:max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
     >
       {/* no celular o painel é uma folha que sobe de baixo (até 64% da altura): a alça mostra que é uma folha, e o corpo rola dentro dela */}
       <span aria-hidden className="mx-auto mt-2 mb-1 block h-1 w-10 rounded-full bg-linha md:hidden" />
@@ -130,8 +130,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                       </div>
                       <p className="text-sm">{s.escala} · {s.guarnicao ? `${s.guarnicao}, ${s.funcao}` : 'sem guarnição'}</p>
                       {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Acumula {listaComE(s.acumulaCom)}.</p>}
-                      {/* os avisos do "Remover", como na Escala do mês */}
-                      {!soConsulta && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
+                      {/* o aviso do "Remover" que fica aqui é o do acúmulo; a frase da pré-escala só existe na Escala do mês (6.74) */}
                       {!soConsulta && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
                     </li>
                   ))}

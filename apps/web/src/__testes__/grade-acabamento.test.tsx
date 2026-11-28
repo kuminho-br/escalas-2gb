@@ -212,7 +212,7 @@ describe('o painel do dia: o expediente lançado e o ADM (pool 18 e K1)', () => 
     expect(await within(painel).findByText(/jornada ADM/)).toBeInTheDocument();
   });
 
-  it('6.71: o expediente lançado sai por "Remover", como os outros serviços: sem confirmação e com os mesmos avisos', async () => {
+  it('6.71: o expediente lançado sai por "Remover", como os outros serviços: sem confirmação (a frase da pré-escala só existe na Escala do mês, 6.74)', async () => {
     const f = simularApi({
       ...ROTAS,
       [`GET /api/unidades/u-1sb/grade/${MES}/militares/m-CABO/dias/${DIA}`]: { status: 200, corpo: DO_ADM },
@@ -222,7 +222,7 @@ describe('o painel do dia: o expediente lançado e o ADM (pool 18 e K1)', () => 
     const painel = await screen.findByRole('complementary', { name: 'Dia de SD CABO' });
     const item = await within(painel).findByRole('listitem', { name: /Expediente A/ });
     expect(within(item).queryByRole('button', { name: 'Tirar do expediente' })).toBeNull();
-    expect(within(item).getByText(/pré-escala for gerada de novo/)).toBeInTheDocument();
+    expect(within(item).queryByText(/pré-escala for gerada de novo/)).toBeNull();
     await userEvent.click(within(item).getByRole('button', { name: 'Remover' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-exp')).toBe(1));
     expect(screen.queryByRole('dialog')).toBeNull();
