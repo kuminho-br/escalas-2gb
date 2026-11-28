@@ -21,7 +21,7 @@ export const fraseDaPermutaComConflito = (nome: string, servicoDaVaga: string, i
   `Não dá para permutar: ${nome} ficaria com o ${servicoDaVaga} (${horaCurta(inicio)} às ${horaCurta(fim)}) e já está no ${servicoQueTem} deste dia.`;
 
 type Aloc = {
-  id: string; militar_id: string; escala_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null;
+  id: string; militar_id: string; escala_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null;
   tipo: string; unidade_id: string; inicio: string; fim: string; servico: string;
 };
 
@@ -44,7 +44,7 @@ async function servicoQueImpede(c: Consulta, militarId: string, vaga: Aloc): Pro
 
 async function carregar(c: Consulta, id: string): Promise<Aloc | null> {
   const { rows } = await c.query<Aloc>(
-    `select a.id, a.militar_id, a.escala_id, a.turno_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, s.tipo, s.unidade_id, s.nome as servico,
+    `select a.id, a.militar_id, a.escala_id, a.servico_id, a.turno_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, s.tipo, s.unidade_id, s.nome as servico,
             to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
        from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id where a.id = $1`,
     [id],
@@ -121,11 +121,11 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
 
   if ('militarId' in troca) {
     // substituir: o atual sai (com a marca de remoção, como no "Remover") e o novo entra no turno escolhido, que precisa ser da faixa da vaga
-    const turno = (await tx.query<{ inicio: string; fim: string }>("select to_char(inicio, 'HH24:MI') as inicio, to_char(fim, 'HH24:MI') as fim from turno where id = $1", [troca.turnoId])).rows[0];
+    const turno = (await tx.query<{ servico_id: string; inicio: string; fim: string }>("select servico_id, to_char(inicio, 'HH24:MI') as inicio, to_char(fim, 'HH24:MI') as fim from turno where id = $1", [troca.turnoId])).rows[0];
     if (!turno || turno.inicio !== a.inicio || turno.fim !== a.fim) throw new Recusa('Este turno não é da faixa desta vaga.');
     await remover(tx, a.id, usuarioId);
     try {
-      await escalar(tx, a.escala_id, { militarId: troca.militarId, data: a.data, turnoId: troca.turnoId, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id }, { cotaJaContada: true });
+      await escalar(tx, a.escala_id, { militarId: troca.militarId, data: a.data, turnoId: troca.turnoId, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id }, { cotaJaContada: turno.servico_id === a.servico_id });
     } catch (e) {
       if (!(e instanceof Recusa)) throw e;
       // o novo não pode ocupar a vaga: a recusa diz quem é (a linha dele fica marcada) e, se é por horário, o serviço que ele já tem

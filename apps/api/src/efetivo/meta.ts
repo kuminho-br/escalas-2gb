@@ -214,7 +214,7 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
       await acumular(tx, x.alocacaoId, { guarnicaoId: x.acumuloGuarnicaoId, funcaoId: x.acumuloFuncaoId });
     }
     for (const a of d.alocacoes) {
-      await escalar(tx, a.escalaId, { militarId: a.militarId, data: a.data, turnoId: a.turnoId, guarnicaoId: a.guarnicaoId, funcaoId: a.funcaoId });
+      await escalar(tx, a.escalaId, { militarId: a.militarId, data: a.data, turnoId: a.turnoId, guarnicaoId: a.guarnicaoId, funcaoId: a.funcaoId }, { cotaJaContada: true });
       // a alocação volta com a origem que tinha (o `escalar` grava "manual")
       const { rows } = await tx.query<{ id: string }>(
         'update alocacao set origem = $5 where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4 returning id',

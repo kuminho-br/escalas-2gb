@@ -251,6 +251,22 @@ describe('revisão do Opus (6.72)', () => {
   });
 });
 
+describe('revisão do Opus (6.72.1)', () => {
+  it('substituir por outro serviço da mesma faixa confere a cota do serviço novo (sem cota, 409 e a vaga fica como estava); no mesmo serviço não confere', async () => {
+    const [a, c] = [await criar('SUBST1'), await criar('SUBST2')];
+    expect((await escalarNo(a, 'Pronto', dia(8))).status).toBe(201);
+    const alocacao = (await api.banco.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date', [a, dia(8)])).rows[0]!.id;
+    const recusada = await api.pedir('escalante', 'POST', `/api/alocacoes/${alocacao}/trocar`, { militarId: c, turnoId: servico.JES!.turno, justificativa: 'teste' });
+    expect(recusada.status).toBe(409);
+    expect((await recusada.json()).erro).toBe(`Não há cota de JES em ${mesPorExtenso(atual)}. Cadastre na tela Cotas.`);
+    expect((await api.banco.query('select 1 from alocacao where id = $1', [alocacao])).rows).toHaveLength(1);
+    expect((await api.banco.query('select 1 from alocacao where militar_id = $1', [c])).rows).toHaveLength(0);
+    // o mesmo serviço (Pronto, sem cota nenhuma) continua passando
+    const igual = await api.pedir('escalante', 'POST', `/api/alocacoes/${alocacao}/trocar`, { militarId: c, turnoId: servico.Pronto!.turno, justificativa: 'teste' });
+    expect(igual.status).toBeLessThan(300);
+  });
+});
+
 describe('o aviso do dia abaixo da meta na Escala do mês (6.72)', () => {
   it('o dia com meta e menos escalados traz o aviso; o dia que cumpriu não; e fechar a escala continua possível', async () => {
     const cota = await criarCota('JES', 20);
