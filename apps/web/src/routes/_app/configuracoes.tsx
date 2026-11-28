@@ -4,8 +4,9 @@ import type { ItemCatalogo } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaCatalogo, editarNoCatalogo, incluirNoCatalogo, type Catalogo } from '@/api/configuracoes';
-import { ehAdministrador, ehMilitarComum } from '@/api/eu';
+import { ehAdministrador, ehGestorOuAdministrador, ehMilitarComum } from '@/api/eu';
 import { AnimacaoDeEntrada } from '@/componentes/configuracoes/AnimacaoDeEntrada';
+import { EquipesDaUnidade } from '@/componentes/configuracoes/EquipesDaUnidade';
 import { FuncoesDoMilitar } from '@/componentes/configuracoes/FuncoesDoMilitar';
 import { Postos } from '@/componentes/configuracoes/Postos';
 import { QuemVeOQue } from '@/componentes/configuracoes/QuemVeOQue';
@@ -19,7 +20,7 @@ import { ABAS_DA_ESCALA, type AbaDaEscala } from '@/lib/configuracoes';
 import { Moldura } from '@/componentes/Moldura';
 import { Espera } from '@/componentes/resposta/Espera';
 
-const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
+const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'equipes', 'quem-ve-o-que'] as const;
 /** As seções que saíram daqui para o módulo Estrutura: o endereço antigo leva a elas. */
 const DA_ESTRUTURA = { estrutura: 'arvore', 'tipos-de-unidade': 'tipos-de-unidade' } as const;
 type Aba = (typeof ABAS)[number];
@@ -51,7 +52,7 @@ function Configuracoes() {
     { valor: 'preferencias', nome: 'Minhas preferências' },
     ...(comNivel ? [
       { valor: 'postos' as const, nome: 'Postos e graduações' }, { valor: 'funcoes' as const, nome: 'Funções do militar' },
-      { valor: 'situacoes' as const, nome: 'Situações do militar' }, { valor: 'tipos' as const, nome: 'Tipos de afastamento' },
+      { valor: 'situacoes' as const, nome: 'Situações do militar' }, { valor: 'tipos' as const, nome: 'Tipos de afastamento' }, { valor: 'equipes' as const, nome: 'Equipes' },
     ] : []),
     ...(admin ? [{ valor: 'quem-ve-o-que' as const, nome: 'Quem vê o quê' }] : []),
   ];
@@ -83,6 +84,11 @@ function Configuracoes() {
         {comNivel && (
           <TabsContent value="tipos">
             <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />
+          </TabsContent>
+        )}
+        {comNivel && (
+          <TabsContent value="equipes">
+            <EquipesDaUnidade unidadeId={eu.unidade.id} podeGerir={ehGestorOuAdministrador(eu)} admin={admin} />
           </TabsContent>
         )}
         {admin && (

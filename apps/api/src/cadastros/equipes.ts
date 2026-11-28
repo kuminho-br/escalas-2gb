@@ -14,7 +14,7 @@ export const MSG_NOME_REPETIDO = 'Já existe uma equipe com esse nome.';
 export const MSG_USADA_E_DESATIVADA = 'A equipe já foi usada; ela foi desativada em vez de apagada.';
 const MSG_PADRAO = 'As equipes padrão da corporação não se excluem: só se renomeiam.';
 
-const SELECT = `select e.id, e.nome, e.tipo, e.posicao_ciclo as "posicaoCiclo", e.ativa, e.unidade_id as "unidadeId", un.sigla as "unidadeSigla", e.unidade_id <> alvo.id as herdada
+const SELECT = `select e.id, e.nome, e.tipo, e.posicao_ciclo as "posicaoCiclo", e.ativa, e.unidade_id as "unidadeId", un.sigla as "unidadeSigla", un.mae_id is null as "daCorporacao", e.unidade_id <> alvo.id as herdada
                   from equipe e join unidade un on un.id = e.unidade_id join unidade alvo on alvo.id = $1`;
 /** Pronto pela posição, depois ADM por nome, depois a Externa. */
 const ORDEM = `order by case e.tipo when 'pronto' then 0 when 'adm' then 1 else 2 end, e.posicao_ciclo, lower(e.nome)`;

@@ -74,7 +74,7 @@ describe('a tela inicial e o painel geral (6.26)', () => {
   it('o auxiliar vê as preferências e os catálogos só para leitura', async () => {
     api(AUXILIAR);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Equipes']);
     await userEvent.click(screen.getByRole('tab', { name: 'Postos e graduações' }));
     expect(await screen.findByRole('list', { name: 'Postos e graduações' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Corrigir/ })).toBeNull();
@@ -87,14 +87,14 @@ describe('a tela inicial e o painel geral (6.26)', () => {
   it('o gestor vê as mesmas seções do auxiliar; os catálogos continuam só para leitura, e a Estrutura não está mais aqui', async () => {
     api(GESTOR);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Equipes']);
     expect(screen.queryByRole('tab', { name: 'Estrutura' })).toBeNull();
   });
 
   it('o administrador vê também Quem vê o quê, e edita os catálogos', async () => {
     api(ADMIN);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Quem vê o quê']);
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Equipes', 'Quem vê o quê']);
     await userEvent.click(screen.getByRole('tab', { name: 'Postos e graduações' }));
     expect(await screen.findByRole('button', { name: 'Corrigir SD' })).toBeInTheDocument();
   });
@@ -109,7 +109,7 @@ describe('a tela inicial e o painel geral (6.26)', () => {
     expect(menu.className).toMatch(/\bhidden\b/);
     const lista = screen.getByRole('combobox', { name: 'Seção das configurações' });
     expect(lista.parentElement!.className).toMatch(/md:hidden/);
-    expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Quem vê o quê']);
+    expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Equipes', 'Quem vê o quê']);
     await userEvent.selectOptions(lista, 'funcoes');
     expect(await screen.findByText('Chefe de seção')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Funções do militar' })).toHaveAttribute('aria-selected', 'true');

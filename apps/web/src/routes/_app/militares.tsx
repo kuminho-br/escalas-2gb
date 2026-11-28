@@ -37,6 +37,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
   const mes = mesAtual();
   const militares = useQuery(consultaMilitares(unidadeId, mes));
   const equipes = useQuery(consultaEquipes(unidadeId));
+  const nomeDaExterna = (militares.data ?? []).find((m) => m.externo)?.equipe ?? null;
   const [equipe, setEquipe] = useState('');
   const [jornada, setJornada] = useState('');
   const [busca, setBusca] = useState('');
@@ -66,8 +67,9 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
             <Label htmlFor="filtro-equipe" className="text-xs text-apagado">Equipe</Label>
             <Selecao id="filtro-equipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
               <option value="">Todas</option>
-              {equipes.data?.map((e) => <option key={e.id} value={e.nome}>{e.nome}</option>)}
-              {(militares.data ?? []).some((m) => m.externo) && <option value="Externo">Externo</option>}
+              {equipes.data?.filter((e) => e.tipo !== 'externa').map((e) => <option key={e.id} value={e.nome}>{e.nome}</option>)}
+              {/* a Externa é a equipe cadastrada do militar externo (6.64): o nome vem do cadastro, e só aparece quando há externo na lista */}
+              {nomeDaExterna && <option value={nomeDaExterna}>{nomeDaExterna}</option>}
             </Selecao>
           </div>
           <div className="grid gap-1">

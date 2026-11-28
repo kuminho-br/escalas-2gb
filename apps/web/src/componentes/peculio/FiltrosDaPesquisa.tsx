@@ -92,7 +92,7 @@ export function FiltrosDaPesquisa({ valor, aoMudar }: { valor: Extras; aoMudar: 
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="f-equipe">Equipe</Label>
-        <Input id="f-equipe" value={valor.equipe} onChange={(e) => mudar({ equipe: e.target.value })} placeholder="Ex.: Alfa" maxLength={40} autoComplete="off" className="bg-superficie" />
+        <Input id="f-equipe" value={valor.equipe} onChange={(e) => mudar({ equipe: e.target.value })} placeholder="Nome da equipe" maxLength={40} autoComplete="off" className="bg-superficie" />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="f-situacao">Situação do militar</Label>

@@ -34,7 +34,8 @@ describe('as equipes que a unidade vê', () => {
     expect(l.map((e) => [e.nome, e.herdada])).toEqual([
       ['Alfa', true], ['Bravo', true], ['Charlie', true], ['Delta', true], ['ADM', true], ['Apoio da seção', false], ['Plantão do GB', true], ['Externa', true],
     ]);
-    expect(l[0]).toMatchObject({ tipo: 'pronto', posicaoCiclo: 1, ativa: true, unidadeSigla: 'CBMPE' });
+    expect(l[0]).toMatchObject({ tipo: 'pronto', posicaoCiclo: 1, ativa: true, unidadeSigla: 'CBMPE', daCorporacao: true });
+    expect(l.find((e) => e.nome === 'Apoio da seção')).toMatchObject({ daCorporacao: false, herdada: false });
     expect(l.find((e) => e.nome === 'Externa')).toMatchObject({ tipo: 'externa', posicaoCiclo: null });
     // a irmã e a seção não se enxergam; o 2º GB vê a sua, e não as de baixo
     expect(nomes(await ler(outraSecao))).not.toContain('Apoio da seção');

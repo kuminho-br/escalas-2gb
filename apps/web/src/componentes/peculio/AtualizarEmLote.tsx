@@ -3,7 +3,8 @@ import { COMPORTAMENTOS, type LoteDeMilitares, type PreviaDoLote, type Resultado
 import { useRef, useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { aplicarLote, previaDoLote } from '@/api/lote';
-import { consultaFuncoesDoMilitar, consultaQuadros, consultaSituacoesDoMilitar, consultaUnidadesDeLotacao } from '@/api/militares';
+import { consultaEu } from '@/api/eu';
+import { consultaEquipes, consultaFuncoesDoMilitar, consultaQuadros, consultaSituacoesDoMilitar, consultaUnidadesDeLotacao } from '@/api/militares';
 import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { hoje } from '@/lib/meses';
+import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 import { useSelecao } from './Selecao';
 
 type Campo = 'unidade' | 'equipe' | 'jornada' | 'quadro' | 'situacao' | 'voluntarioJes' | 'funcao' | 'abono' | 'comportamento';
@@ -84,6 +86,10 @@ export function AtualizarEmLote({ aoFechar }: { aoFechar: (aplicou: boolean) => 
   const quadros = useQuery(consultaQuadros);
   const situacoes = useQuery(consultaSituacoesDoMilitar);
   const funcoes = useQuery(consultaFuncoesDoMilitar);
+  // as equipes que a unidade vê: a da lotação escolhida ou, sem ela, a unidade em que a pessoa trabalha (as padrão são da corporação e valem para todas)
+  const { data: eu } = useQuery(consultaEu);
+  const unidadeDasEquipes = valores.unidadeId || (eu ? (escolherUnidade(eu, lerUnidadeGuardada())?.id ?? '') : '');
+  const equipes = useQuery({ ...consultaEquipes(unidadeDasEquipes), enabled: Boolean(unidadeDasEquipes) });
   const mudar = (parte: Partial<Valores>) => setValores((v) => ({ ...v, ...parte }));
   const alternar = (c: Campo) => setMarcados((a) => { const n = new Set(a); if (n.has(c)) n.delete(c); else n.add(c); return n; });
   const comRastreio = [...marcados].some((c) => DO_RASTREIO.includes(c));
@@ -176,7 +182,14 @@ export function AtualizarEmLote({ aoFechar }: { aoFechar: (aplicou: boolean) => 
               {marcados.has('equipe') && (
                 <div className="grid gap-1.5">
                   <Label htmlFor="lote-equipe">Equipe</Label>
-                  <Input id="lote-equipe" value={valores.equipe} disabled={valores.semEquipe} onChange={(e) => mudar({ equipe: e.target.value })} placeholder="Ex.: Alfa" maxLength={40} autoComplete="off" className="bg-superficie" />
+                  {/* as equipes do cadastro que a unidade vê, por tipo e sem a Externa (6.64); o lote vale pelo nome, na unidade de cada militar */}
+                  <Selecao id="lote-equipe" value={valores.equipe} disabled={valores.semEquipe} onChange={(e) => mudar({ equipe: e.target.value })}>
+                    <option value="">Escolha a equipe</option>
+                    {(['pronto', 'adm'] as const).map((tipo) => {
+                      const doTipo = (equipes.data ?? []).filter((q) => q.ativa && q.tipo === tipo);
+                      return doTipo.length > 0 ? <optgroup key={tipo} label={tipo === 'pronto' ? 'Pronto' : 'ADM'}>{doTipo.map((q) => <option key={q.id} value={q.nome}>{q.nome}</option>)}</optgroup> : null;
+                    })}
+                  </Selecao>
                   <label className="flex items-center gap-2 text-corpo">
                     <Checkbox checked={valores.semEquipe} onChange={(e) => mudar({ semEquipe: e.target.checked })} />
                     Sem equipe
