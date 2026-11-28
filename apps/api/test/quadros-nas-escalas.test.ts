@@ -2,7 +2,7 @@ import type { Candidatos, GradeDoMes, VoluntariadoDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { motivoDeFora } from '../src/escala/elegibilidade.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7): 1ª SB com Pronto A/B; um SD (QBMG), um MAJ sem quadro e dois CAP (QOC), todos do Pronto da equipe Alfa.
@@ -12,7 +12,8 @@ let servico: string;
 let turnoA: string;
 const militar: Record<string, string> = {};
 const mes = hojeRecife().slice(0, 7);
-const dia = `${mes}-10`;
+// o dia 9 é de serviço da equipe 1 (Alfa) no ciclo: com o ciclo inteiro cadastrado (6.64), a alocação à mão do capitão vota na Alfa, e não gera conflito na prévia
+const dia = `${mes}-09`;
 const secao = () => `/api/unidades/${api.ids.secao}`;
 const FAIXA = { inicio: '08:00', fim: '20:00' };
 let seq = 0;
@@ -29,8 +30,8 @@ async function criar(nome: string, postoSigla: string, quadroSigla: string | nul
 
 beforeAll(async () => {
   api = await montarApi();
-  const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
-  const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
+  const alfa = await equipePadrao(api.banco, 'Alfa');
+  const bravo = await equipePadrao(api.banco, 'Bravo');
   servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Pronto', tipo: 'ordinario', cor: '#2F8F5B' });
   turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: FAIXA.inicio, fim: FAIXA.fim });
   await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '20:00', fim: '08:00' });

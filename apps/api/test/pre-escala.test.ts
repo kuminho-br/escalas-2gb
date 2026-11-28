@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { equipeDoDia1, planejarPreEscala } from '../src/escala/pre-escala.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 
 // Cenário fictício (D7): seção com 4 equipes do ciclo, Pronto A (08h–20h) e B (20h–08h), guarnições ABT (Motorista CNH D 1–1,
 // Combatente 1–2) e AR (Chefe 1–1) nas duas faixas, e a ordem Motorista ABT → Chefe AR → Combatente ABT 1 → Combatente ABT 2.
@@ -46,7 +46,7 @@ const noTurno = (novas: { data: string; turnoId: string; militarId: string; guar
 beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-PE', nome: 'Soldado PE', ordem: 940 });
-  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, tipo: 'pronto', posicao_ciclo: i + 1 });
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await equipePadrao(api.banco, nome);
   motorista = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   combatente = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
   chefe = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Chefe' });
@@ -280,3 +280,20 @@ describe('as rotas da prévia e da gravação', () => {
   });
 });
 
+describe('renomear a equipe 1 não muda a pré-escala (6.64, Review Focus 2)', () => {
+  it('com a posição 1 chamada "Equipe 1", a prévia e as alocações planejadas são as mesmas: o motor lê a posição, nunca o nome', async () => {
+    const antes = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    const nomesDeAntes = (await api.banco.query<{ id: string; nome: string }>('select id, nome from equipe where id = any($1)', [Object.values(equipe)])).rows;
+    await api.banco.query("update equipe set nome = 'Equipe 1' where id = $1", [equipe.Alfa]);
+    try {
+      const depois = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+      expect(depois.novas).toEqual(antes.novas);
+      expect(depois.conflito).toEqual(antes.conflito);
+      // a prévia só difere no nome da equipe, que aparece escrito nos avisos e no nome da equipe do dia 1
+      const trocarNome = (v: unknown) => JSON.parse(JSON.stringify(v).replaceAll('Equipe 1', 'Alfa'));
+      expect(trocarNome(depois.previa)).toEqual(trocarNome(antes.previa));
+    } finally {
+      for (const e of nomesDeAntes) await api.banco.query('update equipe set nome = $2 where id = $1', [e.id, e.nome]);
+    }
+  });
+});

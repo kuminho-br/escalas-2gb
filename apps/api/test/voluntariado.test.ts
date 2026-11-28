@@ -2,7 +2,7 @@ import { mesPorExtenso, somarMeses, type FaixaDeDisponibilidade, type Voluntaria
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { blocosDaSecao } from '../src/voluntariado/leitura.ts';
-import { inserir, situacaoDoMilitar } from './banco-teste.ts';
+import { equipePadrao, inserir, situacaoDoMilitar } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7): mês de lançamento = o mês seguinte ao atual; Pronto A (08h às 20h) escalado no último dia do mês atual;
@@ -40,7 +40,7 @@ const f = (data: string, inicio: string, fim: string): FaixaDeDisponibilidade =>
 beforeAll(async () => {
   api = await montarApi();
   posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-VO', nome: 'Soldado VO', ordem: 932 });
-  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, tipo: 'pronto', posicao_ciclo: i + 1 });
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await equipePadrao(api.banco, nome);
   const s = (await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string };
   pronto = s.id;
   turnoA = (await (await api.pedir('escalante', 'POST', `/api/servicos/${pronto}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' })).json()).turnos[0].id;
@@ -249,5 +249,20 @@ describe('militar com transferência cadastrada (Fase 4.2, revisão final)', () 
     // a partir do mês seguinte ele é da outra seção: o escalante desta já não mexe
     expect((await api.pedir('escalante', 'GET', `/api/militares/${militar.TRANSF}/voluntariado/${somarMeses(mes, 1)}`)).status).toBe(403);
     expect((await lancar('TRANSF', [], 'escalante', somarMeses(mes, 1))).status).toBe(403);
+  });
+});
+
+describe('renomear a equipe 1 não muda as folgas do voluntariado (6.64, Review Focus 2)', () => {
+  it('com a posição 1 chamada "Equipe 1", as folgas do militar dessa equipe e de outra são as mesmas de antes', async () => {
+    const antesAlfa = (await doMilitar('ANDRADE')).folgas;
+    const antesCharlie = (await doMilitar('CHARLIE1')).folgas;
+    expect(antesAlfa).not.toBeNull();
+    await api.banco.query("update equipe set nome = 'Equipe 1' where id = $1", [equipe.Alfa]);
+    try {
+      expect((await doMilitar('ANDRADE')).folgas).toEqual(antesAlfa);
+      expect((await doMilitar('CHARLIE1')).folgas).toEqual(antesCharlie);
+    } finally {
+      await api.banco.query("update equipe set nome = 'Alfa' where id = $1", [equipe.Alfa]);
+    }
   });
 });

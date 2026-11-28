@@ -2,7 +2,8 @@
 // Só a MATRÍCULA é obrigatória. Célula vazia não mexe no dado; célula inválida é ignorada, com o motivo na prévia, e as outras células da linha valem.
 // Só quem tem nível de acesso numa unidade acima das seções importa (a rota confere); aqui cada linha confere de novo o de cima da lotação dela.
 import { COMPORTAMENTOS, mesParaData, type CelulaIgnorada, type ItemPrevia, type ProblemaImportacao } from 'contratos';
-import { CICLO_EQUIPES, normalizar } from 'dominio';
+import { conferirEquipeEJornada, normalizar } from 'dominio';
+import { equipesVisiveis } from '../cadastros/equipes.ts';
 import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, siglaDaUnidadeDeCima, temNivelDeCima } from '../acesso.ts';
@@ -45,7 +46,7 @@ export const COLUNAS = {
   quadro: { rotulo: 'QUADRO', obrigatoria: false, ajuda: 'Sigla de um quadro que tenha o posto do militar (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   situacao: { rotulo: 'SITUAÇÃO', obrigatoria: false, ajuda: 'O nome de uma situação do catálogo (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   jornada: { rotulo: 'JORNADA', obrigatoria: false, ajuda: 'PRONTO (turnos de 12h) ou ADM (expediente). Para quem já existe, vale a partir de hoje.', opcoes: ['PRONTO', 'ADM'] },
-  equipe: { rotulo: 'EQUIPE', obrigatoria: false, ajuda: 'Equipe do pronto, da seção do militar (ex.: ALFA). Equipe que ainda não existe é criada. No ADM não há equipe.' },
+  equipe: { rotulo: 'EQUIPE', obrigatoria: false, ajuda: 'Nome de uma equipe cadastrada que combine com a jornada (equipe do Pronto para o Pronto, equipe do ADM para o ADM). O nome que não existe ou não combina vira aviso, e a equipe não é gravada. A importação não cria equipe.' },
   motorista: { rotulo: 'MOTORISTA', obrigatoria: false, ajuda: 'SIM se o militar está no quadro de motoristas; NÃO se não está.', opcoes: SIM_NAO },
   cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Para a escala, só vale com o militar no quadro de motoristas.' },
   vjes: { rotulo: 'VOLUNTÁRIO JES', obrigatoria: false, ajuda: 'SIM se o militar é voluntário JES; NÃO se não é.', opcoes: SIM_NAO },
@@ -57,14 +58,13 @@ type Chave = keyof typeof COLUNAS;
 export const MSG_CPF_DE_OUTRO = 'Este CPF já está cadastrado em outro militar.';
 export const MSG_EMAIL_DE_OUTRO = 'Este e-mail já está cadastrado em outro militar.';
 export const MSG_EMAIL_PESSOAL_INSTITUCIONAL = 'Este é um e-mail institucional: use outro, pessoal.';
-export const MSG_SEM_EQUIPE_NO_ADM = 'No expediente não há equipe.';
 const MSG_SEM_PERIODO = 'O militar não tem período aberto no rastreio: use "Alterar situação" na ficha.';
 const NOME_DO_DADO = { posto: 'posto/graduação', guerra: 'nome de guerra', lotacao: 'lotação' } as const;
 
 /** As colunas do militar que a linha grava, já no nome do banco (só as que vieram com valor válido e mudaram). */
 type CamposDoMilitar = Record<string, unknown>;
-/** O que muda no rastreio: `equipe` pelo nome (a que não existe é criada na seção). */
-type MudancaDoRastreio = { quadroId?: string | null; situacaoId?: string; jornada?: 'pronto' | 'adm'; equipe?: string | null };
+/** O que muda no rastreio: `equipe` é a do cadastro, já achada pelo nome (id e nome; id nulo tira a equipe). A importação não cria equipe (6.64). */
+type MudancaDoRastreio = { quadroId?: string | null; situacaoId?: string; jornada?: 'pronto' | 'adm'; equipe?: { id: string | null; nome: string | null } };
 type ItemPlano = {
   /** null: militar novo */
   id: string | null;
@@ -89,7 +89,7 @@ type Existente = {
   /** o dia em que essa lotação começa ('aaaa-mm-dd'): depois de hoje, ela ainda está só marcada */
   unidade_desde: string | null;
   /** o período aberto do rastreio */
-  aberto_unidade: string | null; aberto_equipe: string | null; aberto_jornada: 'pronto' | 'adm' | null; aberto_quadro_id: string | null; aberto_quadro: string | null;
+  aberto_unidade: string | null; aberto_equipe: string | null; aberto_equipe_id: string | null; aberto_jornada: 'pronto' | 'adm' | null; aberto_quadro_id: string | null; aberto_quadro: string | null;
   aberto_situacao_id: string | null; aberto_situacao: string | null;
 };
 
@@ -99,6 +99,7 @@ const ehBissexto = (a: number) => (a % 4 === 0 && a % 100 !== 0) || a % 400 === 
 const simNao = (b: boolean) => (b ? 'sim' : 'não');
 const textoCnh = (c: string[]) => (c.length ? [...c].sort().join('') : 'nenhuma');
 const NOME_JORNADA = { pronto: 'Pronto', adm: 'ADM' } as const;
+const NOME_DO_TIPO = { pronto: 'Pronto', adm: 'ADM', externa: 'Externa' } as const;
 
 async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
   const primeiro = mesParaData(mes);
@@ -106,7 +107,7 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
             m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim,
             m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
-            a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
+            a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.equipe_id as aberto_equipe_id, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
             a.situacao_id as aberto_situacao_id, asm.nome as aberto_situacao
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
@@ -141,10 +142,12 @@ async function catalogos(tx: Consulta, unidadeId: string) {
     )
   ).rows.map((q) => ({ id: q.id, sigla: q.sigla, postoGradIds: q.posto_grad_ids }));
   const situacoes = (await tx.query<{ id: string; nome: string }>('select id, nome from situacao_militar where ativo order by nome')).rows;
+  // as equipes do cadastro que a importação enxerga: as que a unidade vê (a corporação, as de cima e as dela) e as das unidades de baixo, com a sigla de onde foram criadas
   const equipes = (
-    await tx.query<{ unidade_id: string; sigla: string; nome: string; ordem_ciclo: number }>(
-      `select e.unidade_id, s.sigla, e.nome, e.ordem_ciclo from equipe e join unidade s on s.id = e.unidade_id join unidade u on u.id = $1 and s.caminho <@ u.caminho
-        order by s.sigla, e.ordem_ciclo`,
+    await tx.query<{ sigla: string; nome: string; tipo: 'pronto' | 'adm' | 'externa'; abaixo: boolean }>(
+      `select s.sigla, e.nome, e.tipo, (s.id <> u.id and s.caminho <@ u.caminho) as abaixo
+         from equipe e join unidade s on s.id = e.unidade_id join unidade u on u.id = $1 and (s.caminho @> u.caminho or s.caminho <@ u.caminho)
+        where e.ativa order by case e.tipo when 'pronto' then 0 when 'adm' then 1 else 2 end, e.posicao_ciclo, e.nome`,
       [unidadeId],
     )
   ).rows;
@@ -160,8 +163,6 @@ export const importadorPeculio: Importador<Plano> = {
     abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],
     async valores({ tx, unidadeId }) {
       const c = await catalogos(tx, unidadeId);
-      const porSecao = new Map<string, string[]>();
-      for (const e of c.equipes) porSecao.set(e.sigla, [...(porSecao.get(e.sigla) ?? []), e.nome]);
       return [
         { titulo: 'Como a planilha é lida', itens: ['Só a matrícula é obrigatória. Célula vazia não altera nada. Dado inválido é ignorado e aparece no resumo.'] },
         { titulo: 'Postos e graduações (coluna POSTO/GRAD)', itens: c.postos.map((p) => p.sigla) },
@@ -169,7 +170,7 @@ export const importadorPeculio: Importador<Plano> = {
         { titulo: 'Quadros (coluna QUADRO)', itens: c.quadros.map((q) => `${q.sigla}: ${c.postos.filter((p) => q.postoGradIds.includes(p.id)).map((p) => p.sigla).join(', ')}`) },
         { titulo: 'Situações (coluna SITUAÇÃO)', itens: c.situacoes.map((s) => s.nome) },
         { titulo: 'Funções do militar (coluna FUNÇÃO)', itens: c.funcoes.length ? c.funcoes.map((f) => f.nome) : ['Ainda não há funções: o administrador as cadastra em Configurações.'] },
-        { titulo: 'Equipes de cada seção (coluna EQUIPE)', itens: porSecao.size ? [...porSecao].map(([s, nomes]) => `${s}: ${nomes.join(', ')}`) : ['Ainda não há equipes: a importação cria as que aparecerem na coluna EQUIPE.'] },
+        { titulo: 'Equipes cadastradas (coluna EQUIPE; a importação não cria equipe)', itens: c.equipes.map((e) => `${e.abaixo ? `${e.sigla}: ` : ''}${e.nome} (${NOME_DO_TIPO[e.tipo]})`) },
         { titulo: 'Linha de militar novo', itens: ['Precisa de POSTO/GRAD, NOME DE GUERRA e LOTAÇÃO. O sistema cria o militar com lotação na seção da coluna LOTAÇÃO, a partir do mês atual. Sem as colunas JORNADA, EQUIPE, QUADRO e SITUAÇÃO, ele entra no Pronto, sem equipe, com o quadro do posto (quando só um serve) e na situação padrão.'] },
       ];
     },
@@ -216,10 +217,12 @@ export const importadorPeculio: Importador<Plano> = {
       const sigla = await siglaDaUnidadeDeCima(tx, unidade);
       return sigla ? `quem tem nível de acesso no ${sigla}` : 'quem tem nível de acesso na própria raiz';
     };
-    // as equipes que a importação vai criar, por seção (só as das linhas que entram)
-    const equipesNovas = new Map<string, Set<string>>();
-    const temEquipe = (unidade: string, nome: string) =>
-      cat.equipes.some((e) => e.unidade_id === unidade && normalizar(e.nome) === normalizar(nome)) || [...(equipesNovas.get(unidade) ?? [])].some((n) => normalizar(n) === normalizar(nome));
+    // as equipes que a seção vê (as da corporação, as de cima e as dela), lidas uma vez por seção
+    const vistas = new Map<string, Awaited<ReturnType<typeof equipesVisiveis>>>();
+    const equipesDe = async (unidade: string) => {
+      if (!vistas.has(unidade)) vistas.set(unidade, await equipesVisiveis(tx, unidade));
+      return vistas.get(unidade)!;
+    };
 
     // antiguidade repetida: quem já tem no sistema (de outra matrícula) e as linhas da planilha; a prévia só avisa, sem recusar
     const donosDaAntiguidade = new Map<number, string[]>();
@@ -354,6 +357,8 @@ export const importadorPeculio: Importador<Plano> = {
       const equipeTxt = ler('equipe', lerEquipe(texto('equipe')));
       // o período aberto pode ser de outra seção (transferência já marcada): mexer nele pede nível de acesso acima dela, como no "Alterar situação"
       const periodoDeFora = Boolean(e?.aberto_unidade && e.aberto_unidade !== referencia && !(await donoDe(e.aberto_unidade)));
+      // a seção das equipes: a do período aberto (no militar novo, a da LOTAÇÃO)
+      const secaoDasEquipes = e?.aberto_unidade ?? lotacao?.id ?? referencia;
       const motivoDoRastreio = semPeriodo
         ? MSG_SEM_PERIODO
         : periodoDeFora
@@ -367,13 +372,15 @@ export const importadorPeculio: Importador<Plano> = {
         if (jornada) rastreio.jornada = jornada;
         const jornadaFinal = jornada ?? e?.aberto_jornada ?? 'pronto';
         if (equipeTxt !== undefined) {
-          if (jornadaFinal === 'adm') ignorar('equipe', MSG_SEM_EQUIPE_NO_ADM);
-          else rastreio.equipe = equipeTxt;
+          // a equipe é a do cadastro, que a seção vê; nome que não existe, desativada, Externa ou que não combina com a jornada vira aviso e a equipe não é gravada (a linha grava o resto)
+          const achada = (await equipesDe(secaoDasEquipes)).find((q) => normalizar(q.nome) === normalizar(equipeTxt));
+          if (!achada || !achada.ativa || conferirEquipeEJornada(achada.tipo, jornadaFinal) !== null) {
+            avisos.push(`${nomeDaLinha} (${matricula}): A equipe '${equipeTxt}' não existe ou não combina com a jornada; a equipe não foi gravada.`);
+          } else rastreio.equipe = { id: achada.id, nome: achada.nome };
         }
-        // passar para o ADM (a JORNADA da própria linha) esvazia a equipe; sem a coluna, a equipe de hoje fica
-        if (jornada === 'adm' && e?.aberto_equipe) rastreio.equipe = null;
+        // trocar de jornada (a JORNADA da própria linha) sem uma equipe nova tira a de antes: a equipe de uma jornada não vale para a outra; sem a coluna e sem trocar, a equipe de hoje fica
+        if (jornada && e?.aberto_jornada && jornada !== e.aberto_jornada && rastreio.equipe === undefined && e.aberto_equipe_id) rastreio.equipe = { id: null, nome: null };
       }
-      const secaoDasEquipes = e?.aberto_unidade ?? lotacao?.id ?? referencia;
 
       const mudancas: string[] = [];
       const campos: CamposDoMilitar = {};
@@ -433,8 +440,8 @@ export const importadorPeculio: Importador<Plano> = {
         else if (rastreio.situacaoId !== undefined) mudancas.push(`situação: ${e.aberto_situacao} → ${situacao!.nome}`);
         if (rastreio.jornada !== undefined && rastreio.jornada === e.aberto_jornada) delete rastreio.jornada;
         else if (rastreio.jornada !== undefined) mudancas.push(`jornada: ${NOME_JORNADA[e.aberto_jornada!]} → ${NOME_JORNADA[rastreio.jornada]}`);
-        if (rastreio.equipe !== undefined && normalizar(rastreio.equipe ?? '') === normalizar(e.aberto_equipe ?? '')) delete rastreio.equipe;
-        else if (rastreio.equipe !== undefined) mudancas.push(`equipe: ${e.aberto_equipe ?? 'sem equipe'} → ${rastreio.equipe ?? 'sem equipe'}`);
+        if (rastreio.equipe !== undefined && rastreio.equipe.id === e.aberto_equipe_id) delete rastreio.equipe;
+        else if (rastreio.equipe !== undefined) mudancas.push(`equipe: ${e.aberto_equipe ?? 'sem equipe'} → ${rastreio.equipe.nome ?? 'sem equipe'}`);
         if (e.unidade_id && lotacao && e.unidade_id !== lotacao.id) {
           avisos.push(`${nomeDaLinha} (${matricula}): a planilha diz ${lotacao.sigla} e o sistema ${e.unidade_sigla}; a lotação não foi mudada (use "Alterar situação" na ficha).`);
         }
@@ -445,8 +452,6 @@ export const importadorPeculio: Importador<Plano> = {
         iguais++;
         continue;
       }
-      // a equipe que ainda não existe na seção é criada (e a prévia avisa)
-      if (rastreio.equipe && !temEquipe(secaoDasEquipes, rastreio.equipe)) equipesNovas.set(secaoDasEquipes, new Set([...(equipesNovas.get(secaoDasEquipes) ?? []), rastreio.equipe]));
       if (email) emailsDaPlanilha.set(email.toLowerCase(), matricula);
       if (cpf) cpfsDaPlanilha.set(cpf, matricula);
       const descricao = `${postoFinal.sigla} ${nomeGuerra ?? e?.nome_guerra}`;
@@ -464,7 +469,6 @@ export const importadorPeculio: Importador<Plano> = {
       const donos = [...(donosDaAntiguidade.get(n) ?? []).filter((m) => !daPlanilha.includes(m) && !mudaram.has(m)), ...daPlanilha];
       if (donos.length > 1) avisos.push(`Antiguidade ${n} repetida: ${donos.length === 2 ? donos.join(' e ') : `${donos.slice(0, -1).join(', ')} e ${donos.at(-1)}`}.`);
     }
-    for (const [secao, nomes] of equipesNovas) avisos.push(`Equipes novas na ${cat.unidades.find((u) => u.id === secao)?.sigla ?? 'seção'}: ${[...nomes].join(', ')}.`);
     if (semMatricula) avisos.push(`${semMatricula} ${semMatricula === 1 ? 'linha sem MATRÍCULA foi ignorada' : 'linhas sem MATRÍCULA foram ignoradas'}.`);
     const lotados = [...ja.values()].filter((x) => x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id) && !vistos.has(x.matricula)).length;
     if (lotados) avisos.push(`${lotados} militares do sistema não estão na planilha (nada foi apagado).`);
@@ -473,16 +477,6 @@ export const importadorPeculio: Importador<Plano> = {
 
   async aplicar(plano, { tx, hoje }) {
     const desde = mesParaData(plano.mes);
-    /** A equipe da seção pelo nome; a que não existe é criada, na posição do ciclo quando o nome é dele (ALFA, BRAVO…). */
-    const equipeDe = async (unidadeId: string, nome: string | null): Promise<string | null> => {
-      if (nome === null) return null;
-      const daSecao = (await tx.query<{ id: string; nome: string; ordem_ciclo: number }>('select id, nome, ordem_ciclo from equipe where unidade_id = $1', [unidadeId])).rows;
-      const achada = daSecao.find((q) => normalizar(q.nome) === normalizar(nome));
-      if (achada) return achada.id;
-      const noCiclo = CICLO_EQUIPES.indexOf(normalizar(nome));
-      const ordem = noCiclo >= 0 && !daSecao.some((q) => q.ordem_ciclo === noCiclo + 1) ? noCiclo + 1 : Math.max(CICLO_EQUIPES.length, ...daSecao.map((q) => q.ordem_ciclo)) + 1;
-      return (await tx.query<{ id: string }>('insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, $2, $3) returning id', [unidadeId, nome, ordem])).rows[0]!.id;
-    };
     for (const it of plano.itens) {
       const nomes = Object.keys(it.campos);
       if (!it.id) {
@@ -493,7 +487,7 @@ export const importadorPeculio: Importador<Plano> = {
         // lotação na seção da linha, a partir do mês atual; sem as colunas, Pronto, sem equipe, o quadro do posto (quando só um serve) e a situação padrão
         const quadro = it.rastreio.quadroId !== undefined ? { quadroId: it.rastreio.quadroId } : await quadroParaOPosto(tx, String(it.campos.posto_grad_id), undefined, null);
         const jornada = it.rastreio.jornada ?? 'pronto';
-        const equipeId = jornada === 'adm' || it.rastreio.equipe === undefined ? null : await equipeDe(it.unidadeId, it.rastreio.equipe);
+        const equipeId = it.rastreio.equipe?.id ?? null;
         const comSituacao = it.rastreio.situacaoId !== undefined;
         await tx.query(
           `insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id${comSituacao ? ', situacao_id' : ''}) values ($1, $2, $3, $4, $5, $6${comSituacao ? ', $7' : ''})`,
@@ -506,7 +500,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (it.rastreio.quadroId !== undefined) mudanca.quadroId = it.rastreio.quadroId;
       if (it.rastreio.situacaoId !== undefined) mudanca.situacaoId = it.rastreio.situacaoId;
       if (it.rastreio.jornada !== undefined) mudanca.jornada = it.rastreio.jornada;
-      if (it.rastreio.equipe !== undefined) mudanca.equipeId = await equipeDe(it.unidadeId, it.rastreio.equipe);
+      if (it.rastreio.equipe !== undefined) mudanca.equipeId = it.rastreio.equipe.id;
       // o quadro acompanha o posto (mesma regra da ficha), quando a linha não trouxe QUADRO
       if (it.quadroPeloPosto) {
         const aberto = (await tx.query<{ quadro_id: string | null }>('select quadro_id from rastreio where militar_id = $1 and ate is null', [it.id])).rows[0];

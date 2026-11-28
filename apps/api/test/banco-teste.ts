@@ -27,3 +27,19 @@ export async function inserir(c: Consulta, tabela: string, dados: Record<string,
   );
   return rows[0]![retorno]!;
 }
+
+/**
+ * O id de uma das equipes padrão da corporação (6.64) pelo nome: Alfa, Bravo, Charlie, Delta, ADM ou Externa. A migração as cria na unidade raiz; as telas e o motor leem as equipes do
+ * Pronto por elas (pela posição), então os testes que dependem do ciclo usam estas, e não uma equipe própria da seção.
+ */
+export async function equipePadrao(c: Consulta, nome: string): Promise<string> {
+  return (await c.query<{ id: string }>('select e.id from equipe e join unidade u on u.id = e.unidade_id where u.mae_id is null and lower(e.nome) = lower($1)', [nome])).rows[0]!.id;
+}
+
+/**
+ * Deixa o ciclo do Pronto com a equipe Alfa só (tira as posições 2 a 4 das padrão): o cenário de testes que montam o Pronto à mão, com poucos militares, numa equipe só, onde as outras
+ * posições não têm ninguém. Com as quatro, a pré-escala pesa o Pronto já gravado contra o ciclo inteiro (6.64).
+ */
+export async function soAlfaNoCiclo(c: Consulta): Promise<void> {
+  await c.query("delete from equipe where tipo = 'pronto' and posicao_ciclo > 1");
+}

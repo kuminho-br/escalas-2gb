@@ -169,11 +169,11 @@ describe('o militar externo na Consulta e na lista de Militares (6.33, Task 3)',
     expect((await fichaDaConsulta(deFora, 'gestorGb', api.ids.gb)).externo).toBeUndefined();
   });
 
-  it('a lista de Militares da unidade traz os externos vigentes: equipe "Externo", a lotação de origem e nenhuma pendência de cadastro; tirar os faz sumir', async () => {
+  it('a lista de Militares da unidade traz os externos vigentes: equipe Externa do cadastro, a lotação de origem e nenhuma pendência de cadastro; tirar os faz sumir', async () => {
     const id = await militarDe();
     const v: MilitarExterno = await (await trazer(id)).json();
     const linha = (await lista()).find((l: { id: string }) => l.id === id);
-    expect(linha).toMatchObject({ id, equipe: 'Externo', externo: { lotacaoSigla: '2ª SB' }, pendencias: [] });
+    expect(linha).toMatchObject({ id, equipe: 'Externa', externo: { lotacaoSigla: '2ª SB' }, pendencias: [] });
     // quem é da unidade não tem a chave
     expect((await lista()).filter((l: { externo?: unknown }) => l.externo === undefined).length).toBeGreaterThan(0);
     await api.pedir('gestorGb', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${v.vinculoId}`);

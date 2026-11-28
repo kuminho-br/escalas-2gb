@@ -27,6 +27,7 @@ export async function criarRegistrosAlheios(api: ApiDeTeste, outra: string): Pro
   ids.escalas = (await pelaRaiz(api, 'POST', `${u}/escalas`, { nome: 'Alheia' })).id;
   ids.guarnicoes = (await pelaRaiz(api, 'POST', `${u}/guarnicoes`, { nome: 'Alheia', vigencia: atual, versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [] } })).id;
   ids.funcoes = (await pelaRaiz(api, 'POST', `${u}/funcoes`, { nome: 'Alheia' })).id;
+  ids.equipes = (await pelaRaiz(api, 'POST', `${u}/equipes`, { nome: 'Equipe alheia', tipo: 'adm' })).id;
   ids.feriados = (await pelaRaiz(api, 'POST', `${u}/feriados`, { data: `${somarMeses(atual, 1)}-15`, descricao: 'Alheio', fixo: false })).id;
   const postos: Posto[] = await (await api.pedir('admin', 'GET', '/api/postos')).json();
   const equipe = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });

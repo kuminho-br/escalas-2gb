@@ -30,7 +30,8 @@ beforeAll(async () => {
   await inserir(banco, 'servico', { unidade_id: u2, nome: 'PRONTO', tipo: 'ordinario', cor: '#336699' });
   await inserir(banco, 'escala', { unidade_id: u1, nome: 'Ordinario', titulo: 'T', militares_doc: 'todos', dias_doc: 'todos' });
   await inserir(banco, 'funcao', { unidade_id: u1, nome: 'Motorista' });
-  await inserir(banco, 'equipe', { unidade_id: u1, nome: 'ALFA', ordem_ciclo: 1 });
+  // posição 5: a equipe de posição 1 a 4 some na 0054 (o rastreio dela vai para a padrão da corporação); a que sobra fica, desativada, e o índice do nome continua valendo para ela
+  await inserir(banco, 'equipe', { unidade_id: u1, nome: 'ALFA', ordem_ciclo: 5 });
   await migrar(banco);
 });
 afterAll(async () => {
@@ -41,7 +42,7 @@ describe('migração 0038: nome único sem caixa', () => {
   it('escala, função e equipe sem repetição ganham o índice: o mesmo nome com outra caixa é recusado (23505)', async () => {
     await expect(duplicar("insert into escala (unidade_id, nome, titulo, militares_doc, dias_doc) values ($1, 'ORDINARIO', 'T', 'todos', 'todos')", [u1])).rejects.toMatchObject({ code: '23505' });
     await expect(duplicar("insert into funcao (unidade_id, nome) values ($1, 'motorista')", [u1])).rejects.toMatchObject({ code: '23505' });
-    await expect(duplicar("insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, 'alfa', 9)", [u1])).rejects.toMatchObject({ code: '23505' });
+    await expect(duplicar("insert into equipe (unidade_id, nome, tipo) values ($1, 'alfa', 'adm')", [u1])).rejects.toMatchObject({ code: '23505' });
   });
 
   it('unidades diferentes podem repetir o nome', async () => {

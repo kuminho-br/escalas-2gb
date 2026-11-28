@@ -1,7 +1,7 @@
 // Pré-escala (entrega 3.1; 6.40): a equipe do dia 1, a prévia do que entra e as alocações que a gravação criaria. Só os turnos do Pronto (sem guarnição) e o expediente do Adm.
 // O banco é traduzido para o que o motor recebe (matrícula = id do militar, equipe = nome do ciclo ALFA…DELTA pela ordem do ciclo).
 import { mesParaData, type PreviaDaPreEscala } from 'contratos';
-import { CICLO_EQUIPES, detectarEquipeInicial, diaDaSemana, diasDoMes, equipeDoDia, intervaloDoTurno, mesAnterior, mesVizinho, normalizar, PRE_ESCALA, type Militar } from 'dominio';
+import { CICLO_EQUIPES, rotuloDoCiclo, detectarEquipeInicial, diaDaSemana, diasDoMes, equipeDoDia, intervaloDoTurno, mesAnterior, mesVizinho, normalizar, PRE_ESCALA, type Militar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { avaliarFaixa, porAntiguidade, type Avaliado } from './elegibilidade.ts';
@@ -17,15 +17,19 @@ export class PreEscalaInvalida extends Error {}
 
 type EquipeDoCiclo = { id: string; nome: string; ordem: number };
 
-/** As equipes do ciclo da seção (ordem do ciclo de 1 a 4, como ALFA, BRAVO, CHARLIE e DELTA do motor). */
+/**
+ * As equipes do ciclo que a seção vê (6.64): as do tipo Pronto, de qualquer nível visível a ela (as padrão são da corporação), na posição de 1 a 4. O motor usa a posição, nunca o
+ * nome cadastrado: renomear a equipe 1 não muda o cálculo.
+ */
 async function equipesDoCiclo(c: Consulta, unidadeId: string): Promise<EquipeDoCiclo[]> {
-  const { rows } = await c.query<{ id: string; nome: string; ordem_ciclo: number }>(
-    'select id, nome, ordem_ciclo from equipe where unidade_id = $1 and ordem_ciclo between 1 and $2 order by ordem_ciclo',
+  const { rows } = await c.query<{ id: string; nome: string; posicao_ciclo: number }>(
+    `select e.id, e.nome, e.posicao_ciclo from equipe e join unidade un on un.id = e.unidade_id join unidade alvo on alvo.id = $1
+      where un.caminho @> alvo.caminho and e.tipo = 'pronto' and e.posicao_ciclo between 1 and $2 order by e.posicao_ciclo`,
     [unidadeId, CICLO_EQUIPES.length],
   );
-  return rows.map((e) => ({ id: e.id, nome: e.nome, ordem: e.ordem_ciclo }));
+  return rows.map((e) => ({ id: e.id, nome: e.nome, ordem: e.posicao_ciclo }));
 }
-const cicloDaEquipe = (e: EquipeDoCiclo) => CICLO_EQUIPES[e.ordem - 1]!;
+const cicloDaEquipe = (e: EquipeDoCiclo) => rotuloDoCiclo(e.ordem);
 
 /** A equipe que trabalha no dia 1 do mês, descoberta pelo Pronto turno A dos últimos dias do mês anterior; sem saber, `equipeId` nulo e o motivo. */
 export async function equipeDoDia1(c: Consulta, unidadeId: string, mes: string): Promise<{ equipeId: string | null; motivo: string }> {
@@ -70,7 +74,7 @@ async function equipeJaNoMes(c: Consulta, unidadeId: string, mes: string, equipe
     const e = equipes.find((x) => x.id === r.equipe_id);
     if (!e) continue;
     const n = CICLO_EQUIPES.length;
-    const doDia1 = CICLO_EQUIPES[(((e.ordem - 1 - (r.dia - 1)) % n) + n) % n]!;
+    const doDia1 = rotuloDoCiclo((((e.ordem - 1 - (r.dia - 1)) % n) + n) % n + 1);
     votos.set(doDia1, (votos.get(doDia1) ?? 0) + 1);
   }
   const ordem = [...votos.entries()].sort((a, b) => b[1] - a[1]);

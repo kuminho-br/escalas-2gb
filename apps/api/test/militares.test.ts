@@ -2,7 +2,7 @@ import { hashPassword } from 'better-auth/crypto';
 import { somarMeses, type FichaMilitar, type LinhaMilitar, type ListaDoPeculio, type Posto } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 import { criarMilitar, entrarComo, montarApi, URL_BASE, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
 let api: ApiDeTeste;
@@ -34,7 +34,7 @@ beforeAll(async () => {
   const tipos = (await api.banco.query<{ id: string; nome: string }>('select id, nome from tipo_afastamento')).rows;
   ferias = tipos.find((t) => t.nome === 'Férias')!.id;
   lts = tipos.find((t) => t.nome === 'LTS')!.id;
-  alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
+  alfa = await equipePadrao(api.banco, 'Alfa');
   // a 2ª SB vem da migração 0023 (as sete seções do 2º GB)
   outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
 });
@@ -47,7 +47,11 @@ describe('cadastro de militares', () => {
     const postos: Posto[] = await (await api.pedir('gestorGb', 'GET', '/api/postos')).json();
     expect(postos[0]!.sigla).toBe('SD');
     const equipes = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/equipes`)).json();
-    expect(equipes).toEqual([{ id: alfa, nome: 'Alfa', ordemCiclo: 1 }]);
+    // 6.64: as equipes são as da corporação, que a seção herda: as quatro do Pronto pela posição, a ADM e a Externa
+    expect(equipes.map((e: { nome: string; tipo: string; posicaoCiclo: number | null; herdada: boolean }) => [e.nome, e.tipo, e.posicaoCiclo, e.herdada])).toEqual([
+      ['Alfa', 'pronto', 1, true], ['Bravo', 'pronto', 2, true], ['Charlie', 'pronto', 3, true], ['Delta', 'pronto', 4, true], ['ADM', 'adm', null, true], ['Externa', 'externa', null, true],
+    ]);
+    expect(equipes[0]).toMatchObject({ id: alfa });
   });
 
   it('cria militar com a primeira lotação', async () => {
@@ -105,7 +109,7 @@ describe('alterar situação (rastreio)', () => {
   const situacao = (id: string, corpo: Record<string, unknown>, papel: Parameters<ApiDeTeste['pedir']>[0] = 'gestorGb') => api.pedir(papel, 'POST', `/api/militares/${id}/situacao`, corpo);
   const ultimoDiaDoMes = (mes: string) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
   beforeAll(async () => {
-    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', tipo: 'pronto', posicao_ciclo: 2 });
+    bravo = await equipePadrao(api.banco, 'Bravo');
     equipeDeOutra = await inserir(api.banco, 'equipe', { unidade_id: outraSecao, nome: 'Alfa', tipo: 'pronto', posicao_ciclo: 1 });
   });
 
@@ -850,7 +854,7 @@ describe('a ficha da escala: o que a SB edita (6.32)', () => {
 
   it('Review Focus 2: o militar sem lotação (recém-criado): o administrador continua alterando a equipe e a situação dele', async () => {
     const id = await inserir(api.banco, 'militar', { matricula: '990632-4', posto_grad_id: sd, nome_guerra: 'SEMLOT', nome_completo: 'Sem Lotação Fictício' });
-    const r = await api.pedir('admin', 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${atual}-01` });
+    const r = await api.pedir('admin', 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'adm', desde: `${atual}-01` });
     expect([200, 201]).toContain(r.status);
     expect(await ficha(id)).toMatchObject({ equipe: 'Bravo-632' });
   });
@@ -900,5 +904,53 @@ describe('RG funcional nos dados pessoais (6.36)', () => {
       expect(Object.keys((await r.json()).campos), valor).toContain('rgFuncional');
     }
     expect((await ficha(m.id)).rgFuncional).toBeNull();
+  });
+});
+
+describe('a equipe e a jornada combinam (6.64)', () => {
+  const situacao = (id: string, corpo: Record<string, unknown>) => api.pedir('gestorGb', 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, desde: `${atual}-01`, ...corpo });
+
+  it('Pronto com a equipe do ADM é 400 no campo equipeId, com a frase fixa; ADM com a equipe do Pronto também', async () => {
+    const m = await criar('990640-1');
+    const adm = await equipePadrao(api.banco, 'ADM');
+    const pronto = await situacao(m.id, { equipeId: adm, jornada: 'pronto' });
+    expect(pronto.status).toBe(400);
+    const corpoPronto = await pronto.json();
+    expect(corpoPronto.erro).toBe('A equipe do ADM só vale para quem é do ADM.');
+    expect(corpoPronto.campos).toEqual({ equipeId: 'A equipe do ADM só vale para quem é do ADM.' });
+    const doAdm = await situacao(m.id, { equipeId: alfa, jornada: 'adm' });
+    expect(doAdm.status).toBe(400);
+    expect((await doAdm.json()).erro).toBe('A equipe do Pronto só vale para quem é do Pronto.');
+    expect(await ficha(m.id)).toMatchObject({ equipe: 'Alfa', jornada: 'pronto' });
+  });
+
+  it('a Externa nunca vai para a ficha, e a desativada não entra; ADM sem equipe é aceito (a equipe é opcional no ADM)', async () => {
+    const m = await criar('990640-2');
+    const externa = await equipePadrao(api.banco, 'Externa');
+    const r = await situacao(m.id, { equipeId: externa, jornada: 'pronto' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('A Externa só se põe pelo botão Trazer.');
+    const velha = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Velha 640', tipo: 'adm', ativa: false });
+    const d = await situacao(m.id, { equipeId: velha, jornada: 'adm' });
+    expect(d.status).toBe(400);
+    expect((await d.json()).erro).toBe('Esta equipe está desativada.');
+    const semEquipe = await situacao(m.id, { equipeId: null, jornada: 'adm' });
+    expect([200, 201]).toContain(semEquipe.status);
+    expect(await ficha(m.id)).toMatchObject({ equipe: null, jornada: 'adm' });
+    // e a equipe do ADM, essa vale
+    const comEquipe = await situacao(m.id, { equipeId: await equipePadrao(api.banco, 'ADM'), jornada: 'adm' });
+    expect([200, 201]).toContain(comEquipe.status);
+    expect(await ficha(m.id)).toMatchObject({ equipe: 'ADM', jornada: 'adm' });
+  });
+
+  it('uma equipe de unidade irmã é 400 ("Escolha uma equipe da unidade da lotação."); a de cima vale', async () => {
+    const m = await criar('990640-3');
+    const deIrma = await inserir(api.banco, 'equipe', { unidade_id: outraSecao, nome: 'Irmã 640', tipo: 'adm' });
+    const r = await situacao(m.id, { equipeId: deIrma, jornada: 'adm' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('Escolha uma equipe da unidade da lotação.');
+    const deCima = await inserir(api.banco, 'equipe', { unidade_id: api.ids.gb, nome: 'Plantão 640', tipo: 'adm' });
+    const ok = await situacao(m.id, { equipeId: deCima, jornada: 'adm' });
+    expect([200, 201]).toContain(ok.status);
   });
 });

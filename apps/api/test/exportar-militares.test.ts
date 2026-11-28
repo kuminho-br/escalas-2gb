@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife, somarDias } from '../src/datas.ts';
 import { COLUNAS } from '../src/importacao/peculio.ts';
-import { inserir } from './banco-teste.ts';
+import { equipePadrao, inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste, type Quem } from './apoio-api.ts';
 import { formulario } from './planilha-teste.ts';
 
@@ -236,5 +236,20 @@ describe('a sigla que se repete na corporação', () => {
     expect(previa.ignoradas).toEqual([]);
     expect(previa.alterados).toEqual([]);
     expect(previa.iguais).toBe(1);
+  });
+});
+
+describe('a equipe na planilha (6.64)', () => {
+  it('a coluna EQUIPE escreve o nome cadastrado, inclusive depois de renomear a equipe', async () => {
+    const alfa = await equipePadrao(api.banco, 'Alfa');
+    const id = await militar('RENOMEADA', sb1, { jornada: 'pronto', equipe: alfa });
+    const linhaDele = async () => (await lerArquivo(await exportar('admin', { ids: [id], colunas: TODAS }))).linhas[0]!;
+    expect((await linhaDele())['EQUIPE']).toBe('Alfa');
+    await api.banco.query("update equipe set nome = 'Equipe 1' where id = $1", [alfa]);
+    try {
+      expect((await linhaDele())['EQUIPE']).toBe('Equipe 1');
+    } finally {
+      await api.banco.query("update equipe set nome = 'Alfa' where id = $1", [alfa]);
+    }
   });
 });

@@ -1,7 +1,7 @@
 // O cadastro das equipes (6.64): as padrão são da corporação e as unidades as herdam, como os feriados (a unidade vê as da corporação, as das unidades acima e as suas).
 // O gestor cria (só do tipo ADM), renomeia e exclui as da própria unidade; as herdadas, só quem as criou. As quatro do Pronto e a Externa são as padrão, criadas pela migração.
 import { EdicaoDeEquipe, NovaEquipe, type Equipe, type ResultadoDaExclusaoDeEquipe } from 'contratos';
-import { normalizar } from 'dominio';
+import { conferirEquipeEJornada, normalizar } from 'dominio';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, GESTAO, papeisVigentes, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -22,6 +22,22 @@ const ORDEM = `order by case e.tipo when 'pronto' then 0 when 'adm' then 1 else 
 /** As equipes que a unidade vê (as da corporação, as das unidades acima e as suas), ativas e desativadas, na ordem da tela. `herdada`: não é da unidade pedida. */
 export async function equipesVisiveis(c: Consulta, unidadeId: string): Promise<Equipe[]> {
   return (await c.query<Equipe>(`${SELECT} where un.caminho @> alvo.caminho ${ORDEM}`, [unidadeId])).rows;
+}
+
+/**
+ * A recusa de pôr esta equipe no rastreio (a ficha, a edição do período, o lote): a equipe precisa ser da unidade da lotação ou de uma acima, estar ativa e combinar com a jornada
+ * (`conferirEquipeEJornada`). `null` quando pode.
+ */
+export async function recusaDaEquipeNoRastreio(c: Consulta, equipeId: string, unidadeId: string, jornada: 'pronto' | 'adm'): Promise<string | null> {
+  const e = (
+    await c.query<{ tipo: 'pronto' | 'adm' | 'externa'; ativa: boolean }>(
+      'select e.tipo, e.ativa from equipe e join unidade un on un.id = e.unidade_id join unidade alvo on alvo.id = $2 where e.id = $1 and un.caminho @> alvo.caminho',
+      [equipeId, unidadeId],
+    )
+  ).rows[0];
+  if (!e) return 'Escolha uma equipe da unidade da lotação.';
+  if (!e.ativa) return 'Esta equipe está desativada.';
+  return conferirEquipeEJornada(e.tipo, jornada);
 }
 
 async function equipeVista(c: Consulta, unidadeId: string, id: string): Promise<Equipe> {
